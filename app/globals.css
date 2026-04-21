@@ -1,26 +1,79 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #030712;
+  color: #ffffff;
+  font-family: var(--font-body), sans-serif;
+  overflow-x: hidden;
+}
+
+/* ── Gradient text ── */
+.gradient-text {
+  background: linear-gradient(90deg, #4ade80, #22d3ee, #60a5fa, #4ade80);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 5s ease infinite;
+}
+
+/* ── Aurora blobs ── */
+.aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+}
+
+/* ── Spinning border wrapper ── */
+.border-spin-inner {
+  animation: spin-slow 5s linear infinite;
+}
+
+/* ── Shake on error ── */
+.shake {
+  animation: shake 0.45s ease;
+}
+
+/* ── Animations ── */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes aurora-a {
+  0%, 100% { transform: translate(0%, 0%) scale(1);    opacity: 0.55; }
+  33%       { transform: translate(8%, -12%) scale(1.1); opacity: 0.75; }
+  66%       { transform: translate(-6%, 8%) scale(0.95); opacity: 0.45; }
+}
+
+@keyframes aurora-b {
+  0%, 100% { transform: translate(0%, 0%) scale(1);     opacity: 0.4; }
+  33%       { transform: translate(-12%, 8%) scale(1.15); opacity: 0.6; }
+  66%       { transform: translate(8%, -8%) scale(0.9);  opacity: 0.3; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15%      { transform: translateX(-8px); }
+  30%      { transform: translateX(8px); }
+  45%      { transform: translateX(-5px); }
+  60%      { transform: translateX(5px); }
+  75%      { transform: translateX(-2px); }
+  90%      { transform: translateX(2px); }
+}
+
+@keyframes idle-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
 }
