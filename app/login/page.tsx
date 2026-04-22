@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   motion,
   useMotionValue,
-  useTransform,
   useMotionTemplate,
   AnimatePresence,
 } from "framer-motion";
@@ -108,7 +107,7 @@ function FloatingInput({
         onBlur={() => setFocused(false)}
         placeholder={label}
         required
-        className="w-full rounded-xl px-4 pt-6 pb-2 text-sm text-white outline-none placeholder-transparent"
+        className="w-full rounded-2xl px-[clamp(1rem,1.5vw,1.5rem)] pt-[clamp(1.5rem,2vw,2rem)] pb-[clamp(0.75rem,1vw,1rem)] text-[clamp(1rem,1.1vw,1.125rem)] text-white outline-none placeholder-transparent"
         style={{
           background: "rgba(255,255,255,0.04)",
           border: `1px solid ${focused ? "rgba(74,222,128,0.5)" : "rgba(255,255,255,0.07)"}`,
@@ -116,17 +115,17 @@ function FloatingInput({
             ? "0 0 24px rgba(74,222,128,0.1), inset 0 0 16px rgba(74,222,128,0.03)"
             : "none",
           transition: "border-color 0.25s, box-shadow 0.25s",
-          paddingRight: right ? "44px" : "16px",
+          paddingRight: right ? "50px" : "24px",
           fontFamily: "var(--font-body)",
         }}
       />
       <label
         style={{
           position: "absolute",
-          left: "16px",
-          top: active ? "8px" : "50%",
+          left: "24px",
+          top: active ? "12px" : "50%",
           transform: active ? "none" : "translateY(-50%)",
-          fontSize: active ? "9px" : "13px",
+          fontSize: active ? "11px" : "16px",
           color: active ? (focused ? "#4ade80" : "#52525b") : "#52525b",
           letterSpacing: active ? "0.12em" : "0",
           textTransform: active ? "uppercase" : "none",
@@ -138,7 +137,7 @@ function FloatingInput({
         {label}
       </label>
       {right && (
-        <div className="absolute right-3 top-1/2 -translate-y-1/2">{right}</div>
+        <div className="absolute right-5 top-1/2 -translate-y-1/2">{right}</div>
       )}
     </div>
   );
@@ -153,15 +152,9 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [shaking, setShaking] = useState(false);
 
-  const cardRef = useRef<HTMLDivElement>(null);
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   const lightBg = useMotionTemplate`radial-gradient(650px circle at ${mouseX}px ${mouseY}px, rgba(34,197,94,0.05), transparent 55%)`;
-
-  const cardMX = useMotionValue(0);
-  const cardMY = useMotionValue(0);
-  const rotateX = useTransform(cardMY, [-160, 160], [7, -7]);
-  const rotateY = useTransform(cardMX, [-160, 160], [-7, 7]);
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -171,13 +164,6 @@ export default function LoginPage() {
     window.addEventListener("mousemove", onMove);
     return () => window.removeEventListener("mousemove", onMove);
   }, [mouseX, mouseY]);
-
-  const onCardMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const r = cardRef.current?.getBoundingClientRect();
-    if (!r) return;
-    cardMX.set(e.clientX - (r.left + r.width / 2));
-    cardMY.set(e.clientY - (r.top + r.height / 2));
-  };
 
   const triggerError = (msg: string) => {
     setError(msg);
@@ -199,7 +185,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex overflow-hidden relative bg-[#030712]">
+    <main className="min-h-screen flex flex-col lg:flex-row overflow-hidden relative bg-[#030712]">
 
       {/* Particles */}
       <ParticleCanvas />
@@ -207,7 +193,7 @@ export default function LoginPage() {
       {/* Mouse light */}
       <motion.div className="fixed inset-0 pointer-events-none z-0" style={{ background: lightBg }} />
 
-      {/* Aurora */}
+      {/* Aurora Background */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="aurora-blob w-175 h-175 bg-green-500/20"
           style={{ top: "-15%", left: "-10%", animation: "aurora-a 14s ease-in-out infinite" }} />
@@ -218,120 +204,108 @@ export default function LoginPage() {
       </div>
 
       {/* ── LEFT – branding ── */}
-      <div className="hidden lg:flex flex-col justify-center px-20 w-[52%] relative z-10">
-        <motion.div
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-        >
+      {/* 1. Ändrat padding: lagt till pl-[clamp(2rem,8vw,8rem)] för att styra offsetten från vänsterkanten mjukt */}
+      <div className="hidden lg:flex flex-col justify-center w-full lg:w-1/2 relative z-10 min-h-screen pr-8 pl-[clamp(2rem,8vw,24rem)]">
+        {/* 2. Tagit bort ml-auto och mr-... så att den lägger sig snyggt till vänster inom sin halva */}
+        <div className="w-full max-w-[clamp(400px,35vw,600px)]">
           <motion.div
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
           >
-            <Sprout className="text-green-400 w-12 h-12 mb-6" />
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <Sprout className="text-green-400 mb-8 w-[clamp(4rem,7vw,8rem)] h-[clamp(4rem,7vw,8rem)]" />
+            </motion.div>
+
+            <h1
+              className="gradient-text leading-none mb-6 text-[clamp(4rem,8vw,8.5rem)]"
+              style={{
+                fontFamily: "var(--font-display)",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              ECO<br />TRACKER
+            </h1>
+
+            <p
+              className="text-zinc-300 mb-16 text-[clamp(1rem,1.2vw,1.5rem)] whitespace-nowrap"
+              style={{
+                letterSpacing: "0.35em",
+                textTransform: "uppercase",
+                fontFamily: "var(--font-body)",
+              }}
+            >
+              Track your habits. Help the planet.
+            </p>
+
+            <div className="flex flex-wrap gap-[clamp(1.5rem,3vw,3.5rem)]">
+              {[
+                { val: "0 kg", label: "CO₂ saved today" },
+                { val: "0", label: "Habits logged" },
+                { val: "0", label: "Day streak" },
+              ].map((s) => (
+                <div key={s.label}>
+                  <div
+                    className="font-bold text-green-400 text-[clamp(1.5rem,2.5vw,2.5rem)]"
+                    style={{ fontFamily: "var(--font-display)", letterSpacing: "0.05em" }}
+                  >
+                    {s.val}
+                  </div>
+                  <div className="text-zinc-300 tracking-widest uppercase mt-2 text-[clamp(0.7rem,0.9vw,1rem)]">
+                    {s.label}
+                  </div>
+                </div>
+              ))}
+            </div>
           </motion.div>
-
-          <h1
-            className="gradient-text leading-none mb-4"
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "clamp(72px, 9vw, 128px)",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            ECO<br />TRACKER
-          </h1>
-
-          <p
-            className="text-zinc-500 text-xs mb-14"
-            style={{
-              letterSpacing: "0.35em",
-              textTransform: "uppercase",
-              fontFamily: "var(--font-body)",
-            }}
-          >
-            Track your habits. Help the planet.
-          </p>
-
-          {/* Impact stats */}
-          <div className="flex gap-10">
-            {[
-              { val: "0 kg", label: "CO₂ saved today" },
-              { val: "0", label: "Habits logged" },
-              { val: "0", label: "Day streak" },
-            ].map((s) => (
-              <div key={s.label}>
-                <div
-                  className="text-2xl font-bold text-green-400"
-                  style={{ fontFamily: "var(--font-display)", letterSpacing: "0.05em" }}
-                >
-                  {s.val}
-                </div>
-                <div className="text-[10px] text-zinc-600 tracking-widest uppercase mt-1">
-                  {s.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* ── RIGHT – login card ── */}
-      <div className="flex items-center justify-center w-full lg:w-[48%] px-6 lg:px-12 py-16 relative z-10 min-h-screen">
-        <div className="w-full max-w-90">
+      <div className="flex items-center justify-center w-full lg:w-1/2 px-4 sm:px-8 py-16 relative z-10 min-h-screen">
+        <div className="w-full flex flex-col items-center">
 
           {/* Mobile logo */}
           <motion.div
-            className="lg:hidden text-center mb-10"
+            className="lg:hidden text-center mb-10 w-full"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
+            <div className="flex justify-center mb-4">
+               {/* Mobil-loggan skalar också mjukt nu */}
+               <Sprout className="text-green-400 w-[clamp(4rem,10vw,6rem)] h-[clamp(4rem,10vw,6rem)]" />
+            </div>
+            {/* Rubriken bryts inte fult på små mobiler */}
             <h1
-              className="gradient-text leading-none"
-              style={{ fontFamily: "var(--font-display)", fontSize: "64px" }}
+              className="gradient-text leading-none text-[clamp(3.5rem,12vw,5rem)]"
+              style={{ fontFamily: "var(--font-display)" }}
             >
               ECO TRACKER
             </h1>
           </motion.div>
 
-          {/* Gradient border card */}
           <motion.div
-            ref={cardRef}
-            onMouseMove={onCardMove}
-            onMouseLeave={() => { cardMX.set(0); cardMY.set(0); }}
-            style={{ rotateX, rotateY, transformPerspective: 900 }}
             initial={{ opacity: 0, y: 36 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-            className="relative"
+            className="w-full max-w-[clamp(340px,35vw,650px)]"
           >
-            {/* Spinning border */}
-            <div className="absolute -inset-px rounded-2xl overflow-hidden z-0">
-              <div
-                className="border-spin-inner absolute"
-                style={{
-                  inset: "-100%",
-                  background: "conic-gradient(from 0deg, transparent 0deg, #4ade80 60deg, #22d3ee 120deg, #60a5fa 180deg, transparent 240deg)",
-                  opacity: 0.6,
-                }}
-              />
-            </div>
-
-            {/* Card */}
             <div
-              className={`relative z-10 rounded-2xl p-8 ${shaking ? "shake" : ""}`}
+              className={`relative z-10 rounded-3xl p-[clamp(2rem,4vw,4rem)] w-full ${shaking ? "shake" : ""}`}
               style={{
-                background: "rgba(255,255,255,0.03)",
-                backdropFilter: "blur(24px)",
-                WebkitBackdropFilter: "blur(24px)",
-                border: "1px solid rgba(255,255,255,0.07)",
+                background: "linear-gradient(145deg, #0f172a 0%, #064e3b 100%)",
+                border: "1px solid rgba(255, 255, 255, 0.05)",
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)",
               }}
             >
               {/* Progress bar */}
-              <div className="flex gap-2 mb-8">
+              <div className="flex gap-2 mb-10">
                 {[0, 1].map((s) => (
-                  <div key={s} className="h-0.5 flex-1 rounded-full overflow-hidden bg-white/10">
+                  <div key={s} className="h-2 flex-1 rounded-full overflow-hidden bg-white/10">
                     <motion.div
                       className="h-full"
                       style={{ background: "linear-gradient(90deg, #4ade80, #22d3ee)" }}
@@ -352,19 +326,19 @@ export default function LoginPage() {
                     exit={{ opacity: 0, x: -24 }}
                     transition={{ duration: 0.28 }}
                   >
-                    <p className="text-[10px] text-zinc-600 tracking-[0.2em] uppercase mb-2"
+                    <p className="text-zinc-300 tracking-[0.2em] uppercase mb-4 text-[clamp(0.8rem,1vw,1rem)]"
                       style={{ fontFamily: "var(--font-body)" }}>
                       Step 1 of 2
                     </p>
                     <h2
-                      className="text-white mb-1 leading-none"
-                      style={{ fontFamily: "var(--font-display)", fontSize: "36px", letterSpacing: "0.05em" }}
+                      className="text-white mb-4 leading-none text-[clamp(2.5rem,4vw,4rem)]"
+                      style={{ fontFamily: "var(--font-display)", letterSpacing: "0.05em" }}
                     >
                       WELCOME BACK
                     </h2>
-                    <p className="text-zinc-600 text-xs mb-8">Enter your email to continue</p>
+                    <p className="text-zinc-300 mb-10 text-[clamp(1rem,1.1vw,1.125rem)]">Enter your email to continue</p>
 
-                    <form onSubmit={onEmailSubmit} className="space-y-4">
+                    <form onSubmit={onEmailSubmit} className="space-y-6">
                       <FloatingInput
                         label="Email address"
                         type="email"
@@ -379,7 +353,7 @@ export default function LoginPage() {
                             initial={{ opacity: 0, y: -6 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0 }}
-                            className="text-red-400 text-xs"
+                            className="text-red-400 text-sm"
                           >
                             {error}
                           </motion.p>
@@ -387,7 +361,8 @@ export default function LoginPage() {
                       </AnimatePresence>
                       <motion.button
                         type="submit"
-                        className="w-full py-4 rounded-xl font-semibold text-sm text-black flex items-center justify-center gap-2"
+                        /* Förbättrad klickyta på knappar py-[clamp(1.2rem...)] */
+                        className="w-full rounded-2xl font-semibold text-black flex items-center justify-center gap-3 py-[clamp(1.2rem,1.5vw,1.5rem)] text-[clamp(1rem,1.1vw,1.125rem)]"
                         style={{
                           background: "linear-gradient(135deg, #4ade80 0%, #22d3ee 100%)",
                           fontFamily: "var(--font-body)",
@@ -395,7 +370,7 @@ export default function LoginPage() {
                         whileHover={{ scale: 1.02, boxShadow: "0 0 32px rgba(74,222,128,0.35)" }}
                         whileTap={{ scale: 0.97 }}
                       >
-                        Continue <ArrowRight size={15} />
+                        Continue <ArrowRight size={22} />
                       </motion.button>
                     </form>
                   </motion.div>
@@ -407,21 +382,21 @@ export default function LoginPage() {
                     exit={{ opacity: 0, x: -24 }}
                     transition={{ duration: 0.28 }}
                   >
-                    <p className="text-[10px] text-zinc-600 tracking-[0.2em] uppercase mb-2"
+                    <p className="text-zinc-300 tracking-[0.2em] uppercase mb-4 text-[clamp(0.8rem,1vw,1rem)]"
                       style={{ fontFamily: "var(--font-body)" }}>
                       Step 2 of 2
                     </p>
                     <h2
-                      className="text-white mb-1 leading-none"
-                      style={{ fontFamily: "var(--font-display)", fontSize: "36px", letterSpacing: "0.05em" }}
+                      className="text-white mb-4 leading-none text-[clamp(2.5rem,4vw,4rem)]"
+                      style={{ fontFamily: "var(--font-display)", letterSpacing: "0.05em" }}
                     >
                       SIGN IN
                     </h2>
-                    <p className="text-zinc-600 text-xs mb-8">
+                    <p className="text-zinc-300 mb-10 text-[clamp(1rem,1.1vw,1.125rem)]">
                       <span className="text-green-400">{email}</span>
                     </p>
 
-                    <form onSubmit={onLoginSubmit} className="space-y-4">
+                    <form onSubmit={onLoginSubmit} className="space-y-6">
                       <FloatingInput
                         label="Password"
                         type={showPw ? "text" : "password"}
@@ -432,9 +407,9 @@ export default function LoginPage() {
                           <button
                             type="button"
                             onClick={() => setShowPw(!showPw)}
-                            className="text-zinc-600 hover:text-green-400 transition-colors"
+                            className="text-zinc-400 hover:text-green-400 transition-colors"
                           >
-                            {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                            {showPw ? <EyeOff size={22} /> : <Eye size={22} />}
                           </button>
                         }
                       />
@@ -445,7 +420,7 @@ export default function LoginPage() {
                             initial={{ opacity: 0, y: -6 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0 }}
-                            className="text-red-400 text-xs"
+                            className="text-red-400 text-sm"
                           >
                             {error}
                           </motion.p>
@@ -453,7 +428,8 @@ export default function LoginPage() {
                       </AnimatePresence>
                       <motion.button
                         type="submit"
-                        className="w-full py-4 rounded-xl font-semibold text-sm text-black"
+                        /* Förbättrad klickyta py-[clamp(1.2rem...)] */
+                        className="w-full rounded-2xl font-semibold text-black py-[clamp(1.2rem,1.5vw,1.5rem)] text-[clamp(1rem,1.1vw,1.125rem)]"
                         style={{
                           background: "linear-gradient(135deg, #4ade80 0%, #22d3ee 100%)",
                           fontFamily: "var(--font-body)",
@@ -466,7 +442,7 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={() => { setStep(0); setError(""); }}
-                        className="w-full text-center text-xs text-zinc-700 hover:text-zinc-400 transition-colors pt-1"
+                        className="w-full text-center text-zinc-400 hover:text-zinc-200 transition-colors pt-3 text-[clamp(0.9rem,1vw,1rem)]"
                       >
                         ← Different email
                       </button>
@@ -475,7 +451,7 @@ export default function LoginPage() {
                 )}
               </AnimatePresence>
 
-              <p className="text-center text-zinc-700 text-xs mt-8">
+              <p className="text-center text-zinc-400 mt-12 text-[clamp(0.9rem,1vw,1rem)]">
                 No account?{" "}
                 <Link href="/register" className="text-green-400 hover:text-green-300 transition-colors">
                   Create one free
