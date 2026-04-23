@@ -1,6 +1,6 @@
 "use client";
 
-import { handleLogin, handleSignUp } from "@/app/lib/auth-actions";
+import { handleLogin } from "@/app/lib/auth-actions";
 import { useRouter } from "next/navigation";
 
 import { useState, useEffect, useRef } from "react";
@@ -195,9 +195,10 @@ export default function LoginPage() {
       //Om det lyckas, skicka användaren till dashboarden
       router.push("/dashboard"); 
   
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Om det blir fel (t.ex. fel lösenord), visa det i deras UI
-      triggerError(err.message || "Invalid email or password");
+      const message = err instanceof Error ? err.message : "Invalid email or password";
+      triggerError(message);
     }
   };
 

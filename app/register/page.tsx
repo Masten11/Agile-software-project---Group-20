@@ -213,9 +213,10 @@ export default function RegisterPage() {
       // Om det lyckas, skicka användaren till dashboarden
       router.push("/dashboard");
   
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Om något går fel (t.ex. mejlen är upptagen), visa det i UI:t
-      triggerError(err.message || "Registration failed. Please try again.");
+      const errorMessage = err instanceof Error ? err.message : "Registration failed. Please try again.";
+      triggerError(errorMessage);
     }
   };
 
