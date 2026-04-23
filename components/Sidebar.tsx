@@ -64,34 +64,6 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* ── Mobile toggle button (fixed, always visible) ── */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="lg:hidden fixed top-4 left-4 z-50 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200"
-        style={{
-          background: "linear-gradient(135deg, rgba(74,222,128,0.15), rgba(34,211,238,0.15))",
-          border: "1px solid rgba(74,222,128,0.3)",
-          backdropFilter: "blur(12px)",
-        }}
-      >
-        {collapsed
-          ? <PanelLeftOpen size={18} className="text-green-400" />
-          : <PanelLeftClose size={18} className="text-green-400" />}
-      </button>
-
-      {/* ── Mobile overlay ── */}
-      <AnimatePresence>
-        {!collapsed && (
-          <motion.div
-            className="lg:hidden fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setCollapsed(true)}
-          />
-        )}
-      </AnimatePresence>
-
       {/* ── Sidebar ── */}
       <motion.aside
         animate={{
@@ -100,12 +72,10 @@ export default function Sidebar() {
         }}
         initial={false}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="shrink-0 flex flex-col h-screen sticky top-0 overflow-hidden z-40
-          max-lg:fixed max-lg:left-0 max-lg:top-0"
+        className="hidden lg:flex shrink-0 flex-col h-screen sticky top-0 overflow-hidden z-40"
         style={{
           background: "linear-gradient(180deg, #0f172a 0%, #052e16 100%)",
           borderRight: "1px solid rgba(255,255,255,0.06)",
-          transform: collapsed ? "translateX(-100%)" : "translateX(0)",
         }}
       >
         {/* Logo → links to dashboard */}
