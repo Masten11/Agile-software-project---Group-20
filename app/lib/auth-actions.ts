@@ -13,18 +13,22 @@ export const handleLogin = async (email: string, password: string) => {
   }
 
   return data;
-}; // <--- Se till att denna måsvinge finns och stänger funktionen!
+}; 
 
-// Funktion 2: SignUp
-export const handleSignUp = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
-};
+export const handleSignUp = async (email: string, password: string, firstName: string, lastName: string, username: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+       
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          username: username,
+        }
+      }
+    });
+  
+    if (error) throw error;
+    return data;
+  };
