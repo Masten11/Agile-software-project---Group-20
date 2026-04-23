@@ -3,8 +3,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
 import { Leaf, Zap, Car, TrendingUp, Flame, Calendar } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BottomNav from "@/components/BottomNav";
+import { supabase } from "@/utils/supabase";
 
 /* ── Circular Eco Score ── */
 function EcoScoreRing({ score }: { score: number }) {
@@ -224,16 +225,74 @@ function TipsCarousel() {
 }
 
 /* ── Main page ── */
+/* ── Main page ── */
 export default function DashboardPage() {
-  const ecoScore = 724;
-  const streak = 5;
+  const [loading, setLoading] = useState(true);
+  const [firstName, setFirstName] = useState("USER");
+  const [ecoScore, setEcoScore] = useState(1000); // Default perfect score
+  const [streak, setStreak] = useState(0);
+  const [loggedToday, setLoggedToday] = useState<string[]>([]);
+
+  useEffect(() => {
+    async function fetchPersonalData() {
+      // 1. Get the currently logged-in user
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        // 2. Fetch their real first name from the profiles table
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("first_name")
+          .eq("id", user.id)
+          .single();
+
+        if (profile?.first_name) {
+          setFirstName(profile.first_name.toUpperCase());
+        }
+
+        // 3. Fetch today's eco activities
+        const today = new Date().toISOString().split("T")[0]; // gets YYYY-MM-DD
+        const { data: activities } = await supabase
+          .from("eco_activities")
+          .select("category, co2_emissions_kg")
+          .eq("user_id", user.id)
+          .gte("activity_date", today); // Only activities from today
+
+        if (activities && activities.length > 0) {
+          // Find out which categories they logged today
+          const categories = activities.map((a) => a.category.toLowerCase());
+          setLoggedToday(categories);
+
+          // Calculate a dynamic Eco Score (Example logic: start at 1000, drop by 50 per kg of CO2)
+          const totalEmissions = activities.reduce((sum, act) => sum + Number(act.co2_emissions_kg || 0), 0);
+          const dynamicScore = Math.max(0, 1000 - (totalEmissions * 50));
+          setEcoScore(Math.round(dynamicScore));
+        }
+
+        // Hardcoding streak for now until you build a historical streak calculator
+        setStreak(1);
+      }
+      
+      setLoading(false);
+    }
+
+    fetchPersonalData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-[#030712] items-center justify-center">
+        <p className="text-green-400 font-mono animate-pulse">Loading personal data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-[#030712] overflow-hidden">
       <Sidebar />
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
+      <main className="flex-1 overflow-y-auto">
         <div className="max-w-5xl mx-auto px-6 py-10">
 
           {/* Header */}
@@ -244,9 +303,9 @@ export default function DashboardPage() {
             className="flex items-center justify-between mb-10"
           >
             <div>
-              <h1 className="text-white leading-none mb-1"
+              <h1 className="text-white leading-none mb-1 uppercase"
                 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px,3vw,40px)" }}>
-                GOOD MORNING, ABDULLAH
+                GOOD MORNING, {firstName}
               </h1>
               <p className="text-zinc-500 text-sm flex items-center gap-2"
                 style={{ fontFamily: "var(--font-body)" }}>
@@ -282,9 +341,9 @@ export default function DashboardPage() {
               <div className="flex gap-6 mt-6 pt-6 w-full"
                 style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                 {[
-                  { label: "Yesterday", val: "680" },
-                  { label: "Weekly avg", val: "701" },
-                  { label: "Best day", val: "912" },
+                  { label: "Yesterday", val: "—" }, // Can be made dynamic later
+                  { label: "Weekly avg", val: "—" },
+                  { label: "Best day", val: "—" },
                 ].map((s) => (
                   <div key={s.label} className="flex-1 text-center">
                     <p className="text-white text-base font-semibold"
@@ -309,13 +368,13 @@ export default function DashboardPage() {
                   Today&apos;s habits
                 </p>
                 <p className="text-zinc-600 text-xs" style={{ fontFamily: "var(--font-body)" }}>
-                  1 / 3 logged
+                  {loggedToday.length} / 3 logged
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-3">
-                <CategoryCard icon={Car} label="Transport" color="#22d3ee" logged={true} href="/dashboard/log" />
-                <CategoryCard icon={Leaf} label="Food" color="#4ade80" logged={false} href="/dashboard/log" />
-                <CategoryCard icon={Zap} label="Energy" color="#facc15" logged={false} href="/dashboard/log" />
+                <CategoryCard icon={Car} label="Transport" color="#22d3ee" logged={loggedToday.includes("transport")} href="/dashboard/log" />
+                <CategoryCard icon={Leaf} label="Food" color="#4ade80" logged={loggedToday.includes("food")} href="/dashboard/log" />
+                <CategoryCard icon={Zap} label="Energy" color="#facc15" logged={loggedToday.includes("energy")} href="/dashboard/log" />
               </div>
             </motion.div>
           </div>
@@ -334,7 +393,6 @@ export default function DashboardPage() {
           <TipsCarousel />
         </div>
       </main>
-      <BottomNav />
     </div>
   );
 }
