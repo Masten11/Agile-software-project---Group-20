@@ -10,6 +10,7 @@ import {
   AnimatePresence,
 } from "framer-motion";
 import { Eye, EyeOff, ArrowRight, Check, X } from "lucide-react";
+import { handleSignUp } from "@/app/lib/auth-actions";
 
 /* ─────────── Canvas particle system ─────────── */
 function ParticleCanvas() {
@@ -197,12 +198,25 @@ export default function RegisterPage() {
     setError(""); setStep(3);
   };
 
-  const onStep3 = (e: React.FormEvent) => {
+  const onStep3 = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (password.length < 8) return triggerError("Password must be at least 8 characters");
     if (password !== confirmPassword) return triggerError("Passwords do not match");
-    console.log("Register:", { email, firstName, lastName, username, password });
-    router.push("/dashboard");
+  
+    setError(""); // Rensa eventuella gamla fel
+  
+    try {
+      //anropar vi funktion (auth-action)
+      await handleSignUp(email, password, firstName, lastName, username);
+  
+      // Om det lyckas, skicka användaren till dashboarden
+      router.push("/dashboard");
+  
+    } catch (err: any) {
+      // Om något går fel (t.ex. mejlen är upptagen), visa det i UI:t
+      triggerError(err.message || "Registration failed. Please try again.");
+    }
   };
 
   const passwordsMatch = confirmPassword !== "" && password === confirmPassword;
