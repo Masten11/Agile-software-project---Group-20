@@ -292,7 +292,7 @@ export default function DashboardPage() {
       <Sidebar />
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
         <div className="max-w-5xl mx-auto px-6 py-10">
 
           {/* Header */}
@@ -393,6 +393,7 @@ export default function DashboardPage() {
           <TipsCarousel />
         </div>
       </main>
+      <BottomNav />
     </div>
   );
 }
