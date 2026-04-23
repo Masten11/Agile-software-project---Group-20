@@ -1,5 +1,8 @@
 "use client";
 
+import { handleLogin, handleSignUp } from "@/app/lib/auth-actions";
+import { useRouter } from "next/navigation";
+
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
@@ -145,6 +148,7 @@ function FloatingInput({
 
 /* ─────────── Main page ─────────── */
 export default function LoginPage() {
+  const router = useRouter();   //för att kunna komma vidare till dashboard
   const [step, setStep] = useState(0);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -178,10 +182,23 @@ export default function LoginPage() {
     setStep(1);
   };
 
-  const onLoginSubmit = (e: React.FormEvent) => {
+  const onLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    
     if (password.length < 6) return triggerError("Password must be at least 6 characters");
-    console.log("Login:", email, password);
+  
+    try {
+      //anropar auth_actions
+      await handleLogin(email, password);
+  
+      //Om det lyckas, skicka användaren till dashboarden
+      router.push("/dashboard"); 
+  
+    } catch (err: any) {
+      // Om det blir fel (t.ex. fel lösenord), visa det i deras UI
+      triggerError(err.message || "Invalid email or password");
+    }
   };
 
   return (
