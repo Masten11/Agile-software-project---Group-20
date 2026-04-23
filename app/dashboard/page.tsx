@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
 import { Leaf, Zap, Car, TrendingUp, Flame, Calendar } from "lucide-react";
 import { useState } from "react";
+import BottomNav from "@/components/BottomNav";
 
 /* ── Circular Eco Score ── */
 function EcoScoreRing({ score }: { score: number }) {
@@ -232,7 +233,7 @@ export default function DashboardPage() {
       <Sidebar />
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
         <div className="max-w-5xl mx-auto px-6 py-10">
 
           {/* Header */}
@@ -333,6 +334,7 @@ export default function DashboardPage() {
           <TipsCarousel />
         </div>
       </main>
+      <BottomNav />
     </div>
   );
 }
