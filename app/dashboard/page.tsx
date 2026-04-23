@@ -2,10 +2,11 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
-import { Leaf, Zap, Car, TrendingUp, Flame, Calendar } from "lucide-react";
+import { Leaf, Zap, Car, TrendingUp, Flame, Calendar, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/utils/supabase";
+
 
 /* ── Circular Eco Score ── */
 function EcoScoreRing({ score }: { score: number }) {
@@ -73,24 +74,32 @@ function CategoryCard({
   return (
     <motion.a
       href={href}
-      whileHover={{ scale: 1.03, y: -2 }}
+      whileHover={{ scale: 1.02, y: -1 }}
       whileTap={{ scale: 0.97 }}
-      className="flex flex-col gap-3 p-5 rounded-2xl cursor-pointer"
+      className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer group"
       style={{
-        background: "rgba(255,255,255,0.03)",
+        background: logged ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.03)",
         border: logged ? `1px solid ${color}44` : "1px solid rgba(255,255,255,0.06)",
       }}
     >
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
         style={{ background: `${color}18` }}>
         <Icon size={20} style={{ color }} />
       </div>
-      <div>
+      <div className="flex-1">
         <p className="text-white text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>{label}</p>
         <p className="text-xs mt-0.5" style={{ color: logged ? color : "#52525b", fontFamily: "var(--font-body)" }}>
           {logged ? "✓ Logged today" : "Not logged yet"}
         </p>
       </div>
+      {!logged && (
+  <div
+    className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 group-hover:bg-green-400/20"
+    style={{ border: "1px solid rgba(74,222,128,0.3)" }}
+  >
+    <Plus size={16} className="text-green-400" strokeWidth={2.5} />
+  </div>
+)}
     </motion.a>
   );
 }
@@ -125,6 +134,52 @@ function ChartPlaceholder({ label }: { label: string }) {
   );
 }
 
+function LogBanner({ loggedCount, href }: { loggedCount: number; href: string }) {
+  if (loggedCount >= 3) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.a
+        href={href}
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.4 }}
+        whileHover={{ scale: 1.01 }}
+        whileTap={{ scale: 0.99 }}
+        className="flex items-center justify-between gap-4 px-6 py-4 rounded-2xl cursor-pointer mb-6"
+        style={{
+          background: "linear-gradient(135deg, rgba(74,222,128,0.08) 0%, rgba(34,211,238,0.08) 100%)",
+          border: "1px solid rgba(74,222,128,0.2)",
+        }}
+      >
+        <div className="flex items-center gap-3">
+          {/* Pulsing dot */}
+          <div className="relative shrink-0">
+            <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+            <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-green-400 animate-ping opacity-60" />
+          </div>
+          <div>
+            <p className="text-white text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>
+              {loggedCount === 0
+                ? "You haven't logged any habits today"
+                : `${loggedCount}/3 habits logged — keep going!`}
+            </p>
+            <p className="text-zinc-500 text-xs mt-0.5" style={{ fontFamily: "var(--font-body)" }}>
+              Log your habits to update your Eco Score
+            </p>
+          </div>
+        </div>
+        <div
+          className="shrink-0 px-4 py-2 rounded-xl text-sm font-semibold text-black"
+          style={{ background: "linear-gradient(135deg, #4ade80, #22d3ee)" }}
+        >
+          Log now
+        </div>
+      </motion.a>
+    </AnimatePresence>
+  );
+}
 
 const TIPS = [
   { icon: "🥗", title: "Eat plant-based", tip: "Choosing a plant-based meal instead of beef saves up to 5 kg CO₂ — that's worth +500 points." },
@@ -321,6 +376,9 @@ export default function DashboardPage() {
               </span>
             </div>
           </motion.div>
+
+          {/* Log banner */}
+          <LogBanner loggedCount={loggedToday.length} href="/dashboard/log" />
 
           {/* Score + categories */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
