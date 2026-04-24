@@ -1,5 +1,5 @@
 // lib/auth-actions.ts
-import { supabase } from "@/utils/supabase";
+import { supabase } from "@/lib/supabase";
 
 // Funktion 1: Login
 export const handleLogin = async (email: string, password: string) => {
