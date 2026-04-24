@@ -1,20 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/lib/supabase"; // <-- Added Supabase import
+import { supabase } from "@/utils/supabase";
 import {
-  LayoutDashboard,
-  Leaf,
-  BarChart2,
-  Trophy,
-  Settings,
-  Sprout,
-  Users,
-  PanelLeftClose,
-  PanelLeftOpen,
+  LayoutDashboard, Leaf, BarChart2, Trophy,
+  Settings, Sprout, Users, PanelLeftClose,
+  PanelLeftOpen, LogOut, MoreHorizontal,
 } from "lucide-react";
 
 const navItems = [
@@ -28,57 +22,67 @@ const navItems = [
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
   const pathname = usePathname();
-  
-  // <-- Added State for dynamic user data
+  const router = useRouter();
+  const popoverRef = useRef<HTMLDivElement>(null);
+
   const [firstName, setFirstName] = useState("User");
   const [username, setUsername] = useState("username");
   const [initial, setInitial] = useState("U");
+  const [lastName, setLastName] = useState("");
 
-  // <-- Added useEffect to fetch the real user
   useEffect(() => {
     async function fetchUserData() {
       const { data: { user } } = await supabase.auth.getUser();
-
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("first_name, username")
+          .select("first_name, last_name, username")
           .eq("id", user.id)
           .single();
-
         if (profile) {
           if (profile.first_name) {
             setFirstName(profile.first_name);
-            setInitial(profile.first_name.charAt(0).toUpperCase()); // Gets the first letter
+            setInitial(profile.first_name.charAt(0).toUpperCase());
           }
-          if (profile.username) {
-            setUsername(profile.username);
-          }
+          if (profile.username) setUsername(profile.username);
+          if (profile.last_name) setLastName(profile.last_name);
         }
       }
     }
-
     fetchUserData();
   }, []);
 
+  // Close popover on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setPopoverOpen(false);
+      }
+    };
+    if (popoverOpen) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [popoverOpen]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
   return (
     <>
-      {/* ── Sidebar ── */}
       <motion.aside
-        animate={{
-          width: collapsed ? 72 : 240,
-          x: 0,
-        }}
+        animate={{ width: collapsed ? 72 : 240 }}
         initial={false}
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         className="hidden lg:flex shrink-0 flex-col h-screen sticky top-0 overflow-hidden z-40"
         style={{
-          background: "linear-gradient(180deg, #0f172a 0%, #052e16 100%)",
-          borderRight: "1px solid rgba(255,255,255,0.06)",
+          background: "#1a1d23",
+          borderRight: "1px solid rgba(255,255,255,0.07)",
         }}
       >
-        {/* Logo → links to dashboard */}
+        {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-3 px-4 py-6 shrink-0 group">
           <Sprout
             className="text-green-400 shrink-0 group-hover:scale-110 transition-transform duration-200"
@@ -105,9 +109,9 @@ export default function Sidebar() {
           {navItems.map(({ href, icon: Icon, label }) => {
             const active = pathname === href;
             return (
-              <Link key={href} href={href} onClick={() => { if (window.innerWidth < 1024) setCollapsed(true); }}>
+              <Link key={href} href={href}>
                 <div
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 cursor-pointer"
+                  className="flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 cursor-pointer group/item"
                   style={{
                     background: active ? "rgba(74,222,128,0.1)" : "transparent",
                     border: active ? "1px solid rgba(74,222,128,0.2)" : "1px solid transparent",
@@ -115,7 +119,7 @@ export default function Sidebar() {
                 >
                   <Icon
                     size={20}
-                    className="shrink-0 transition-colors duration-200"
+                    className="shrink-0 transition-all duration-200 group-hover/item:scale-110"
                     style={{ color: active ? "#4ade80" : "#52525b" }}
                   />
                   <AnimatePresence>
@@ -125,7 +129,7 @@ export default function Sidebar() {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -8 }}
                         transition={{ duration: 0.2 }}
-                        className="text-sm whitespace-nowrap transition-colors duration-200"
+                        className="text-sm whitespace-nowrap transition-colors duration-200 group-hover/item:text-white"
                         style={{ fontFamily: "var(--font-body)", color: active ? "#4ade80" : "#a1a1aa" }}
                       >
                         {label}
@@ -138,59 +142,126 @@ export default function Sidebar() {
           })}
         </nav>
 
-        {/* User + desktop collapse toggle */}
+        {/* User + collapse */}
         <div className="px-2 pb-6 flex flex-col gap-2 shrink-0">
-          <div
-            className="flex items-center gap-3 px-3 py-3 rounded-xl"
-            style={{ background: "rgba(255,255,255,0.03)" }}
-          >
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold text-black"
-              style={{ background: "linear-gradient(135deg, #4ade80, #22d3ee)" }}
-            >
-              {initial} {/* <-- Dynamic Initial */}
-            </div>
+
+          {/* Profile card with popover */}
+          <div className="relative" ref={popoverRef}>
+
+            {/* Popover */}
             <AnimatePresence>
-              {!collapsed && (
+              {popoverOpen && (
                 <motion.div
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  transition={{ duration: 0.2 }}
+                  initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="absolute bottom-full mb-2 left-0 right-0 rounded-xl overflow-hidden z-50"
+                  style={{
+                    background: "#22262e",
+                    border: "1px solid rgba(255,255,255,0.09)",
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                  }}
                 >
-                  <p className="text-sm text-white whitespace-nowrap" style={{ fontFamily: "var(--font-body)" }}>
-                    {firstName} {/* <-- Dynamic First Name */}
-                  </p>
-                  <p className="text-xs text-zinc-500 whitespace-nowrap" style={{ fontFamily: "var(--font-body)" }}>
-                    @{username} {/* <-- Dynamic Username */}
-                  </p>
+                  {/* Header */}
+                  {!collapsed && (
+                    <div className="px-4 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                      <p className="text-white text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>
+                        {firstName}{lastName ? ` ${lastName}` : ""}
+                      </p>
+                      <p className="text-zinc-500 text-xs mt-0.5" style={{ fontFamily: "var(--font-body)" }}>
+                        @{username}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Log out */}
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-red-500/10 group/logout"
+                  >
+                    <LogOut size={15} className="text-red-400 group-hover/logout:text-red-300 transition-colors" />
+                    <span
+                      className="text-sm text-red-400 group-hover/logout:text-red-300 transition-colors"
+                      style={{ fontFamily: "var(--font-body)" }}
+                    >
+                      Log out
+                    </span>
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Profile card button */}
+            <button
+  onClick={() => setPopoverOpen(!popoverOpen)}
+  onMouseEnter={e => {
+    e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+    e.currentTarget.style.border = "1px solid rgba(255,255,255,0.12)";
+  }}
+  onMouseLeave={e => {
+    e.currentTarget.style.background = popoverOpen ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)";
+    e.currentTarget.style.border = popoverOpen ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,255,255,0.05)";
+  }}
+  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group/profile"
+  style={{
+    background: popoverOpen ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
+    border: popoverOpen ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,255,255,0.05)",
+  }}
+>
+           
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold text-black"
+                style={{ background: "linear-gradient(135deg, #4ade80, #22d3ee)" }}
+              >
+                {initial}
+              </div>
+              <AnimatePresence>
+                {!collapsed && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex-1 text-left"
+                  >
+                    <p className="text-sm text-white whitespace-nowrap" style={{ fontFamily: "var(--font-body)" }}>
+                      {firstName}{lastName ? ` ${lastName}` : ""}
+                    </p>
+                    <p className="text-xs text-zinc-500 whitespace-nowrap" style={{ fontFamily: "var(--font-body)" }}>
+                      @{username}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              {!collapsed && (
+                <MoreHorizontal
+                  size={15}
+                  className="text-zinc-600 group-hover/profile:text-zinc-400 transition-colors shrink-0"
+                />
+              )}
+            </button>
           </div>
 
-          {/* Desktop collapse toggle */}
+          {/* Collapse toggle */}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex items-center justify-center w-full py-2 rounded-xl transition-all duration-200 hover:bg-white/5 gap-2"
+            className="flex items-center justify-center w-full py-2 rounded-xl transition-all duration-200 group/collapse hover:bg-white/5 gap-2"
             style={{ border: "1px solid rgba(255,255,255,0.05)" }}
           >
             {collapsed
-              ? <PanelLeftOpen size={16} className="text-zinc-500" />
-              : (
-                <>
-                  <PanelLeftClose size={16} className="text-zinc-500" />
-                  <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="text-xs text-zinc-500"
-                    style={{ fontFamily: "var(--font-body)" }}
-                  >
-                    Collapse
-                  </motion.span>
-                </>
-              )}
+  ? <PanelLeftOpen size={16} className="text-zinc-500 group-hover/collapse:text-zinc-300 transition-colors" />
+  : (
+    <>
+      <PanelLeftClose size={16} className="text-zinc-500 group-hover/collapse:text-zinc-300 transition-colors" />
+      <span
+        className="text-xs text-zinc-500 group-hover/collapse:text-zinc-300 transition-colors"
+        style={{ fontFamily: "var(--font-body)" }}
+      >
+        Collapse
+      </span>
+    </>
+  )}
           </button>
         </div>
       </motion.aside>

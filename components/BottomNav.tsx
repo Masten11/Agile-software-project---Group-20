@@ -41,12 +41,12 @@ export default function BottomNav() {
     <nav
       className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-2"
       style={{
-        background: "rgba(10, 15, 25, 0.92)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        borderTop: "1px solid rgba(255,255,255,0.07)",
-        height: "64px",
-      }}
+  background: "rgba(17, 19, 24, 0.95)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+  borderTop: "1px solid rgba(255,255,255,0.07)",
+  height: "64px",
+}}
     >
       {/* Left items */}
       {leftItems.map((item) => (
