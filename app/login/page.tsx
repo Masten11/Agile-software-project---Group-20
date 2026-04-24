@@ -1,6 +1,6 @@
 "use client";
 
-import { handleLogin } from "@/app/lib/auth-actions";
+import { handleLogin } from "@/lib/auth-actions";
 import { useRouter } from "next/navigation";
 
 import { useState, useEffect, useRef } from "react";
