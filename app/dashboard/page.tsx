@@ -5,7 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import { Leaf, Zap, Car, TrendingUp, Flame, Calendar, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import BottomNav from "@/components/BottomNav";
-import { supabase } from "@/utils/supabase";
+import { supabase } from "@/lib/supabase";
 
 /* ── Circular Eco Score ── */
 function EcoScoreRing({ score }: { score: number }) {
