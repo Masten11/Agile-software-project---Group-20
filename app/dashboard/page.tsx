@@ -7,7 +7,6 @@ import { useState, useEffect } from "react";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/utils/supabase";
 
-
 /* ── Circular Eco Score ── */
 function EcoScoreRing({ score }: { score: number }) {
   const max = 1000;
@@ -20,24 +19,20 @@ function EcoScoreRing({ score }: { score: number }) {
     <div className="flex flex-col items-center justify-center">
       <div className="relative w-52 h-52">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
-          {/* Track */}
           <circle cx="100" cy="100" r={radius}
-            fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="12" />
-          {/* Progress */}
+            fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
           <motion.circle
             cx="100" cy="100" r={radius}
             fill="none"
             stroke={color}
-            strokeWidth="12"
+            strokeWidth="10"
             strokeLinecap="round"
             strokeDasharray={circumference}
             initial={{ strokeDashoffset: circumference }}
             animate={{ strokeDashoffset: circumference - progress }}
             transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
-            style={{ filter: `drop-shadow(0 0 8px ${color}88)` }}
           />
         </svg>
-        {/* Score text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <motion.span
             className="font-bold leading-none"
@@ -48,7 +43,7 @@ function EcoScoreRing({ score }: { score: number }) {
           >
             {score}
           </motion.span>
-          <span className="text-xs text-zinc-500 tracking-widest uppercase mt-1"
+          <span className="text-sm text-zinc-400 tracking-widest uppercase mt-1"
             style={{ fontFamily: "var(--font-body)" }}>
             Eco Score
           </span>
@@ -76,30 +71,30 @@ function CategoryCard({
       href={href}
       whileHover={{ scale: 1.02, y: -1 }}
       whileTap={{ scale: 0.97 }}
-      className="flex items-center gap-4 p-4 rounded-2xl cursor-pointer group"
+      className="flex items-center gap-4 p-5 rounded-2xl cursor-pointer group"
       style={{
-        background: logged ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.03)",
-        border: logged ? `1px solid ${color}44` : "1px solid rgba(255,255,255,0.06)",
+        background: "rgba(255,255,255,0.04)",
+        border: logged ? `1px solid ${color}33` : "1px solid rgba(255,255,255,0.07)",
       }}
     >
       <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-        style={{ background: `${color}18` }}>
+        style={{ background: `${color}15` }}>
         <Icon size={20} style={{ color }} />
       </div>
       <div className="flex-1">
         <p className="text-white text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>{label}</p>
-        <p className="text-xs mt-0.5" style={{ color: logged ? color : "#52525b", fontFamily: "var(--font-body)" }}>
+        <p className="text-sm mt-0.5" style={{ color: logged ? color : "#71717a", fontFamily: "var(--font-body)" }}>
           {logged ? "✓ Logged today" : "Not logged yet"}
         </p>
       </div>
       {!logged && (
-  <div
-    className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 group-hover:bg-green-400/20"
-    style={{ border: "1px solid rgba(74,222,128,0.3)" }}
-  >
-    <Plus size={16} className="text-green-400" strokeWidth={2.5} />
-  </div>
-)}
+        <div
+          className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 group-hover:bg-green-400/20"
+          style={{ border: "1px solid rgba(74,222,128,0.3)" }}
+        >
+          <Plus size={16} className="text-green-400" strokeWidth={2.5} />
+        </div>
+      )}
     </motion.a>
   );
 }
@@ -109,15 +104,15 @@ function ChartPlaceholder({ label }: { label: string }) {
   const bars = [40, 65, 50, 80, 70, 90, 75];
   return (
     <div className="rounded-2xl p-6"
-      style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-      <p className="text-zinc-400 text-xs tracking-widest uppercase mb-4"
+      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+      <p className="text-zinc-400 text-sm tracking-widest uppercase mb-4"
         style={{ fontFamily: "var(--font-body)" }}>{label}</p>
       <div className="flex items-end gap-2 h-24">
         {bars.map((h, i) => (
           <motion.div
             key={i}
             className="flex-1 rounded-t-md"
-            style={{ background: "linear-gradient(180deg, #4ade80, #22d3ee33)" }}
+            style={{ background: "linear-gradient(180deg, #4ade8099, #4ade8022)" }}
             initial={{ height: 0 }}
             animate={{ height: `${h}%` }}
             transition={{ duration: 0.6, delay: i * 0.07, ease: "easeOut" }}
@@ -126,7 +121,7 @@ function ChartPlaceholder({ label }: { label: string }) {
       </div>
       <div className="flex justify-between mt-2">
         {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-          <span key={i} className="flex-1 text-center text-xs text-zinc-600"
+          <span key={i} className="flex-1 text-center text-sm text-zinc-500"
             style={{ fontFamily: "var(--font-body)" }}>{d}</span>
         ))}
       </div>
@@ -134,9 +129,9 @@ function ChartPlaceholder({ label }: { label: string }) {
   );
 }
 
+/* ── Log banner ── */
 function LogBanner({ loggedCount, href }: { loggedCount: number; href: string }) {
   if (loggedCount >= 3) return null;
-
   return (
     <AnimatePresence>
       <motion.a
@@ -147,17 +142,16 @@ function LogBanner({ loggedCount, href }: { loggedCount: number; href: string })
         transition={{ duration: 0.4 }}
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
-        className="flex items-center justify-between gap-4 px-6 py-4 rounded-2xl cursor-pointer mb-6"
+        className="flex items-center justify-between gap-4 px-6 py-4 rounded-2xl cursor-pointer mb-8"
         style={{
-          background: "linear-gradient(135deg, rgba(74,222,128,0.08) 0%, rgba(34,211,238,0.08) 100%)",
-          border: "1px solid rgba(74,222,128,0.2)",
+          background: "rgba(74,222,128,0.06)",
+          border: "1px solid rgba(74,222,128,0.18)",
         }}
       >
         <div className="flex items-center gap-3">
-          {/* Pulsing dot */}
           <div className="relative shrink-0">
             <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-            <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-green-400 animate-ping opacity-60" />
+            <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-green-400 animate-ping opacity-50" />
           </div>
           <div>
             <p className="text-white text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>
@@ -165,14 +159,14 @@ function LogBanner({ loggedCount, href }: { loggedCount: number; href: string })
                 ? "You haven't logged any habits today"
                 : `${loggedCount}/3 habits logged — keep going!`}
             </p>
-            <p className="text-zinc-500 text-xs mt-0.5" style={{ fontFamily: "var(--font-body)" }}>
+            <p className="text-zinc-400 text-sm mt-0.5" style={{ fontFamily: "var(--font-body)" }}>
               Log your habits to update your Eco Score
             </p>
           </div>
         </div>
         <div
           className="shrink-0 px-4 py-2 rounded-xl text-sm font-semibold text-black"
-          style={{ background: "linear-gradient(135deg, #4ade80, #22d3ee)" }}
+          style={{ background: "#4ade80" }}
         >
           Log now
         </div>
@@ -181,6 +175,7 @@ function LogBanner({ loggedCount, href }: { loggedCount: number; href: string })
   );
 }
 
+/* ── Tips carousel ── */
 const TIPS = [
   { icon: "🥗", title: "Eat plant-based", tip: "Choosing a plant-based meal instead of beef saves up to 5 kg CO₂ — that's worth +500 points." },
   { icon: "🚌", title: "Use public transport", tip: "Taking the bus instead of driving 10 minutes saves ~1 kg CO₂ — worth +100 points." },
@@ -204,18 +199,16 @@ function TipsCarousel() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.4 }}
       className="rounded-2xl overflow-hidden"
-      style={{ border: "1px solid rgba(74,222,128,0.15)" }}
+      style={{ border: "1px solid rgba(255,255,255,0.07)" }}
     >
-      {/* Header */}
       <div className="px-5 py-3 flex items-center justify-between"
-        style={{ background: "rgba(74,222,128,0.08)", borderBottom: "1px solid rgba(74,222,128,0.1)" }}>
+        style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
         <div className="flex items-center gap-2">
           <TrendingUp size={15} className="text-green-400" />
-          <p className="text-green-400 text-xs tracking-widest uppercase"
+          <p className="text-zinc-300 text-sm tracking-widest uppercase"
             style={{ fontFamily: "var(--font-body)" }}>Daily Tip</p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Dots */}
           <div className="flex gap-1.5">
             {TIPS.map((_, i) => (
               <button key={i} onClick={() => { setDirection(i > index ? 1 : -1); setIndex(i); }}
@@ -227,7 +220,6 @@ function TipsCarousel() {
                 }} />
             ))}
           </div>
-          {/* Arrows */}
           <div className="flex gap-1">
             {(["←", "→"] as const).map((arrow, i) => (
               <button key={arrow} onClick={() => go(i === 0 ? -1 : 1)}
@@ -245,7 +237,6 @@ function TipsCarousel() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="relative overflow-hidden" style={{ height: "100px" }}>
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
@@ -280,73 +271,56 @@ function TipsCarousel() {
 }
 
 /* ── Main page ── */
-/* ── Main page ── */
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState("USER");
-  const [ecoScore, setEcoScore] = useState(1000); // Default perfect score
+  const [ecoScore, setEcoScore] = useState(1000);
   const [streak, setStreak] = useState(0);
   const [loggedToday, setLoggedToday] = useState<string[]>([]);
 
   useEffect(() => {
     async function fetchPersonalData() {
-      // 1. Get the currently logged-in user
       const { data: { user } } = await supabase.auth.getUser();
-
       if (user) {
-        // 2. Fetch their real first name from the profiles table
         const { data: profile } = await supabase
           .from("profiles")
           .select("first_name")
           .eq("id", user.id)
           .single();
+        if (profile?.first_name) setFirstName(profile.first_name.toUpperCase());
 
-        if (profile?.first_name) {
-          setFirstName(profile.first_name.toUpperCase());
-        }
-
-        // 3. Fetch today's eco activities
-        const today = new Date().toISOString().split("T")[0]; // gets YYYY-MM-DD
+        const today = new Date().toISOString().split("T")[0];
         const { data: activities } = await supabase
           .from("eco_activities")
           .select("category, co2_emissions_kg")
           .eq("user_id", user.id)
-          .gte("activity_date", today); // Only activities from today
+          .gte("activity_date", today);
 
         if (activities && activities.length > 0) {
-          // Find out which categories they logged today
           const categories = activities.map((a) => a.category.toLowerCase());
           setLoggedToday(categories);
-
-          // Calculate a dynamic Eco Score (Example logic: start at 1000, drop by 50 per kg of CO2)
           const totalEmissions = activities.reduce((sum, act) => sum + Number(act.co2_emissions_kg || 0), 0);
-          const dynamicScore = Math.max(0, 1000 - (totalEmissions * 50));
-          setEcoScore(Math.round(dynamicScore));
+          setEcoScore(Math.max(0, Math.round(1000 - totalEmissions * 50)));
         }
-
-        // Hardcoding streak for now until you build a historical streak calculator
         setStreak(1);
       }
-      
       setLoading(false);
     }
-
     fetchPersonalData();
   }, []);
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-[#030712] items-center justify-center">
-        <p className="text-green-400 font-mono animate-pulse">Loading personal data...</p>
+      <div className="flex h-screen bg-[#111318] items-center justify-center">
+        <p className="text-green-400 font-mono animate-pulse">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-[#030712] overflow-hidden">
+    <div className="flex h-screen bg-[#111318] overflow-hidden">
       <Sidebar />
 
-      {/* Main content */}
       <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
         <div className="max-w-5xl mx-auto px-6 py-10">
 
@@ -355,21 +329,21 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="flex items-center justify-between mb-10"
+            className="flex items-center justify-between mb-8"
           >
             <div>
               <h1 className="text-white leading-none mb-1 uppercase"
                 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px,3vw,40px)" }}>
                 GOOD MORNING, {firstName}
               </h1>
-              <p className="text-zinc-500 text-sm flex items-center gap-2"
+              <p className="text-zinc-400 text-sm flex items-center gap-2"
                 style={{ fontFamily: "var(--font-body)" }}>
                 <Calendar size={13} />
                 {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
               </p>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 rounded-full"
-              style={{ background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.2)" }}>
+              style={{ background: "rgba(74,222,128,0.07)", border: "1px solid rgba(74,222,128,0.18)" }}>
               <Flame size={14} className="text-green-400" />
               <span className="text-green-400 text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>
                 {streak} day streak
@@ -381,32 +355,31 @@ export default function DashboardPage() {
           <LogBanner loggedCount={loggedToday.length} href="/dashboard/log" />
 
           {/* Score + categories */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
 
             {/* Eco Score card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="rounded-3xl p-8 flex flex-col items-center justify-center"
+              className="rounded-2xl p-8 flex flex-col items-center justify-center"
               style={{
-                background: "linear-gradient(145deg, #0f172a 0%, #052e16 100%)",
-                border: "1px solid rgba(255,255,255,0.06)",
-                boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.07)",
               }}
             >
               <EcoScoreRing score={ecoScore} />
               <div className="flex gap-6 mt-6 pt-6 w-full"
-                style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                 {[
-                  { label: "Yesterday", val: "—" }, // Can be made dynamic later
+                  { label: "Yesterday", val: "—" },
                   { label: "Weekly avg", val: "—" },
                   { label: "Best day", val: "—" },
                 ].map((s) => (
                   <div key={s.label} className="flex-1 text-center">
                     <p className="text-white text-base font-semibold"
                       style={{ fontFamily: "var(--font-display)" }}>{s.val}</p>
-                    <p className="text-zinc-600 text-xs mt-0.5"
+                    <p className="text-zinc-400 text-sm mt-0.5"
                       style={{ fontFamily: "var(--font-body)" }}>{s.label}</p>
                   </div>
                 ))}
@@ -421,11 +394,11 @@ export default function DashboardPage() {
               className="flex flex-col gap-4"
             >
               <div className="flex items-center justify-between">
-                <p className="text-zinc-400 text-xs tracking-widest uppercase"
+                <p className="text-zinc-400 text-sm tracking-widest uppercase"
                   style={{ fontFamily: "var(--font-body)" }}>
                   Today&apos;s habits
                 </p>
-                <p className="text-zinc-600 text-xs" style={{ fontFamily: "var(--font-body)" }}>
+                <p className="text-zinc-400 text-sm" style={{ fontFamily: "var(--font-body)" }}>
                   {loggedToday.length} / 3 logged
                 </p>
               </div>
@@ -437,12 +410,12 @@ export default function DashboardPage() {
             </motion.div>
           </div>
 
-          {/* Progress placeholder */}
+          {/* Charts */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"
+            className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8"
           >
             <ChartPlaceholder label="Eco Score – last 7 days" />
             <ChartPlaceholder label="CO₂ usage – last 7 days" />
