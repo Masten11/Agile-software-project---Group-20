@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/utils/supabase"; // <-- Added Supabase import
+import { supabase } from "@/lib/supabase"; // <-- Added Supabase import
 import {
   LayoutDashboard,
   Leaf,
