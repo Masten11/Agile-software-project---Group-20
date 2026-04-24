@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, ArrowRight, Check, X } from "lucide-react";
-import { handleSignUp } from "@/app/lib/auth-actions";
+import { handleSignUp } from "@/lib/auth-actions";
 
 /* ─────────── Floating label input ─────────── */
 function FloatingInput({
