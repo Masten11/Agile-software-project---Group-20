@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/utils/supabase";
+import { supabase } from "@/lib/supabase";
 import {
   LayoutDashboard, Leaf, BarChart2, Trophy,
   Settings, Sprout, Users, PanelLeftClose,
