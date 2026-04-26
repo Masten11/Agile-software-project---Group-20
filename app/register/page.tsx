@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, ArrowRight, Check, X } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Sprout, Check, X } from "lucide-react";
 import { handleSignUp } from "@/lib/auth-actions";
 
 /* ─────────── Floating label input ─────────── */
@@ -161,7 +161,25 @@ export default function RegisterPage() {
   ];
 
   return (
-    <main className="min-h-screen flex items-center justify-center overflow-hidden relative bg-[#111318] px-4 py-16">
+    <main className="min-h-screen flex flex-col items-center justify-center overflow-hidden relative bg-[#111318] px-4 py-16">
+
+    {/* Logo */}
+    <motion.div
+      initial={{ opacity: 0, y: -16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="flex items-center gap-3 mb-10"
+    >
+      <Link href="/" className="flex items-center gap-3 group">
+        <Sprout className="text-green-400 w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
+        <span
+          className="gradient-text"
+          style={{ fontFamily: "var(--font-display)", fontSize: "24px", letterSpacing: "0.05em" }}
+        >
+          ECO TRACKER
+        </span>
+      </Link>
+    </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 24 }}
