@@ -15,8 +15,8 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
-  title: "Eco Habit Tracker",
-  description: "Track your environmental impact",
+  title: "Eco Habit Tracker – Track your daily environmental impact",
+  description: "Log your transport, food and energy habits. Get an Eco Score, compete with friends and reduce your carbon footprint – one habit at a time.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
