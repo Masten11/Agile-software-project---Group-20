@@ -161,7 +161,7 @@ export default function RegisterPage() {
   ];
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center overflow-hidden relative bg-[#111318] px-4 py-16">
+  <main className="min-h-screen flex flex-col items-center justify-center overflow-hidden relative bg-[#111318] px-4 py-16">
 
     {/* Logo */}
     <motion.div
