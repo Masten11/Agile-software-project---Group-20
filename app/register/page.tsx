@@ -90,6 +90,7 @@ function PasswordStrength({ password }: { password: string }) {
   );
 }
 
+
 /* ─────────── Main page ─────────── */
 export default function RegisterPage() {
   const router = useRouter();
