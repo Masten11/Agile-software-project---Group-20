@@ -358,19 +358,27 @@ export default function HomePage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="px-6 md:px-12 py-10 text-center"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <Sprout className="text-green-400 w-5 h-5" />
-          <span className="gradient-text font-bold"
-            style={{ fontFamily: "var(--font-display)", fontSize: "16px", letterSpacing: "0.1em" }}>
-            ECO TRACKER
-          </span>
-        </div>
-        <p className="text-zinc-600 text-xs" style={{ fontFamily: "var(--font-body)" }}>
-          Track your habits. Help the planet.
-        </p>
-      </footer>
+<footer className="px-6 md:px-12 py-12"
+  style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+  <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div className="flex items-center gap-2">
+      <Sprout className="text-green-400 w-5 h-5" />
+      <span className="gradient-text font-bold"
+        style={{ fontFamily: "var(--font-display)", fontSize: "16px", letterSpacing: "0.1em" }}>
+        ECO TRACKER
+      </span>
+    </div>
+    <p className="text-zinc-600 text-xs" style={{ fontFamily: "var(--font-body)" }}>
+      © 2026 Eco Habit Tracker. All rights reserved.
+    </p>
+    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+      style={{ background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.12)" }}>
+      <span className="text-xs text-green-400" style={{ fontFamily: "var(--font-body)" }}>
+        Aligned with UN SDG 13 – Climate Action
+      </span>
+    </div>
+  </div>
+</footer>
 
     </main>
   );
