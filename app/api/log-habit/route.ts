@@ -6,7 +6,7 @@ import { TransportationData } from '../../../utils/transportationtype';
 
 // En interface för att typa det inkommande paketet från frontend
 interface LogHabitRequest extends Omit<TransportationData, 'userId'> {
-  category: 'transportation' | 'food'; // Utöka med fler kategorier senare
+  category: 'transportation' | 'food'; // Utöka med fler kategorier senare 
 }
 
 export async function POST(request: NextRequest) {
