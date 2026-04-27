@@ -96,9 +96,6 @@ export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [email, setEmail] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -106,7 +103,7 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [shaking, setShaking] = useState(false);
 
-  const TOTAL_STEPS = 4;
+  const TOTAL_STEPS = 2; // Ändrat från 4 till 2
 
   const triggerError = (msg: string) => {
     setError(msg);
@@ -122,27 +119,14 @@ export default function RegisterPage() {
     setError(""); setStep(1);
   };
 
-  const onStep1 = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!firstName.trim()) return triggerError("Enter your first name");
-    if (!lastName.trim()) return triggerError("Enter your last name");
-    setError(""); setStep(2);
-  };
-
-  const onStep2 = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (username.trim().length < 3) return triggerError("Username must be at least 3 characters");
-    if (/\s/.test(username)) return triggerError("Username cannot contain spaces");
-    setError(""); setStep(3);
-  };
-
-  const onStep3 = async (e: React.FormEvent) => {
+  const onStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8) return triggerError("Password must be at least 8 characters");
     if (password !== confirmPassword) return triggerError("Passwords do not match");
     setError("");
     try {
-      await handleSignUp(email, password, firstName, lastName, username);
+      // Skickar in tomma strängar för namn och username
+      await handleSignUp(email, password, "", "", "");
       router.push("/dashboard");
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Registration failed. Please try again.";
@@ -153,11 +137,10 @@ export default function RegisterPage() {
   const passwordsMatch = confirmPassword !== "" && password === confirmPassword;
   const passwordsMismatch = confirmPassword !== "" && password !== confirmPassword;
 
-  const stepTitles = ["CREATE ACCOUNT", "YOUR NAME", "USERNAME", "SET PASSWORD"];
+  // Uppdaterade titlar och sub-texter för 2 steg
+  const stepTitles = ["CREATE ACCOUNT", "SET PASSWORD"];
   const stepSubs = [
     "Start with your email address",
-    "Welcome, let's get to know you",
-    "Choose a unique username",
     "Almost there — secure your account",
   ];
 
@@ -230,9 +213,7 @@ export default function RegisterPage() {
               </h2>
 
               <p className="text-zinc-400 mb-8 text-sm">
-                {step === 1 && firstName
-                  ? <><span className="text-green-400">{firstName}</span>, what is your last name?</>
-                  : stepSubs[step]}
+                {stepSubs[step]}
               </p>
 
               {step === 0 && (
@@ -246,36 +227,6 @@ export default function RegisterPage() {
 
               {step === 1 && (
                 <form onSubmit={onStep1} className="space-y-6">
-                  <FloatingInput label="First name" type="text" value={firstName}
-                    onChange={(v) => { setFirstName(v); setError(""); }} autoFocus />
-                  <FloatingInput label="Last name" type="text" value={lastName}
-                    onChange={(v) => { setLastName(v); setError(""); }} />
-                  <ErrorMsg error={error} />
-                  <SubmitButton label="Continue" />
-                  <BackButton onClick={goBack} />
-                </form>
-              )}
-
-              {step === 2 && (
-                <form onSubmit={onStep2} className="space-y-6">
-                  <div>
-                    <FloatingInput label="Username" type="text" value={username}
-                      onChange={(v) => { setUsername(v.toLowerCase().replace(/\s/g, "")); setError(""); }}
-                      autoFocus />
-                    {username.length >= 3 && (
-                      <p className="text-sm text-zinc-500 mt-2 pl-1" style={{ fontFamily: "var(--font-body)" }}>
-                        Your profile: <span className="text-green-400">@{username}</span>
-                      </p>
-                    )}
-                  </div>
-                  <ErrorMsg error={error} />
-                  <SubmitButton label="Continue" />
-                  <BackButton onClick={goBack} />
-                </form>
-              )}
-
-              {step === 3 && (
-                <form onSubmit={onStep3} className="space-y-6">
                   <div className="space-y-3">
                     <FloatingInput
                       label="Password" type={showPw ? "text" : "password"}
