@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/supabase";
 
-// Funktion 1: Login
 export const handleLogin = async (email: string, password: string) => {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -14,7 +13,6 @@ export const handleLogin = async (email: string, password: string) => {
   return data;
 }; 
 
-// Funktion 2: Sign Up (Optimerad för Progressive Onboarding)
 export const handleSignUp = async (
   email: string, 
   password: string, 
@@ -23,19 +21,24 @@ export const handleSignUp = async (
   username?: string
 ) => {
   
-  // Bygg metadata-objektet dynamiskt. 
-  // Lägger bara till nycklarna om fälten inte är tomma strängar.
   const metaData: Record<string, string> = {};
   
   if (firstName?.trim()) metaData.first_name = firstName.trim();
   if (lastName?.trim()) metaData.last_name = lastName.trim();
-  if (username?.trim()) metaData.username = username.trim();
+  
+  if (username?.trim()) {
+    metaData.username = username.trim();
+  } else {
+    // Genererar 4 slumpmässiga siffror från 0000 till 9999
+    const randomDigits = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    metaData.username = `user${randomDigits}`;
+  }
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: Object.keys(metaData).length > 0 ? metaData : undefined
+      data: metaData
     }
   });
 
