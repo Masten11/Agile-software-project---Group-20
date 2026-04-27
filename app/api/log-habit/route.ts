@@ -19,11 +19,11 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Du måste vara inloggad för att logga en vana' },
+        { error: 'you have not logged in' },
         { status: 401 } // 401 Unauthorized
       );
     }
-    
+
     //så att man inte kan göra för många loggar 
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     if (count !== null && count >= 100) {
       return NextResponse.json(
-        { error: 'Du har nått gränsen för antal sökningar per dygn (max 15). Försök igen imorgon' },
+        { error: 'you hade reached the max request limit, try again tomorrow' },
         { status: 429 } // 429 betyder "Too Many Requests"
       );
     }
@@ -55,21 +55,21 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: 'Resan har loggats!',
+        message: 'The trip has been logged!',
         data: result
       });
     }
 
     // Om kategorin inte finns än
     return NextResponse.json(
-      { error: `Kategorin "${category}" stöds inte ännu.` },
+      { error: `category "${category}" is not supported.` },
       { status: 400 }
     );
 
   } catch (error: any) {
     console.error('API Error:', error);
     return NextResponse.json(
-      { error: error.message || 'Ett oväntat fel uppstod på servern' },
+      { error: error.message || 'server error' },
       { status: 500 }
     );
   }
