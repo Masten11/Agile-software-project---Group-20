@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { Sprout, Leaf, BarChart2, Trophy, ArrowRight, Zap, Users, ChevronDown } from "lucide-react";
 
 /* ─── Section divider ─── */
@@ -46,6 +48,18 @@ const STATS = [
 ];
 
 export default function HomePage() {
+  const [hasSession, setHasSession] = useState(false);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setHasSession(true);
+      }
+    };
+    checkSession();
+  }, []);
+
   return (
     <main className="min-h-screen bg-[#111318] text-white overflow-x-hidden">
 
@@ -60,17 +74,27 @@ export default function HomePage() {
           </span>
         </Link>
         <div className="flex items-center gap-3">
-          {/* Sign in hidden on mobile */}
-          <Link href="/login"
-            className="hidden sm:block text-sm text-zinc-400 hover:text-white transition-colors px-4 py-2"
-            style={{ fontFamily: "var(--font-body)" }}>
-            Sign in
-          </Link>
-          <Link href="/register"
-            className="text-sm font-semibold text-black px-4 py-2 rounded-xl transition-all duration-200 hover:scale-105"
-            style={{ background: "#4ade80", fontFamily: "var(--font-body)" }}>
-            Get started
-          </Link>
+          {hasSession ? (
+            <Link href="/dashboard"
+              className="text-sm font-semibold text-black px-4 py-2 rounded-xl transition-all duration-200 hover:scale-105"
+              style={{ background: "#4ade80", fontFamily: "var(--font-body)" }}>
+              Dashboard
+            </Link>
+          ) : (
+            <>
+              {/* Sign in hidden on mobile */}
+              <Link href="/login"
+                className="hidden sm:block text-sm text-zinc-400 hover:text-white transition-colors px-4 py-2"
+                style={{ fontFamily: "var(--font-body)" }}>
+                Sign in
+              </Link>
+              <Link href="/register"
+                className="text-sm font-semibold text-black px-4 py-2 rounded-xl transition-all duration-200 hover:scale-105"
+                style={{ background: "#4ade80", fontFamily: "var(--font-body)" }}>
+                Get started
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
@@ -97,16 +121,26 @@ export default function HomePage() {
           </p>
 
           <div className="flex items-center justify-center gap-4 flex-wrap">
-            <Link href="/register"
-              className="flex items-center gap-2 font-semibold text-black px-6 py-3.5 rounded-2xl transition-all duration-200 hover:scale-105"
-              style={{ background: "#4ade80", fontFamily: "var(--font-body)" }}>
-              Start for free <ArrowRight size={18} />
-            </Link>
-            <Link href="/login"
-              className="hidden sm:flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors px-6 py-3.5 rounded-2xl"
-              style={{ border: "1px solid rgba(255,255,255,0.08)", fontFamily: "var(--font-body)" }}>
-              Sign in
-            </Link>
+            {hasSession ? (
+              <Link href="/dashboard"
+                className="flex items-center gap-2 font-semibold text-black px-6 py-3.5 rounded-2xl transition-all duration-200 hover:scale-105"
+                style={{ background: "#4ade80", fontFamily: "var(--font-body)" }}>
+                Go to Dashboard <ArrowRight size={18} />
+              </Link>
+            ) : (
+              <>
+                <Link href="/register"
+                  className="flex items-center gap-2 font-semibold text-black px-6 py-3.5 rounded-2xl transition-all duration-200 hover:scale-105"
+                  style={{ background: "#4ade80", fontFamily: "var(--font-body)" }}>
+                  Start for free <ArrowRight size={18} />
+                </Link>
+                <Link href="/login"
+                  className="hidden sm:flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors px-6 py-3.5 rounded-2xl"
+                  style={{ border: "1px solid rgba(255,255,255,0.08)", fontFamily: "var(--font-body)" }}>
+                  Sign in
+                </Link>
+              </>
+            )}
           </div>
         </motion.div>
 
@@ -249,7 +283,6 @@ export default function HomePage() {
         </div>
       </section>
 
-
       {/* ── Why it matters ── */}
       <section className="px-6 md:px-12 max-w-5xl mx-auto mb-8">
         <FadeIn>
@@ -321,7 +354,6 @@ export default function HomePage() {
         </div>
       </section>
 
-
       {/* ── Final CTA ── */}
       <section className="px-6 md:px-12 max-w-5xl mx-auto mb-24">
         <FadeIn>
@@ -358,27 +390,27 @@ export default function HomePage() {
       </section>
 
       {/* ── Footer ── */}
-<footer className="px-6 md:px-12 py-12"
-  style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-  <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-    <div className="flex items-center gap-2">
-      <Sprout className="text-green-400 w-5 h-5" />
-      <span className="gradient-text font-bold"
-        style={{ fontFamily: "var(--font-display)", fontSize: "16px", letterSpacing: "0.1em" }}>
-        ECO TRACKER
-      </span>
-    </div>
-    <p className="text-zinc-600 text-xs" style={{ fontFamily: "var(--font-body)" }}>
-      © 2026 Eco Habit Tracker. All rights reserved.
-    </p>
-    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-      style={{ background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.12)" }}>
-      <span className="text-xs text-green-400" style={{ fontFamily: "var(--font-body)" }}>
-        Aligned with UN SDG 13 – Climate Action
-      </span>
-    </div>
-  </div>
-</footer>
+      <footer className="px-6 md:px-12 py-12"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Sprout className="text-green-400 w-5 h-5" />
+            <span className="gradient-text font-bold"
+              style={{ fontFamily: "var(--font-display)", fontSize: "16px", letterSpacing: "0.1em" }}>
+              ECO TRACKER
+            </span>
+          </div>
+          <p className="text-zinc-600 text-xs" style={{ fontFamily: "var(--font-body)" }}>
+            © 2026 Eco Habit Tracker. All rights reserved.
+          </p>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+            style={{ background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.12)" }}>
+            <span className="text-xs text-green-400" style={{ fontFamily: "var(--font-body)" }}>
+              Aligned with UN SDG 13 – Climate Action
+            </span>
+          </div>
+        </div>
+      </footer>
 
     </main>
   );
