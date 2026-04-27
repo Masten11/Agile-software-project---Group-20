@@ -24,11 +24,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Hämta datan från frontenden
+    // Hämta datan från frontenden
     const body: LogHabitRequest = await request.json();
     const { category, ...data } = body;
 
-    // 4. Logik baserat på kategori
+    // Logik baserat på kategori
     if (category === 'transportation') {
       // Vi skickar med user.id från servern för säkerhet, 
       // så frontenden inte kan "fuska" med ett annat ID.

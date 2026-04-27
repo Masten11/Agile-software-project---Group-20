@@ -10,11 +10,11 @@ export async function handleTransportation(
 ) {
   const { start, destination, transportMode, userId } = data;
 
-  // 1. Google Maps anrop (exempel)
+  // Google Maps anrop (exempel)
   // const distanceInKm = await getDistance(start, destination);
   const distanceInKm = 15; 
 
-  // 2. Beräkna CO2, genomsnittsvärden på hur många kg co2 som släpps ut per person per km. 
+  //Beräkna CO2, genomsnittsvärden på hur många kg co2 som släpps ut per person per km. 
   const factors: Record<string, number> = {
     car: 0.12,
     bus: 0.03,
@@ -24,7 +24,7 @@ export async function handleTransportation(
   };
   const co2Emissions = distanceInKm * (factors[transportMode] || 0.1);
 
-  // 3. Spara till Supabase
+  //Spara till Supabase
   const { data: savedData, error } = await supabase
     .from('transportation')
     .insert([
