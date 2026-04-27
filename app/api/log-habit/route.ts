@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabaseServer';
 import { handleTransportation } from '../../../utils/transportation';
-import { TransportationData } from '../../../utils/types';
+import { TransportationData } from '../../../utils/transportationtype';
 
 // En interface för att typa det inkommande paketet från frontend
 interface LogHabitRequest extends Omit<TransportationData, 'userId'> {

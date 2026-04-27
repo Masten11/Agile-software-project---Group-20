@@ -1,9 +1,10 @@
 // lib/supabaseServer.ts
-import { createServerClient } from '@supabase/ssr'
+// lib/supabaseServer.ts
+import { createServerClient } from '@supabase/ssr' // <--- Kolla denna rad noga!
 import { cookies } from 'next/headers'
 
-export async function createClient() { // 1. Lägg till async här
-  const cookieStore = await cookies() // 2. Lägg till await här
+export async function createClient() {
+  const cookieStore = await cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
