@@ -1,6 +1,6 @@
 // app/api/log-habit/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '../../../lib/supabaseServer';
+import { createClient } from '../../../lib/supabaseServer'; // Kolla stora S!
 import { handleTransportation } from '../../../utils/transportation';
 import { TransportationData } from '../../../utils/transportationtype';
 
