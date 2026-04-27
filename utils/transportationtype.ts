@@ -4,6 +4,8 @@ export interface TransportationData {
     destination: string;
     transportMode: 'car' | 'bus' | 'train'| 'plane'|'bike'; // Begränsa till giltiga val
     userId: string;
-  }
+}
 
-  
+
+
+
