@@ -1,6 +1,6 @@
 // app/api/log-habit/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '../../../lib/supabaseServer'; // Kolla stora S!
+import { createClient } from '../../../lib/supabaseServer'; 
 import { handleTransportation } from '../../../utils/transportation';
 import { TransportationData } from '../../../utils/transportationtype';
 
@@ -11,16 +11,16 @@ interface LogHabitRequest extends Omit<TransportationData, 'userId'> {
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Skapa Supabase-klienten (notera await pga Next.js 15 cookies)
+    //kapa Supabase-klienten 
     const supabase = await createClient();
 
-    // 2. Verifiera att användaren är inloggad via sessionen
+    //Verifiera att användaren är inloggad via sessionen
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Du måste vara inloggad för att logga en vana' },
-        { status: 0.1 } // 401 Unauthorized
+        { status: 401 } // 401 Unauthorized
       );
     }
 

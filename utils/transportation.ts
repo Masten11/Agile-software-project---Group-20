@@ -11,20 +11,20 @@ export async function handleTransportation(
   const { start, destination, transportMode, userId } = data;
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
-  // 1. Anropa Google Maps
+  // Anropa Google Maps
   const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(start)}&destinations=${encodeURIComponent(destination)}&key=${apiKey}`;
   
   const response = await fetch(url);
   const googleData = await response.json();
 
-  // 2. TA UT DISTANSEN (Här händer det!)
+  // tar ut distansen ur json-filen
   // Vi går in i rows[0], sen elements[0] och hämtar distance.value
   const distanceInMeters = googleData.rows[0].elements[0].distance.value;
   
-  // Gör om meter till kilometer för din beräkning
+  // Gör om meter till kilometer
   const distanceInKm = distanceInMeters / 1000; 
 
-  // 3. Beräkna CO2 (din befintliga kod)
+  // Beräkna CO2 
   const factors: Record<string, number> = {
     car: 0.12,
     bus: 0.03,
@@ -34,7 +34,7 @@ export async function handleTransportation(
   };
   const co2Emissions = distanceInKm * (factors[transportMode] || 0.1);
 
-  // 4. Spara till Supabase (din befintliga kod)
+  // Spara till Supabase (din befintliga kod)
   const { data: savedData, error } = await supabase
     .from('transportation')
     .insert([
