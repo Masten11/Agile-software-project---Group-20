@@ -23,6 +23,22 @@ export async function POST(request: NextRequest) {
         { status: 401 } // 401 Unauthorized
       );
     }
+    
+    //så att man inte kan göra för många loggar 
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    
+    const { count, error: countError } = await supabase
+      .from('transportation')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', twentyFourHoursAgo);
+
+    if (count !== null && count >= 100) {
+      return NextResponse.json(
+        { error: 'Du har nått gränsen för antal sökningar per dygn (max 15). Försök igen imorgon' },
+        { status: 429 } // 429 betyder "Too Many Requests"
+      );
+    }
 
     // Hämta datan från frontenden
     const body: LogHabitRequest = await request.json();
