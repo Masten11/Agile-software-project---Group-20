@@ -118,6 +118,8 @@ export default function SettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // State för att spåra initial data (för att veta om något ändrats)
   const [initialProfile, setInitialProfile] = useState({
@@ -222,6 +224,32 @@ export default function SettingsPage() {
       alert("Password updated successfully!");
     }
   };
+
+  const handleDeleteAccount = async () => {
+  try {
+    setIsDeleting(true);
+
+    const response = await fetch("/api/delete-account", {
+      method: "DELETE",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      alert(result.error || "Failed to delete account.");
+      return;
+    }
+
+    await supabase.auth.signOut();
+    router.push("/login");
+
+  } catch {
+    alert("Something went wrong.");
+  } finally {
+    setIsDeleting(false);
+    setShowDeleteModal(false);
+  }
+};
 
   const avatarLetter = firstName ? firstName.charAt(0).toUpperCase() : email.charAt(0).toUpperCase();
   const isProfileBtnDisabled = isSavingProfile || !isDirty;
@@ -361,14 +389,74 @@ export default function SettingsPage() {
                 <p className="text-xs text-zinc-500 mb-5 leading-relaxed">
                   Deleting your account permanently removes all your data, Eco Score, and history. There is no going back.
                 </p>
-                <button type="button" className="w-full rounded-xl text-red-400 px-4 py-3 text-sm transition-all hover:bg-red-500/10 border border-red-400/20">
-                  Delete Account
-                </button>
+                <button
+  type="button"
+  onClick={() => setShowDeleteModal(true)}
+  className="w-full rounded-xl text-red-400 px-4 py-3 text-sm transition-all hover:bg-red-500/10 border border-red-400/20"
+>
+  Delete Account
+</button>
               </div>
             </motion.div>
           </div>
         </div>
       </main>
+      <AnimatePresence>
+  {showDeleteModal && (
+    <>
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={() => setShowDeleteModal(false)}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+      />
+
+      {/* Modal */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.92, y: 20 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 z-50 flex items-center justify-center px-6"
+      >
+        <div
+          className="w-full max-w-md rounded-2xl p-6"
+          style={{
+            background: "#18181b",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          <h3 className="text-white text-lg font-semibold mb-2">
+            Delete Account?
+          </h3>
+
+          <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+            Are you sure you want to delete your account?.
+          </p>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="flex-1 rounded-xl py-3 text-sm text-zinc-300 border border-white/10 hover:bg-white/5 transition-all"
+            >
+              Cancel
+            </button>
+
+            <button
+  onClick={handleDeleteAccount}
+  disabled={isDeleting}
+  className="flex-1 rounded-xl py-3 text-sm text-red-400 border border-red-400/20 hover:bg-red-500/10 transition-all disabled:opacity-50"
+>
+  {isDeleting ? "Deleting..." : "Delete"}
+</button>
+          </div>
+        </div>
+      </motion.div>
+    </>
+  )}
+</AnimatePresence>
       <BottomNav />
     </div>
   );
