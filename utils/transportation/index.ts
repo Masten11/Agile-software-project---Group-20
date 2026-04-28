@@ -79,3 +79,25 @@ export async function logTransportationHabit(
   const calculation = await calculateTransportationCO2(data);
   return storeTransportationResult({ ...calculation, userId }, supabase);
 }
+
+
+export async function unlogTransportationHabit(
+  id: string,
+  userId: string,
+  supabase: SupabaseClient
+) {
+  const { data: deletedData, error } = await supabase
+    .from('transport')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return deletedData;
+}
+

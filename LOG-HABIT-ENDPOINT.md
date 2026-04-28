@@ -78,3 +78,18 @@ For each category, keep the same function split:
 - `log...`: orchestration called by dispatcher
 
 This keeps each category independent and makes it easy to add more categories without changing endpoint flow.
+
+## Suggested Improvements (Enforce Pattern With Types)
+
+To make this architecture mandatory (not just a convention), define a shared `CategoryHandler` interface and register handlers in a typed map.
+
+Recommended minimum contract per category handler:
+
+- `parseInput(payload)` - validates and narrows raw payload for that category.
+- `rateLimitConfig` - table, timestamp column, max requests, and time window.
+- `calculateCO2(input)` - performs category-specific CO2 calculation.
+- `storeResult(result, userId, supabase)` - persists final data in the correct table.
+- `log(input, userId, supabase)` - orchestration helper (calculate + store).
+
+The parse habit function and dispatch habit function should not return null. 
+Instead, they should raise errors. 
