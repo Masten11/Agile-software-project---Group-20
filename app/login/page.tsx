@@ -1,6 +1,5 @@
 "use client";
 
-import { handleLogin } from "@/lib/auth-actions";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -92,8 +91,26 @@ export default function LoginPage() {
     if (password.length < 6) return triggerError("Password must be at least 6 characters");
     
     try {
-      await handleLogin(email, password);
-      router.push("/dashboard");
+        // Call API Route
+        const response = await fetch("/api/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+         });
+
+        // Parse the response
+        const result = await response.json();
+
+        // Handle API errors
+        if (!response.ok) {
+          throw new Error(result.error || "Failed to log in");
+        }
+
+        // Success!
+        router.push("/dashboard");
+        
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Invalid email or password";
       triggerError(message);
