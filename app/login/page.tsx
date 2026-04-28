@@ -2,10 +2,11 @@
 
 import { handleLogin } from "@/lib/auth-actions";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, ArrowRight, Sprout } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 /* ─────────── Floating label input ─────────── */
 function FloatingInput({
@@ -59,12 +60,25 @@ function FloatingInput({
 
 export default function LoginPage() {
   const router = useRouter();
-  const [step, setStep] = useState(0);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [shaking, setShaking] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+
+  // Kollar om användaren redan är inloggad och redirectar
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.push("/dashboard");
+      } else {
+        setIsChecking(false);
+      }
+    };
+    checkSession();
+  }, [router]);
 
   const triggerError = (msg: string) => {
     setError(msg);
@@ -72,16 +86,11 @@ export default function LoginPage() {
     setTimeout(() => setShaking(false), 500);
   };
 
-  const onEmailSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.includes("@")) return triggerError("Enter a valid email address");
-    setError("");
-    setStep(1);
-  };
-
   const onLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.includes("@")) return triggerError("Enter a valid email address");
     if (password.length < 6) return triggerError("Password must be at least 6 characters");
+    
     try {
       await handleLogin(email, password);
       router.push("/dashboard");
@@ -91,9 +100,11 @@ export default function LoginPage() {
     }
   };
 
+  // Förhindrar UI-blixt av formuläret innan redirecten hinner ske
+  if (isChecking) return <div className="min-h-screen bg-[#111318]" />;
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-[#111318] px-4 py-16">
-
       {/* Logo */}
       <motion.div
         initial={{ opacity: 0, y: -16 }}
@@ -127,123 +138,53 @@ export default function LoginPage() {
             border: "1px solid rgba(255,255,255,0.07)",
           }}
         >
-          {/* Progress bar */}
-          <div className="flex gap-2 mb-10">
-            {[0, 1].map((s) => (
-              <div key={s} className="h-1.5 flex-1 rounded-full overflow-hidden bg-white/10">
-                <motion.div
-                  className="h-full"
-                  style={{ background: "#4ade80" }}
-                  initial={{ width: "0%" }}
-                  animate={{ width: step >= s ? "100%" : "0%" }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                />
-              </div>
-            ))}
-          </div>
+          <motion.div
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.28 }}
+          >
+            <h2 className="text-white mb-3 leading-none text-[clamp(2.5rem,4vw,4rem)]"
+              style={{ fontFamily: "var(--font-display)", letterSpacing: "0.05em" }}>
+              WELCOME BACK
+            </h2>
+            <p className="text-zinc-400 mb-8 text-sm">Enter your details to continue</p>
 
-          <AnimatePresence mode="wait">
-            {step === 0 ? (
-              <motion.div
-                key="email"
-                initial={{ opacity: 0, x: 24 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -24 }}
-                transition={{ duration: 0.28 }}
-              >
-                <p className="text-zinc-400 tracking-[0.2em] uppercase mb-4 text-sm"
-                  style={{ fontFamily: "var(--font-body)" }}>
-                  Step 1 of 2
-                </p>
-                <h2 className="text-white mb-3 leading-none text-[clamp(2.5rem,4vw,4rem)]"
-                  style={{ fontFamily: "var(--font-display)", letterSpacing: "0.05em" }}>
-                  WELCOME BACK
-                </h2>
-                <p className="text-zinc-400 mb-8 text-sm">Enter your email to continue</p>
-
-                <form onSubmit={onEmailSubmit} className="space-y-6">
-                  <FloatingInput label="Email address" type="email" value={email}
-                    onChange={(v) => { setEmail(v); setError(""); }} autoFocus />
-                  <AnimatePresence>
-                    {error && (
-                      <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }} className="text-red-400 text-sm">
-                        {error}
-                      </motion.p>
-                    )}
-                  </AnimatePresence>
-                  <motion.button
-                    type="submit"
-                    className="w-full rounded-2xl font-semibold text-black flex items-center justify-center gap-3 py-[clamp(1rem,1.5vw,1.25rem)] text-[clamp(1rem,1.1vw,1.125rem)]"
-                    style={{ background: "#4ade80", fontFamily: "var(--font-body)" }}
-                    whileHover={{ scale: 1.015 }}
-                    whileTap={{ scale: 0.97 }}
-                  >
-                    Continue <ArrowRight size={20} />
-                  </motion.button>
-                </form>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="password"
-                initial={{ opacity: 0, x: 24 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -24 }}
-                transition={{ duration: 0.28 }}
-              >
-                <p className="text-zinc-400 tracking-[0.2em] uppercase mb-4 text-sm"
-                  style={{ fontFamily: "var(--font-body)" }}>
-                  Step 2 of 2
-                </p>
-                <h2 className="text-white mb-3 leading-none text-[clamp(2.5rem,4vw,4rem)]"
-                  style={{ fontFamily: "var(--font-display)", letterSpacing: "0.05em" }}>
-                  SIGN IN
-                </h2>
-                <p className="text-zinc-400 mb-8 text-sm">
-                  <span className="text-green-400">{email}</span>
-                </p>
-
-                <form onSubmit={onLoginSubmit} className="space-y-6">
-                  <FloatingInput
-                    label="Password" type={showPw ? "text" : "password"}
-                    value={password}
-                    onChange={(v) => { setPassword(v); setError(""); }}
-                    autoFocus
-                    right={
-                      <button type="button" onClick={() => setShowPw(!showPw)}
-                        className="text-zinc-400 hover:text-green-400 transition-colors">
-                        {showPw ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    }
-                  />
-                  <AnimatePresence>
-                    {error && (
-                      <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }} className="text-red-400 text-sm">
-                        {error}
-                      </motion.p>
-                    )}
-                  </AnimatePresence>
-                  <motion.button
-                    type="submit"
-                    className="w-full rounded-2xl font-semibold text-black py-[clamp(1rem,1.5vw,1.25rem)] text-[clamp(1rem,1.1vw,1.125rem)]"
-                    style={{ background: "#4ade80", fontFamily: "var(--font-body)" }}
-                    whileHover={{ scale: 1.015 }}
-                    whileTap={{ scale: 0.97 }}
-                  >
-                    Sign in
-                  </motion.button>
-                  <button
-                    type="button"
-                    onClick={() => { setStep(0); setError(""); }}
-                    className="w-full text-center text-zinc-400 hover:text-zinc-200 transition-colors pt-2 text-sm"
-                  >
-                    ← Different email
+            <form onSubmit={onLoginSubmit} className="space-y-6">
+              <FloatingInput label="Email address" type="email" value={email}
+                onChange={(v) => { setEmail(v); setError(""); }} autoFocus />
+                
+              <FloatingInput
+                label="Password" type={showPw ? "text" : "password"}
+                value={password}
+                onChange={(v) => { setPassword(v); setError(""); }}
+                right={
+                  <button type="button" onClick={() => setShowPw(!showPw)}
+                    className="text-zinc-400 hover:text-green-400 transition-colors">
+                    {showPw ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
-                </form>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                }
+              />
+
+              <AnimatePresence>
+                {error && (
+                  <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }} className="text-red-400 text-sm">
+                    {error}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+              
+              <motion.button
+                type="submit"
+                className="w-full rounded-2xl font-semibold text-black flex items-center justify-center gap-3 py-[clamp(1rem,1.5vw,1.25rem)] text-[clamp(1rem,1.1vw,1.125rem)]"
+                style={{ background: "#4ade80", fontFamily: "var(--font-body)" }}
+                whileHover={{ scale: 1.015 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                Sign in <ArrowRight size={20} />
+              </motion.button>
+            </form>
+          </motion.div>
 
           <p className="text-center text-zinc-400 mt-10 text-sm">
             No account?{" "}
