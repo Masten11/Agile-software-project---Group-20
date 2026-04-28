@@ -1,7 +1,7 @@
 import { TransportationInput } from './transportation/types';
 
 export enum Category {
-  Transportation = 'transportation',
+  Transportation = 'transport',
 }
 
 export type LogHabitRequest = {

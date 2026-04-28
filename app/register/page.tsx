@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, ArrowRight, Sprout, Check, X } from "lucide-react";
-import { handleSignUp } from "@/lib/auth-actions";
 
 /* ─────────── Floating label input ─────────── */
 function FloatingInput({
@@ -126,8 +125,27 @@ export default function RegisterPage() {
     setError("");
     try {
       // Skickar in tomma strängar för namn och username
-      await handleSignUp(email, password, "", "", "");
-      router.push("/dashboard");
+        const response = await fetch("/api/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ 
+            email, 
+            password, 
+            firstName: "", 
+            lastName: "", 
+            username: "" 
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || "Registration failed. Please try again.");
+        }
+
+        router.push("/dashboard");
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Registration failed. Please try again.";
       triggerError(errorMessage);

@@ -89,29 +89,6 @@ function FloatingInput({
 }
 
 /* ─── Mode button (transport) ─── */
-function ModeButton({ icon: Icon, label, active, onClick }: {
-  icon: React.ElementType; label: string; active: boolean; onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex flex-col items-center gap-2 p-3 rounded-2xl transition-all duration-200"
-      style={{
-        background: active ? "rgba(74,222,128,0.1)" : "rgba(255,255,255,0.03)",
-        border: active ? "1px solid rgba(74,222,128,0.35)" : "1px solid rgba(255,255,255,0.07)",
-        transform: "scale(1)",
-      }}
-      onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.07)"; }}
-      onMouseLeave={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
-    >
-      <Icon size={20} style={{ color: active ? "#4ade80" : "#71717a" }} />
-      <span className="text-xs" style={{ color: active ? "#4ade80" : "#71717a", fontFamily: "var(--font-body)" }}>
-        {label}
-      </span>
-    </button>
-  );
-}
 
 /* ─── Option button (food/energy) ─── */
 function OptionButton({ label, active, onClick }: {
@@ -176,6 +153,7 @@ function TransportForm({ onSubmit }: { onSubmit: (summary: string, impact: numbe
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [mode, setMode] = useState("");
+  const [modeOpen, setModeOpen] = useState(false);
   const modes = [
     { label: "Car", icon: Car },
     { label: "Bus", icon: Bus },
@@ -185,12 +163,46 @@ function TransportForm({ onSubmit }: { onSubmit: (summary: string, impact: numbe
   ];
   const impact = mode ? SCORE_IMPACT[mode] : null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!from || !to || !mode) return;
-    onSubmit(`${mode} from ${from} to ${to}`, impact ?? 0);
-    setFrom(""); setTo(""); setMode("");
-  };
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!from || !to || !mode) return;
+
+  const { data } = await supabase.auth.getUser();
+  const user = data.user;
+
+  if (!user) return;
+
+  try {
+    const response = await fetch("/api/transport", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        start: from,
+        destination: to,
+        transportMode: mode.toLowerCase(),
+        userId: user.id,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      onSubmit(
+        `${mode} from ${from} to ${to}`,
+        Number(result.data.co2_emissions)
+      );
+
+      setFrom("");
+      setTo("");
+      setMode("");
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -200,12 +212,79 @@ function TransportForm({ onSubmit }: { onSubmit: (summary: string, impact: numbe
         <p className="text-xs text-zinc-500 tracking-widest uppercase mb-3" style={{ fontFamily: "var(--font-body)" }}>
           Mode of transport
         </p>
-        <div className="grid grid-cols-5 gap-2">
-          {modes.map((m) => (
-            <ModeButton key={m.label} icon={m.icon} label={m.label}
-              active={mode === m.label} onClick={() => setMode(m.label)} />
-          ))}
-        </div>
+        <div className="relative">
+  <button
+    type="button"
+    onClick={() => setModeOpen(!modeOpen)}
+    className="w-full flex items-center justify-between px-5 py-4 rounded-2xl text-sm"
+    style={{
+      background: "rgba(255,255,255,0.04)",
+      border: "1px solid rgba(255,255,255,0.07)",
+      color: mode ? "#ffffff" : "#71717a",
+      fontFamily: "var(--font-body)",
+    }}
+  >
+    {mode || "Select transport"}
+    <ChevronDown
+      size={16}
+      className={`transition-transform duration-200 ${
+        modeOpen ? "rotate-180" : ""
+      }`}
+    />
+  </button>
+
+  <AnimatePresence>
+    {modeOpen && (
+      <motion.div
+        initial={{ opacity: 0, y: 6, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 6, scale: 0.97 }}
+        transition={{ duration: 0.15 }}
+        className="absolute left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50"
+        style={{
+          background: "#1e2128",
+          border: "1px solid rgba(255,255,255,0.08)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+        }}
+      >
+        {modes.map((m) => (
+  <button
+    key={m.label}
+    type="button"
+    onClick={() => {
+      setMode(m.label);
+      setModeOpen(false);
+    }}
+    className="w-full px-5 py-3 text-left text-sm transition-all duration-150 cursor-pointer"
+    style={{
+      color: mode === m.label ? "#4ade80" : "#a1a1aa",
+      background:
+        mode === m.label
+          ? "rgba(74,222,128,0.06)"
+          : "transparent",
+      fontFamily: "var(--font-body)",
+    }}
+    onMouseEnter={(e) => {
+      if (mode !== m.label) {
+        e.currentTarget.style.background =
+          "rgba(255,255,255,0.05)";
+        e.currentTarget.style.color = "#ffffff";
+      }
+    }}
+    onMouseLeave={(e) => {
+      if (mode !== m.label) {
+        e.currentTarget.style.background = "transparent";
+        e.currentTarget.style.color = "#a1a1aa";
+      }
+    }}
+  >
+    {m.label}
+  </button>
+))}
+      </motion.div>
+    )}
+  </AnimatePresence>
+</div>
       </div>
       <AnimatePresence>{impact !== null && <ScorePreview impact={impact} />}</AnimatePresence>
       <SubmitBtn disabled={!from || !to || !mode} />

@@ -5,7 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import { Leaf, Zap, Car, TrendingUp, Flame, Calendar, Plus, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import BottomNav from "@/components/BottomNav";
-import { supabase } from "@/lib/supabase";
+
 import {
   ResponsiveContainer,
   BarChart,
@@ -392,34 +392,36 @@ export default function DashboardPage() {
   const [loggedToday, setLoggedToday] = useState<string[]>([]);
 
   useEffect(() => {
-    async function fetchPersonalData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("first_name")
-          .eq("id", user.id)
-          .single();
-        if (profile?.first_name) setFirstName(profile.first_name.toUpperCase());
+    async function fetchDashboardData() {
+      try {
+        const response = await fetch("/api/dashboard");
+        if (!response.ok) throw new Error("Failed to fetch");
+        
+        const data = await response.json();
 
-        const today = new Date().toISOString().split("T")[0];
-        const { data: activities } = await supabase
-          .from("eco_activities")
-          .select("category, co2_emissions_kg")
-          .eq("user_id", user.id)
-          .gte("activity_date", today);
+        if (data.firstName) {
+          setFirstName(data.firstName.toUpperCase());
+        }
 
-        if (activities && activities.length > 0) {
-          const categories = activities.map((a) => a.category.toLowerCase());
+        if (data.activities && data.activities.length > 0) {
+          const categories = data.activities.map((a: any) => a.category.toLowerCase());
           setLoggedToday(categories);
-          const totalEmissions = activities.reduce((sum, act) => sum + Number(act.co2_emissions_kg || 0), 0);
+          
+          const totalEmissions = data.activities.reduce((sum: number, act: any) => 
+            sum + Number(act.co2_emissions_kg || 0), 0
+          );
           setEcoScore(Math.max(0, Math.round(1000 - totalEmissions * 50)));
         }
+        
         setStreak(1);
+      } catch (error) {
+        console.error("Error loading dashboard:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
-    fetchPersonalData();
+
+    fetchDashboardData();
   }, []);
 
   if (loading) {
