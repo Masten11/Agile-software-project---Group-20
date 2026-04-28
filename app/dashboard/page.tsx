@@ -404,12 +404,12 @@ export default function DashboardPage() {
         }
 
         if (data.activities && data.activities.length > 0) {
-          const categories = data.activities.map((a: any) => a.category.toLowerCase());
-          setLoggedToday(categories);
-          
-          const totalEmissions = data.activities.reduce((sum: number, act: any) => 
-            sum + Number(act.co2_emissions_kg || 0), 0
-          );
+          const categories = data.activities.map((a: { category: string }) => a.category.toLowerCase());
+setLoggedToday(categories);
+
+const totalEmissions = data.activities.reduce((sum: number, act: { co2_emissions_kg?: number | string }) => 
+  sum + Number(act.co2_emissions_kg || 0), 0
+);
           setEcoScore(Math.max(0, Math.round(1000 - totalEmissions * 50)));
         }
         

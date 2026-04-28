@@ -42,18 +42,25 @@ export async function storeTransportationResult(
   data: TransportationCalculationResult & { userId: string },
   supabase: SupabaseClient
 ) {
-  const { start, destination, transportMode, distanceInKm, co2Emissions, userId } = data;
+  const { start, destination, transportMode, co2Emissions, userId } = data;
 
+  // 1. Bygg en snygg summary som frontenden kan visa direkt (t.ex. "Bus from Gothenburg to Stockholm")
+  const formattedMode = transportMode.charAt(0).toUpperCase() + transportMode.slice(1);
+  const summaryText = `${formattedMode} from ${start} to ${destination}`;
+  
+  // 2. Få dagens datum (YYYY-MM-DD) så loggen visas under rätt dag i UI:t
+  const today = new Date().toISOString().split('T')[0];
+
+  // 3. Spara i tabellen 'eco_activities' istället för 'transport' med rätt kolumner
   const { data: savedData, error } = await supabase
-    .from('transport')
+    .from('eco_activities')
     .insert([
       {
         user_id: userId,
-        from_location: start,
-        to_location: destination,
-        distance: distanceInKm,
-        co2_emissions: co2Emissions,
-        mode: transportMode
+        category: 'transport',
+        summary: summaryText,            // <-- Detta saknades!
+        co2_emissions_kg: co2Emissions,  // <-- Matcha frontendens namn!
+        activity_date: today             // <-- Gör att den dyker upp i dagens lista!
       }
     ])
     .select()
@@ -72,4 +79,3 @@ export async function logTransportationHabit(
   const calculation = await calculateTransportationCO2(data);
   return storeTransportationResult({ ...calculation, userId }, supabase);
 }
-

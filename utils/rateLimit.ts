@@ -16,7 +16,7 @@ interface RateLimitResult {
 
 const RATE_LIMIT_CONFIG: Record<Category, RateLimitConfig> = {
   [Category.Transportation]: {
-    table: 'transportation',
+    table: 'eco_activities', // <-- Ändrad till din faktiska databastabell
     timestampColumn: 'created_at',
     maxRequests: 100,
     windowMs: 24 * 60 * 60 * 1000,
@@ -47,6 +47,7 @@ export async function rateLimitByCategory(
     .from(config.table)
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
+    .eq('category', category) // <-- VIKTIG FIX: Eftersom alla vanor delar tabell, måste vi filtrera på kategorin!
     .gte(config.timestampColumn, windowStart);
 
   if (error) {

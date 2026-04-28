@@ -17,16 +17,7 @@ type Log = {
   category: Category;
   summary: string;
   created_at: string;
-};
-
-/* ─── Score impact per choice (hardcoded for now) ─── */
-const SCORE_IMPACT: Record<string, number> = {
-  // Transport
-  Car: -120, Plane: -200, Bus: -30, Train: -20, Bike: 0,
-  // Food
-  Beef: -500, Chicken: -150, Fish: -100, Vegetarian: -30, Vegan: -10,
-  // Energy
-  Shower: -50, Laundry: -80, AC: -120, "EV charging": -60, Heating: -100, Dishwasher: -40,
+  co2_emissions_kg?: number; // <-- Lade till denna för CO2!
 };
 
 /* ─── Date options ─── */
@@ -41,6 +32,13 @@ function getDateWithOffset(offset: number): string {
   d.setDate(d.getDate() - offset);
   return d.toISOString().split("T")[0];
 }
+
+/* ─── Category tip ─── */
+const TIPS: Record<Category, string> = {
+  transport: "Taking the train instead of driving saves ~5× more CO₂ per trip.",
+  food: "A vegan meal produces up to 50× less CO₂ than a beef meal.",
+  energy: "Reducing your shower by 5 minutes saves ~0.3 kg CO₂ per day.",
+};
 
 /* ─── Floating label input ─── */
 function FloatingInput({
@@ -88,306 +86,23 @@ function FloatingInput({
   );
 }
 
-/* ─── Mode button (transport) ─── */
-
-/* ─── Option button (food/energy) ─── */
-function OptionButton({ label, active, onClick }: {
-  label: string; active: boolean; onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="px-4 py-2.5 rounded-xl text-sm transition-all duration-200"
-      style={{
-        background: active ? "rgba(74,222,128,0.1)" : "rgba(255,255,255,0.03)",
-        border: active ? "1px solid rgba(74,222,128,0.35)" : "1px solid rgba(255,255,255,0.07)",
-        color: active ? "#4ade80" : "#71717a",
-        fontFamily: "var(--font-body)",
-      }}
-      onMouseEnter={e => { if (!active) { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.color = "#a1a1aa"; }}}
-      onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.color = "#71717a"; }}}
-    >
-      {label}
-    </button>
-  );
-}
-
-/* ─── Score preview ─── */
-function ScorePreview({ impact }: { impact: number | null }) {
-  if (impact === null) return null;
-  const positive = impact >= 0;
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 6 }}
-      className="flex items-center justify-between px-4 py-3 rounded-xl"
-      style={{
-        background: positive ? "rgba(74,222,128,0.06)" : "rgba(248,113,113,0.06)",
-        border: `1px solid ${positive ? "rgba(74,222,128,0.15)" : "rgba(248,113,113,0.15)"}`,
-      }}
-    >
-      <span className="text-sm text-zinc-400" style={{ fontFamily: "var(--font-body)" }}>
-        Estimated impact
-      </span>
-      <span
-        className="text-sm font-semibold"
-        style={{ color: positive ? "#4ade80" : "#f87171", fontFamily: "var(--font-body)" }}
-      >
-        {positive ? "+" : ""}{impact}p
-      </span>
-    </motion.div>
-  );
-}
-
-/* ─── Category tip ─── */
-const TIPS: Record<Category, string> = {
-  transport: "Taking the train instead of driving saves ~5× more CO₂ per trip.",
-  food: "A vegan meal produces up to 50× less CO₂ than a beef meal.",
-  energy: "Reducing your shower by 5 minutes saves ~0.3 kg CO₂ per day.",
-};
-
-/* ─── Transport form ─── */
-function TransportForm({ onSubmit }: { onSubmit: (summary: string, impact: number) => void }) {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [mode, setMode] = useState("");
-  const [modeOpen, setModeOpen] = useState(false);
-  const modes = [
-    { label: "Car", icon: Car },
-    { label: "Bus", icon: Bus },
-    { label: "Train", icon: Train },
-    { label: "Bike", icon: Bike },
-    { label: "Plane", icon: Plane },
-  ];
-  const impact = mode ? SCORE_IMPACT[mode] : null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-
-  if (!from || !to || !mode) return;
-
-  const { data } = await supabase.auth.getUser();
-  const user = data.user;
-
-  if (!user) return;
-
-  try {
-    const response = await fetch("/api/transport", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        start: from,
-        destination: to,
-        transportMode: mode.toLowerCase(),
-        userId: user.id,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      onSubmit(
-        `${mode} from ${from} to ${to}`,
-        Number(result.data.co2_emissions)
-      );
-
-      setFrom("");
-      setTo("");
-      setMode("");
-    }
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <FloatingInput label="From" value={from} onChange={setFrom} />
-      <FloatingInput label="To" value={to} onChange={setTo} />
-      <div>
-        <p className="text-xs text-zinc-500 tracking-widest uppercase mb-3" style={{ fontFamily: "var(--font-body)" }}>
-          Mode of transport
-        </p>
-        <div className="relative">
-  <button
-    type="button"
-    onClick={() => setModeOpen(!modeOpen)}
-    className="w-full flex items-center justify-between px-5 py-4 rounded-2xl text-sm"
-    style={{
-      background: "rgba(255,255,255,0.04)",
-      border: "1px solid rgba(255,255,255,0.07)",
-      color: mode ? "#ffffff" : "#71717a",
-      fontFamily: "var(--font-body)",
-    }}
-  >
-    {mode || "Select transport"}
-    <ChevronDown
-      size={16}
-      className={`transition-transform duration-200 ${
-        modeOpen ? "rotate-180" : ""
-      }`}
-    />
-  </button>
-
-  <AnimatePresence>
-    {modeOpen && (
-      <motion.div
-        initial={{ opacity: 0, y: 6, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 6, scale: 0.97 }}
-        transition={{ duration: 0.15 }}
-        className="absolute left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50"
-        style={{
-          background: "#1e2128",
-          border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-        }}
-      >
-        {modes.map((m) => (
-  <button
-    key={m.label}
-    type="button"
-    onClick={() => {
-      setMode(m.label);
-      setModeOpen(false);
-    }}
-    className="w-full px-5 py-3 text-left text-sm transition-all duration-150 cursor-pointer"
-    style={{
-      color: mode === m.label ? "#4ade80" : "#a1a1aa",
-      background:
-        mode === m.label
-          ? "rgba(74,222,128,0.06)"
-          : "transparent",
-      fontFamily: "var(--font-body)",
-    }}
-    onMouseEnter={(e) => {
-      if (mode !== m.label) {
-        e.currentTarget.style.background =
-          "rgba(255,255,255,0.05)";
-        e.currentTarget.style.color = "#ffffff";
-      }
-    }}
-    onMouseLeave={(e) => {
-      if (mode !== m.label) {
-        e.currentTarget.style.background = "transparent";
-        e.currentTarget.style.color = "#a1a1aa";
-      }
-    }}
-  >
-    {m.label}
-  </button>
-))}
-      </motion.div>
-    )}
-  </AnimatePresence>
-</div>
-      </div>
-      <AnimatePresence>{impact !== null && <ScorePreview impact={impact} />}</AnimatePresence>
-      <SubmitBtn disabled={!from || !to || !mode} />
-    </form>
-  );
-}
-
-/* ─── Food form ─── */
-function FoodForm({ onSubmit }: { onSubmit: (summary: string, impact: number) => void }) {
-  const [meal, setMeal] = useState("");
-  const [portions, setPortions] = useState(1);
-  const meals = ["Beef", "Chicken", "Fish", "Vegetarian", "Vegan"];
-  const impact = meal ? SCORE_IMPACT[meal] * portions : null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!meal) return;
-    onSubmit(`${meal} × ${portions} portion${portions > 1 ? "s" : ""}`, impact ?? 0);
-    setMeal(""); setPortions(1);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div>
-        <p className="text-xs text-zinc-500 tracking-widest uppercase mb-3" style={{ fontFamily: "var(--font-body)" }}>
-          What did you eat?
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {meals.map((m) => (
-            <OptionButton key={m} label={m} active={meal === m} onClick={() => setMeal(m)} />
-          ))}
-        </div>
-      </div>
-      <div>
-        <p className="text-xs text-zinc-500 tracking-widest uppercase mb-3" style={{ fontFamily: "var(--font-body)" }}>
-          Portions: {portions}
-        </p>
-        <input type="range" min={1} max={5} value={portions}
-          onChange={(e) => setPortions(Number(e.target.value))}
-          className="w-full accent-green-400" />
-        <div className="flex justify-between mt-1">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <span key={n} className="text-xs text-zinc-600" style={{ fontFamily: "var(--font-body)" }}>{n}</span>
-          ))}
-        </div>
-      </div>
-      <AnimatePresence>{impact !== null && <ScorePreview impact={impact} />}</AnimatePresence>
-      <SubmitBtn disabled={!meal} />
-    </form>
-  );
-}
-
-/* ─── Energy form ─── */
-function EnergyForm({ onSubmit }: { onSubmit: (summary: string, impact: number) => void }) {
-  const [activity, setActivity] = useState("");
-  const [duration, setDuration] = useState("");
-  const activities = ["Shower", "Laundry", "AC", "EV charging", "Heating", "Dishwasher"];
-  const impact = activity ? SCORE_IMPACT[activity] : null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activity) return;
-    const summary = duration ? `${activity} – ${duration} min` : activity;
-    onSubmit(summary, impact ?? 0);
-    setActivity(""); setDuration("");
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div>
-        <p className="text-xs text-zinc-500 tracking-widest uppercase mb-3" style={{ fontFamily: "var(--font-body)" }}>
-          What did you use?
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {activities.map((a) => (
-            <OptionButton key={a} label={a} active={activity === a} onClick={() => setActivity(a)} />
-          ))}
-        </div>
-      </div>
-      <FloatingInput label="Duration (minutes, optional)" value={duration} onChange={setDuration} type="number" />
-      <AnimatePresence>{impact !== null && <ScorePreview impact={impact} />}</AnimatePresence>
-      <SubmitBtn disabled={!activity} />
-    </form>
-  );
-}
-
 /* ─── Submit button ─── */
-function SubmitBtn({ disabled }: { disabled: boolean }) {
+function SubmitBtn({ disabled, loading }: { disabled: boolean; loading?: boolean }) {
   return (
     <motion.button
       type="submit"
-      disabled={disabled}
+      disabled={disabled || loading}
       whileHover={disabled ? {} : { scale: 1.015 }}
       whileTap={disabled ? {} : { scale: 0.97 }}
       className="w-full rounded-2xl font-semibold py-3.5 text-sm transition-all duration-200"
       style={{
-        background: disabled ? "rgba(255,255,255,0.05)" : "#4ade80",
-        color: disabled ? "#52525b" : "#000",
+        background: disabled || loading ? "rgba(255,255,255,0.05)" : "#4ade80",
+        color: disabled || loading ? "#52525b" : "#000",
         fontFamily: "var(--font-body)",
-        cursor: disabled ? "not-allowed" : "pointer",
+        cursor: disabled || loading ? "not-allowed" : "pointer",
       }}
     >
-      Log habit
+      {loading ? "Logging..." : "Log habit"}
     </motion.button>
   );
 }
@@ -399,6 +114,160 @@ function CategoryIcon({ category }: { category: Category }) {
   return <Zap size={14} className="text-yellow-400" />;
 }
 
+/* ─── Transport form ─── */
+function TransportForm({ onSuccess }: { onSuccess: () => void }) {
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [mode, setMode] = useState("");
+  const [modeOpen, setModeOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const modes = [
+    { label: "Car", icon: Car },
+    { label: "Bus", icon: Bus },
+    { label: "Train", icon: Train },
+    { label: "Bike", icon: Bike },
+    { label: "Plane", icon: Plane },
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!from || !to || !mode) return;
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/log-habit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: "transport",
+          body: {
+            start: from,
+            destination: to,
+            transportMode: mode.toLowerCase(),
+          },
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(result.error || "Something went wrong");
+        return;
+      }
+
+      setFrom("");
+      setTo("");
+      setMode("");
+      onSuccess(); // Triggar refreshTrigger i LogPage = Data hämtas på nytt!
+    } catch {
+      setError("Failed to log habit. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <FloatingInput label="From" value={from} onChange={(v) => { setFrom(v); setError(null); }} />
+      <FloatingInput label="To" value={to} onChange={(v) => { setTo(v); setError(null); }} />
+
+      <div>
+        <p className="text-xs text-zinc-500 tracking-widest uppercase mb-3" style={{ fontFamily: "var(--font-body)" }}>
+          Mode of transport
+        </p>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setModeOpen(!modeOpen)}
+            className="w-full flex items-center justify-between px-5 py-4 rounded-2xl text-sm"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              color: mode ? "#ffffff" : "#71717a",
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            {mode || "Select transport"}
+            <ChevronDown size={16} className={`transition-transform duration-200 ${modeOpen ? "rotate-180" : ""}`} />
+          </button>
+
+          <AnimatePresence>
+            {modeOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                transition={{ duration: 0.15 }}
+                className="absolute left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50"
+                style={{
+                  background: "#1e2128",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                }}
+              >
+                {modes.map((m) => (
+                  <button
+                    key={m.label}
+                    type="button"
+                    onClick={() => { setMode(m.label); setModeOpen(false); }}
+                    className="w-full px-5 py-3 text-left text-sm transition-all duration-150 cursor-pointer"
+                    style={{
+                      color: mode === m.label ? "#4ade80" : "#a1a1aa",
+                      background: mode === m.label ? "rgba(74,222,128,0.06)" : "transparent",
+                      fontFamily: "var(--font-body)",
+                    }}
+                    onMouseEnter={e => { if (mode !== m.label) { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#ffffff"; }}}
+                    onMouseLeave={e => { if (mode !== m.label) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#a1a1aa"; }}}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="text-red-400 text-sm"
+            style={{ fontFamily: "var(--font-body)" }}
+          >
+            {error}
+          </motion.p>
+        )}
+      </AnimatePresence>
+
+      <SubmitBtn disabled={!from || !to || !mode} loading={submitting} />
+    </form>
+  );
+}
+
+/* ─── Coming soon placeholder ─── */
+function ComingSoon({ category }: { category: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
+        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+        <span className="text-xl">{category === "food" ? "🥗" : "⚡"}</span>
+      </div>
+      <p className="text-zinc-400 text-sm font-medium mb-1" style={{ fontFamily: "var(--font-body)" }}>
+        {category === "food" ? "Food" : "Energy"} logging coming soon
+      </p>
+      <p className="text-zinc-600 text-xs" style={{ fontFamily: "var(--font-body)" }}>
+        We&apos;re working on it — check back next sprint
+      </p>
+    </div>
+  );
+}
+
 /* ─── Main page ─── */
 export default function LogPage() {
   const [activeCategory, setActiveCategory] = useState<Category>("transport");
@@ -407,57 +276,46 @@ export default function LogPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [dateOffset, setDateOffset] = useState(0);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
+  
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const categories: { id: Category; label: string }[] = [
-    { id: "transport", label: "Transport" },
-    { id: "food", label: "Food" },
-    { id: "energy", label: "Energy" },
+  const categories: { id: Category; label: string; available: boolean }[] = [
+    { id: "transport", label: "Transport", available: true },
+    { id: "food", label: "Food", available: false },
+    { id: "energy", label: "Energy", available: false },
   ];
 
   const selectedDate = getDateWithOffset(dateOffset);
   const loggedCategories = [...new Set(logs.map((l) => l.category))];
 
-  /* Fetch logs for selected date */
   useEffect(() => {
-    async function fetchLogs() {
-      setLoading(true);
+    const loadLogs = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      
       const { data } = await supabase
         .from("eco_activities")
-        .select("id, category, summary, created_at")
+        // <-- VIKTIGT: Här ber vi databasen även om co2_emissions_kg!
+        .select("id, category, summary, created_at, co2_emissions_kg") 
         .eq("user_id", user.id)
         .eq("activity_date", selectedDate)
         .order("created_at", { ascending: false });
+        
       if (data) setLogs(data as Log[]);
-      setLoading(false);
-    }
-    fetchLogs();
-  }, [selectedDate]);
+      setLoading(false); 
+    };
 
-  /* Add log */
-  const handleLog = async (category: Category, summary: string, impact: number) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data, error } = await supabase
-      .from("eco_activities")
-      .insert({
-        user_id: user.id,
-        category,
-        summary,
-        activity_date: selectedDate,
-        co2_emissions_kg: Math.abs(impact) / 50,
-      })
-      .select()
-      .single();
-    if (!error && data) setLogs((prev) => [data as Log, ...prev]);
-  };
+    loadLogs();
+  }, [selectedDate, refreshTrigger]); 
 
-  /* Delete log */
   const handleDelete = async (id: string) => {
     await supabase.from("eco_activities").delete().eq("id", id);
     setLogs((prev) => prev.filter((l) => l.id !== id));
     setDeleteConfirm(null);
+  };
+
+  const triggerRefresh = () => {
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   return (
@@ -518,7 +376,11 @@ export default function LogPage() {
                     {DATE_OPTIONS.map((opt, i) => (
                       <button
                         key={opt.label}
-                        onClick={() => { setDateOffset(i); setDateDropdownOpen(false); }}
+                        onClick={() => { 
+                          setLoading(true);
+                          setDateOffset(i); 
+                          setDateDropdownOpen(false); 
+                        }}
                         className="w-full px-4 py-2.5 text-sm text-left transition-colors duration-150"
                         style={{
                           color: dateOffset === i ? "#4ade80" : "#a1a1aa",
@@ -548,20 +410,18 @@ export default function LogPage() {
               border: "1px solid rgba(255,255,255,0.07)",
             }}
           >
-            <div className="flex gap-2 flex-1">
+            <div className="flex gap-4 flex-1">
               {categories.map((cat) => {
                 const done = loggedCategories.includes(cat.id);
                 return (
                   <div key={cat.id} className="flex items-center gap-1.5">
-                    <div
-                      className="w-2 h-2 rounded-full transition-colors duration-300"
-                      style={{ background: done ? "#4ade80" : "rgba(255,255,255,0.15)" }}
-                    />
+                    <div className="w-2 h-2 rounded-full transition-colors duration-300"
+                      style={{ background: done ? "#4ade80" : cat.available ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)" }} />
                     <span className="text-xs" style={{
-                      color: done ? "#4ade80" : "#52525b",
+                      color: done ? "#4ade80" : cat.available ? "#52525b" : "#3f3f46",
                       fontFamily: "var(--font-body)",
                     }}>
-                      {cat.label}
+                      {cat.label}{!cat.available && " (soon)"}
                     </span>
                   </div>
                 );
@@ -595,11 +455,10 @@ export default function LogPage() {
                       style={{
                         background: activeCategory === cat.id ? "rgba(74,222,128,0.1)" : "transparent",
                         border: activeCategory === cat.id ? "1px solid rgba(74,222,128,0.25)" : "1px solid transparent",
-                        color: activeCategory === cat.id ? "#4ade80" : "#71717a",
+                        color: activeCategory === cat.id ? "#4ade80" : cat.available ? "#71717a" : "#3f3f46",
                         fontFamily: "var(--font-body)",
+                        cursor: cat.available ? "pointer" : "default",
                       }}
-                      onMouseEnter={e => { if (activeCategory !== cat.id) e.currentTarget.style.color = "#a1a1aa"; }}
-                      onMouseLeave={e => { if (activeCategory !== cat.id) e.currentTarget.style.color = "#71717a"; }}
                     >
                       {cat.label}
                     </button>
@@ -616,29 +475,27 @@ export default function LogPage() {
                     transition={{ duration: 0.22 }}
                   >
                     {activeCategory === "transport" && (
-                      <TransportForm onSubmit={(s, i) => handleLog("transport", s, i)} />
+                      <TransportForm onSuccess={triggerRefresh} /> 
                     )}
-                    {activeCategory === "food" && (
-                      <FoodForm onSubmit={(s, i) => handleLog("food", s, i)} />
-                    )}
-                    {activeCategory === "energy" && (
-                      <EnergyForm onSubmit={(s, i) => handleLog("energy", s, i)} />
-                    )}
+                    {activeCategory === "food" && <ComingSoon category="food" />}
+                    {activeCategory === "energy" && <ComingSoon category="energy" />}
                   </motion.div>
                 </AnimatePresence>
 
                 {/* Category tip */}
-                <div className="mt-6 flex items-start gap-3 px-4 py-3 rounded-xl"
-                  style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                  <span className="text-base shrink-0">💡</span>
-                  <p className="text-zinc-500 text-xs leading-relaxed" style={{ fontFamily: "var(--font-body)" }}>
-                    {TIPS[activeCategory]}
-                  </p>
-                </div>
+                {activeCategory === "transport" && (
+                  <div className="mt-6 flex items-start gap-3 px-4 py-3 rounded-xl"
+                    style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                    <span className="text-base shrink-0">💡</span>
+                    <p className="text-zinc-500 text-xs leading-relaxed" style={{ fontFamily: "var(--font-body)" }}>
+                      {TIPS[activeCategory]}
+                    </p>
+                  </div>
+                )}
               </div>
             </motion.div>
 
-            {/* ── RIGHT: Today's logs ── */}
+            {/* ── RIGHT: Logs ── */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -672,12 +529,8 @@ export default function LogPage() {
                         style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
                         <Plus size={18} className="text-zinc-600" />
                       </div>
-                      <p className="text-zinc-500 text-sm" style={{ fontFamily: "var(--font-body)" }}>
-                        No habits logged
-                      </p>
-                      <p className="text-zinc-600 text-xs mt-1" style={{ fontFamily: "var(--font-body)" }}>
-                        Use the form to add your first log
-                      </p>
+                      <p className="text-zinc-500 text-sm" style={{ fontFamily: "var(--font-body)" }}>No habits logged</p>
+                      <p className="text-zinc-600 text-xs mt-1" style={{ fontFamily: "var(--font-body)" }}>Use the form to add your first log</p>
                     </div>
                   ) : (
                     <AnimatePresence initial={false}>
@@ -691,40 +544,48 @@ export default function LogPage() {
                           className="px-5 py-4"
                           style={{ background: "rgba(255,255,255,0.02)" }}
                         >
-                          <div className="flex items-start gap-3">
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                               style={{ background: "rgba(255,255,255,0.05)" }}>
                               <CategoryIcon category={log.category} />
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs text-zinc-500 capitalize mb-0.5" style={{ fontFamily: "var(--font-body)" }}>
-                                {log.category}
-                              </p>
-                              <p className="text-sm text-white truncate" style={{ fontFamily: "var(--font-body)" }}>
-                                {log.summary}
-                              </p>
+                            
+                            {/* Flex-1 tvingar texten och CO2-infon att dela utrymmet snyggt */}
+                            <div className="flex-1 min-w-0 flex items-center justify-between pr-2">
+                              <div>
+                                <p className="text-xs text-zinc-500 capitalize mb-0.5" style={{ fontFamily: "var(--font-body)" }}>
+                                  {log.category}
+                                </p>
+                                <p className="text-sm text-white truncate" style={{ fontFamily: "var(--font-body)" }}>
+                                  {log.summary || "Unknown activity"}
+                                </p>
+                              </div>
+                              
+                              {/* <-- Här visas din CO2 data snyggt! --> */}
+                              <div className="text-right">
+                                <p className="text-sm font-medium text-zinc-300" style={{ fontFamily: "var(--font-body)" }}>
+                                  {log.co2_emissions_kg ? log.co2_emissions_kg.toFixed(1) : "0"} <span className="text-xs text-zinc-500">kg CO₂</span>
+                                </p>
+                              </div>
                             </div>
+
                             {deleteConfirm === log.id ? (
                               <div className="flex gap-1 shrink-0">
-                                <button
-                                  onClick={() => handleDelete(log.id)}
+                                <button onClick={() => handleDelete(log.id)}
                                   className="text-xs px-2 py-1 rounded-lg text-red-400 transition-colors hover:bg-red-500/10"
-                                  style={{ fontFamily: "var(--font-body)" }}
-                                >
+                                  style={{ fontFamily: "var(--font-body)" }}>
                                   Delete
                                 </button>
-                                <button
-                                  onClick={() => setDeleteConfirm(null)}
+                                <button onClick={() => setDeleteConfirm(null)}
                                   className="text-xs px-2 py-1 rounded-lg text-zinc-500 transition-colors hover:text-zinc-300"
-                                  style={{ fontFamily: "var(--font-body)" }}
-                                >
+                                  style={{ fontFamily: "var(--font-body)" }}>
                                   Cancel
                                 </button>
                               </div>
                             ) : (
                               <button
                                 onClick={() => setDeleteConfirm(log.id)}
-                                className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors group/del"
+                                className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors group/del shrink-0"
                                 onMouseEnter={e => e.currentTarget.style.background = "rgba(248,113,113,0.1)"}
                                 onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                               >
