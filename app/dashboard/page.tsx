@@ -2,10 +2,18 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
-import { Leaf, Zap, Car, TrendingUp, Flame, Calendar, Plus } from "lucide-react";
+import { Leaf, Zap, Car, TrendingUp, Flame, Calendar, Plus, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/lib/supabase";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from "recharts";
 
 /* ── Circular Eco Score ── */
 function EcoScoreRing({ score }: { score: number }) {
@@ -101,29 +109,134 @@ function CategoryCard({
 
 /* ── Placeholder chart ── */
 function ChartPlaceholder({ label }: { label: string }) {
-  const bars = [40, 65, 50, 80, 70, 90, 75];
+  const [range, setRange] = useState("week");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const datasets = {
+    week: [
+      { name: "M", value: 18 },
+      { name: "T", value: 25 },
+      { name: "W", value: 20 },
+      { name: "T", value: 28 },
+      { name: "F", value: 22 },
+      { name: "S", value: 30 },
+      { name: "S", value: 24 },
+    ],
+
+    month: [
+      { name: "W1", value: 120 },
+      { name: "W2", value: 98 },
+      { name: "W3", value: 135 },
+      { name: "W4", value: 110 },
+      { name: "W5", value: 126 },
+    ],
+
+    year: [
+      { name: "Jan", value: 410 },
+      { name: "Feb", value: 380 },
+      { name: "Mar", value: 450 },
+      { name: "Apr", value: 420 },
+      { name: "May", value: 470 },
+      { name: "Jun", value: 430 },
+      { name: "Jul", value: 490 },
+      { name: "Aug", value: 460 },
+      { name: "Sep", value: 440 },
+      { name: "Oct", value: 500 },
+      { name: "Nov", value: 470 },
+      { name: "Dec", value: 520 },
+    ],
+  };
+
+  const data = datasets[range as keyof typeof datasets];
+
   return (
-    <div className="rounded-2xl p-6"
-      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-      <p className="text-zinc-400 text-sm tracking-widest uppercase mb-4"
-        style={{ fontFamily: "var(--font-body)" }}>{label}</p>
-      <div className="flex items-end gap-2 h-24">
-        {bars.map((h, i) => (
-          <motion.div
-            key={i}
-            className="flex-1 rounded-t-md"
-            style={{ background: "linear-gradient(180deg, #4ade8099, #4ade8022)" }}
-            initial={{ height: 0 }}
-            animate={{ height: `${h}%` }}
-            transition={{ duration: 0.6, delay: i * 0.07, ease: "easeOut" }}
-          />
-        ))}
+    <div
+  className="rounded-2xl p-6 relative"
+  style={{
+    overflow: "visible", 
+    background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(255,255,255,0.07)",
+  }}
+>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <p
+          className="text-zinc-400 text-sm tracking-widest uppercase"
+          style={{ fontFamily: "var(--font-body)" }}
+        >
+          {label}
+        </p>
+
+        <div className="relative">
+  <button
+    onClick={() => setDropdownOpen(!dropdownOpen)}
+    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+    style={{
+      background: "rgba(255,255,255,0.04)",
+      border: "1px solid rgba(255,255,255,0.07)",
+      color: "#a1a1aa",
+    }}
+  >
+    {range}
+    <ChevronDown size={14} />
+  </button>
+
+  {dropdownOpen && (
+    <div
+        className="absolute right-0 mt-2 rounded-xl overflow-hidden z-999"     
+        
+        style={{
+        background: "#1e2128",
+        border: "1px solid rgba(255,255,255,0.09)",
+      }}
+    >
+      {["week", "month", "year"].map((opt) => (
+        <div
+          key={opt}
+          onClick={() => {
+            setRange(opt);
+            setDropdownOpen(false);
+          }}
+          className="px-4 py-2 text-sm cursor-pointer"
+          style={{
+            color: range === opt ? "#4ade80" : "#a1a1aa",
+          }}
+        >
+          {opt}
+        </div>
+      ))}
+    </div>
+  )}
+</div>
       </div>
-      <div className="flex justify-between mt-2">
-        {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-          <span key={i} className="flex-1 text-center text-sm text-zinc-500"
-            style={{ fontFamily: "var(--font-body)" }}>{d}</span>
-        ))}
+
+      {/* Chart */}
+      <div style={{ width: "100%", height: 260, position: "relative", zIndex: 1 }}>
+        <ResponsiveContainer>
+          <BarChart data={data}>
+            <XAxis
+              dataKey="name"
+              stroke="#71717a"
+              tick={{ fontSize: 12 }}
+            />
+            <YAxis
+              stroke="#71717a"
+              tick={{ fontSize: 12 }}
+            />
+            <Tooltip
+              contentStyle={{
+                background: "#18181b",
+                border: "1px solid #27272a",
+                borderRadius: "12px",
+              }}
+            />
+            <Bar
+              dataKey="value"
+              fill="#4ade80"
+              radius={[6, 6, 0, 0]}
+            />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
