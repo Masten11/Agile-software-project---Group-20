@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, ArrowRight, Sprout, Check, X } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Sprout, Check, X, Lock } from "lucide-react";
 
 /* ─────────── Floating label input ─────────── */
 function FloatingInput({
@@ -249,8 +249,19 @@ export default function RegisterPage() {
 
               {step === 0 && (
                 <form onSubmit={onStep0} className="space-y-6">
-                  <FloatingInput label="Email address" type="email" value={email}
-                    onChange={(v) => { setEmail(v); setError(""); }} autoFocus />
+                  <div className="space-y-3">
+                    <FloatingInput label="Email address" type="email" value={email}
+                      onChange={(v) => { setEmail(v); setError(""); }} autoFocus />
+                    
+                    {/* Psychological Safety Message */}
+                    <div className="flex items-center gap-1.5 pl-2">
+                      <Lock size={12} className="text-zinc-500" />
+                      <p className="text-xs text-zinc-500" style={{ fontFamily: "var(--font-body)" }}>
+                        Your email is secure and will never be shared.
+                      </p>
+                    </div>
+                  </div>
+                  
                   <ErrorMsg error={error} />
                   <SubmitButton label="Continue" />
                 </form>

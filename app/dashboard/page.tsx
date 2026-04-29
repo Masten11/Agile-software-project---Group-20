@@ -13,6 +13,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  Cell // <-- LÄGG TILL DENNA
 } from "recharts";
 
 /* ── Circular Eco Score ── */
@@ -112,25 +113,36 @@ function ChartPlaceholder({ label }: { label: string }) {
   const [range, setRange] = useState("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  // --- NYTT: För mobil-markering ---
+  const [isMobile, setIsMobile] = useState(false);
+  const [activeBarIndex, setActiveBarIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Kollar om skärmen är mindre än 768px (typisk mobil/surfplatta)
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile(); 
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+  // ---------------------------------
+
   const datasets = {
     week: [
-      { name: "M", value: 18 },
-      { name: "T", value: 25 },
-      { name: "W", value: 20 },
-      { name: "T", value: 28 },
-      { name: "F", value: 22 },
-      { name: "S", value: 30 },
-      { name: "S", value: 24 },
+      { name: "Mon", value: 18 },
+      { name: "Tue", value: 25 },
+      { name: "Wed", value: 20 },
+      { name: "Thu", value: 28 },
+      { name: "Fri", value: 22 },
+      { name: "Sat", value: 30 },
+      { name: "Sun", value: 24 },
     ],
-
     month: [
-      { name: "W1", value: 120 },
-      { name: "W2", value: 98 },
-      { name: "W3", value: 135 },
-      { name: "W4", value: 110 },
-      { name: "W5", value: 126 },
+      { name: "Week 1", value: 120 },
+      { name: "Week 2", value: 98 },
+      { name: "Week 3", value: 135 },
+      { name: "Week 4", value: 110 },
+      { name: "Week 5", value: 126 },
     ],
-
     year: [
       { name: "Jan", value: 410 },
       { name: "Feb", value: 380 },
@@ -151,13 +163,13 @@ function ChartPlaceholder({ label }: { label: string }) {
 
   return (
     <div
-  className="rounded-2xl p-6 relative"
-  style={{
-    overflow: "visible", 
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.07)",
-  }}
->
+      className="rounded-2xl p-6 relative"
+      style={{
+        overflow: "visible", 
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.07)",
+      }}
+    >
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <p
@@ -168,46 +180,46 @@ function ChartPlaceholder({ label }: { label: string }) {
         </p>
 
         <div className="relative">
-  <button
-    onClick={() => setDropdownOpen(!dropdownOpen)}
-    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-    style={{
-      background: "rgba(255,255,255,0.04)",
-      border: "1px solid rgba(255,255,255,0.07)",
-      color: "#a1a1aa",
-    }}
-  >
-    {range}
-    <ChevronDown size={14} />
-  </button>
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              color: "#a1a1aa",
+            }}
+          >
+            {range}
+            <ChevronDown size={14} />
+          </button>
 
-  {dropdownOpen && (
-    <div
-        className="absolute right-0 mt-2 rounded-xl overflow-hidden z-999"     
-        
-        style={{
-        background: "#1e2128",
-        border: "1px solid rgba(255,255,255,0.09)",
-      }}
-    >
-      {["week", "month", "year"].map((opt) => (
-        <div
-          key={opt}
-          onClick={() => {
-            setRange(opt);
-            setDropdownOpen(false);
-          }}
-          className="px-4 py-2 text-sm cursor-pointer"
-          style={{
-            color: range === opt ? "#4ade80" : "#a1a1aa",
-          }}
-        >
-          {opt}
+          {dropdownOpen && (
+            <div
+              className="absolute right-0 mt-2 rounded-xl overflow-hidden z-999"    
+              style={{
+                background: "#1e2128",
+                border: "1px solid rgba(255,255,255,0.09)",
+              }}
+            >
+              {["week", "month", "year"].map((opt) => (
+                <div
+                  key={opt}
+                  onClick={() => {
+                    setRange(opt);
+                    setDropdownOpen(false);
+                    setActiveBarIndex(null); // Nollställ markering när man byter vy
+                  }}
+                  className="px-4 py-2 text-sm cursor-pointer"
+                  style={{
+                    color: range === opt ? "#4ade80" : "#a1a1aa",
+                  }}
+                >
+                  {opt}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      ))}
-    </div>
-  )}
-</div>
       </div>
 
       {/* Chart */}
@@ -224,17 +236,32 @@ function ChartPlaceholder({ label }: { label: string }) {
               tick={{ fontSize: 12 }}
             />
             <Tooltip
+              cursor={{ fill: "transparent" }}
               contentStyle={{
                 background: "#18181b",
                 border: "1px solid #27272a",
                 borderRadius: "12px",
+                color: "#ffffff",
               }}
             />
             <Bar
               dataKey="value"
-              fill="#4ade80"
               radius={[6, 6, 0, 0]}
-            />
+              // Sätt indexet som aktivt när man trycker (endast mobil)
+              onClick={(_, index) => {
+                if (isMobile) setActiveBarIndex(index);
+              }}
+            >
+              {/* Iterera över datan och skapa individuella celler för att styra färg */}
+              {data.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  // Om det är mobil och denna cell är klickad -> ljusgrön, annars vanlig grön
+                  fill={isMobile && activeBarIndex === index ? "#86efac" : "#4ade80"}
+                  style={{ transition: "fill 0.2s ease" }}
+                />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -405,11 +432,11 @@ export default function DashboardPage() {
 
         if (data.activities && data.activities.length > 0) {
           const categories = data.activities.map((a: { category: string }) => a.category.toLowerCase());
-setLoggedToday(categories);
+          setLoggedToday(categories);
 
-const totalEmissions = data.activities.reduce((sum: number, act: { co2_emissions_kg?: number | string }) => 
-  sum + Number(act.co2_emissions_kg || 0), 0
-);
+          const totalEmissions = data.activities.reduce((sum: number, act: { co2_emissions_kg?: number | string }) => 
+            sum + Number(act.co2_emissions_kg || 0), 0
+          );
           setEcoScore(Math.max(0, Math.round(1000 - totalEmissions * 50)));
         }
         

@@ -448,61 +448,61 @@ export default function SettingsPage() {
         </div>
       </main>
       <AnimatePresence>
-  {showDeleteModal && (
-    <>
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={() => setShowDeleteModal(false)}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-      />
-
-      {/* Modal */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.92, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.92, y: 20 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50 flex items-center justify-center px-6"
-      >
-        <div
-          className="w-full max-w-md rounded-2xl p-6"
-          style={{
-            background: "#18181b",
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
-          <h3 className="text-white text-lg font-semibold mb-2">
-            Delete Account?
-          </h3>
-
-          <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-            Are you sure you want to delete your account?
-          </p>
-
-          <div className="flex gap-3">
-            <button
+        {showDeleteModal && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               onClick={() => setShowDeleteModal(false)}
-              className="flex-1 rounded-xl py-3 text-sm text-zinc-300 border border-white/10 hover:bg-white/5 transition-all"
-            >
-              Cancel
-            </button>
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            />
 
-            <button
-              onClick={handleDeleteAccount}
-              disabled={isDeleting}
-              className="flex-1 rounded-xl py-3 text-sm text-red-400 border border-red-400/20 hover:bg-red-500/10 transition-all disabled:opacity-50"
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-50 flex items-center justify-center px-6"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </>
-  )}
-</AnimatePresence>
+              <div
+                className="w-full max-w-md rounded-2xl p-6"
+                style={{
+                  background: "#18181b",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <h3 className="text-white text-lg font-semibold mb-2">
+                  Delete Account?
+                </h3>
+
+                <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+                  Are you sure you want to delete your account? All your data, including your logs, Eco Score, and settings, will be permanently removed. This action cannot be undone.
+                </p>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeleteModal(false)}
+                    className="flex-1 rounded-xl py-3 text-sm text-zinc-300 border border-white/10 hover:bg-white/5 transition-all"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={isDeleting}
+                    className="flex-1 rounded-xl py-3 text-sm text-red-400 border border-red-400/20 hover:bg-red-500/10 transition-all disabled:opacity-50"
+                  >
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
       <BottomNav />
     </div>
   );
