@@ -10,10 +10,7 @@ export type LogHabitRequest = {
 };
 
 export type UnlogHabitRequest = {
-  category: Category;
-  body: {
-    id: string;
-  };
+  id: string;
 };
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -39,14 +36,6 @@ function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
-function isUnlogBody(value: unknown): value is UnlogHabitRequest['body'] {
-  if (!isObject(value) || typeof value.id !== 'string') {
-    return false;
-  }
-
-  return isUuid(value.id);
-}
-
 export function parseLogHabitRequest(payload: unknown): LogHabitRequest | null {
   if (!isObject(payload) || typeof payload.category !== 'string' || !('body' in payload)) {
     return null;
@@ -63,20 +52,15 @@ export function parseLogHabitRequest(payload: unknown): LogHabitRequest | null {
 }
 
 export function parseUnlogHabitRequest(payload: unknown): UnlogHabitRequest | null {
-  if (!isObject(payload) || typeof payload.category !== 'string' || !('body' in payload)) {
+  if (!isObject(payload) || typeof payload.id !== 'string') {
     return null;
   }
 
-  if (!Object.values(Category).includes(payload.category as Category)) {
-    return null;
-  }
-
-  if (!isUnlogBody(payload.body)) {
+  if (!isUuid(payload.id)) {
     return null;
   }
 
   return {
-    category: payload.category as Category,
-    body: payload.body
+    id: payload.id
   };
 }

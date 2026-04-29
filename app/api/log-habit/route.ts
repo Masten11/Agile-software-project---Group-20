@@ -50,9 +50,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'The trip has been logged!',
+      message: 'Emission entry created.',
       data: result
-    });
+    }, { status: 201 });
 
   } 
   catch (error: unknown) {

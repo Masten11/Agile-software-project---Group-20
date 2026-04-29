@@ -16,7 +16,7 @@ interface RateLimitResult {
 
 const RATE_LIMIT_CONFIG: Record<Category, RateLimitConfig> = {
   [Category.Transportation]: {
-    table: 'eco_activities', // <-- Ändrad till din faktiska databastabell
+    table: 'emissions',
     timestampColumn: 'created_at',
     maxRequests: 100,
     windowMs: 24 * 60 * 60 * 1000,

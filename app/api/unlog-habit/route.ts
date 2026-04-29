@@ -22,19 +22,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await dispatchUnlogHabit(payload, user.id, supabase);
+    const result = await dispatchUnlogHabit(payload.id, user.id, supabase);
     if (result === null) {
       return NextResponse.json(
-        { error: 'habit entry not found for this user' },
+        { error: 'emission entry not found for this user' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Habit entry removed.',
-      data: result
-    });
+      message: 'Emission entry removed.'
+    }, { status: 200 });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'server error';
     console.error('API Error:', error);
