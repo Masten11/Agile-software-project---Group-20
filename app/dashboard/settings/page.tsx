@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
 import BottomNav from "@/components/BottomNav";
-import { supabase } from "@/lib/supabase";
 import { Shield, Moon, Sun, AlertTriangle, Check, Loader2, Eye, EyeOff } from "lucide-react";
 
 /* ─── FloatingInput ─── */
@@ -150,33 +149,42 @@ export default function SettingsPage() {
     username !== initialProfile.username || 
     activeGradient !== initialProfile.activeGradient;
 
+  // FETCH DATA FROM API
   useEffect(() => {
     async function loadUserData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        setEmail(user.email || "");
-        const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-        if (profile) {
-          const fName = profile.first_name || "";
-          const lName = profile.last_name || "";
-          const uName = profile.username || "";
-          const grad = profile.avatar_gradient || AVATAR_GRADIENTS[0].background;
+      try {
+        const response = await fetch("/api/dashboard/settings");
+        if (response.ok) {
+          const data = await response.json();
+          
+          setUserId(data.userId);
+          setEmail(data.email);
+          
+          if (data.profile) {
+            const fName = data.profile.first_name || "";
+            const lName = data.profile.last_name || "";
+            const uName = data.profile.username || "";
+            const grad = data.profile.avatar_gradient || AVATAR_GRADIENTS[0].background;
 
-          setFirstName(fName);
-          setLastName(lName);
-          setUsername(uName);
-          setActiveGradient(grad);
+            setFirstName(fName);
+            setLastName(lName);
+            setUsername(uName);
+            setActiveGradient(grad);
 
-          // Spara initial state
-          setInitialProfile({ firstName: fName, lastName: lName, username: uName, activeGradient: grad });
+            setInitialProfile({ firstName: fName, lastName: lName, username: uName, activeGradient: grad });
+          }
         }
+      } catch (error) {
+        console.error("Failed to fetch settings", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
+    
     loadUserData();
   }, []);
 
+  // SAVE PROFILE VIA API
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId || !isDirty) return;
@@ -184,42 +192,59 @@ export default function SettingsPage() {
     
     const formattedUsername = username.toLowerCase().replace(/\s/g, "");
 
-    const { error } = await supabase.from("profiles").update({
-      first_name: firstName,
-      last_name: lastName,
-      username: formattedUsername,
-      avatar_gradient: activeGradient,
-    }).eq("id", userId);
-    
-    setIsSavingProfile(false);
-    
-    if (!error) {
-      // Uppdatera initial state så knappen blir grå igen
-      setInitialProfile({ 
-        firstName, 
-        lastName, 
-        username: formattedUsername, 
-        activeGradient 
+    try {
+      const response = await fetch("/api/dashboard/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          username: formattedUsername,
+          activeGradient
+        }),
       });
 
-      setProfileMessage({ type: "success", text: "Profile updated" });
-      setTimeout(() => setProfileMessage({ type: "", text: "" }), 3000);
-      router.refresh();
+      if (response.ok) {
+        setInitialProfile({ firstName, lastName, username: formattedUsername, activeGradient });
+        setProfileMessage({ type: "success", text: "Profile updated" });
+        setTimeout(() => setProfileMessage({ type: "", text: "" }), 3000);
+        router.refresh();
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to save profile");
+      }
+    } catch (error) {
+      console.error("Failed to save profile", error);
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
+  // SAVE PASSWORD VIA API
   const handleSavePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword.length < 8) return;
     setIsSavingSecurity(true);
     
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    
-    setIsSavingSecurity(false);
-    if (!error) {
-      setCurrentPassword("");
-      setNewPassword("");
-      alert("Password updated successfully!");
+    try {
+      const response = await fetch("/api/dashboard/settings/password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: newPassword })
+      });
+
+      if (response.ok) {
+        setCurrentPassword("");
+        setNewPassword("");
+        alert("Password updated successfully!");
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to update password");
+      }
+    } catch (error) {
+      console.error("Failed to update password", error);
+    } finally {
+      setIsSavingSecurity(false);
     }
   };
 
