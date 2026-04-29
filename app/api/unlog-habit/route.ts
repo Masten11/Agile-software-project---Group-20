@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabaseServer';
-import { parseUnlogHabitRequest } from '../../../utils/habit-types';
-import { dispatchUnlogHabit } from '../../../utils/unlogHabitDispatcher';
+import { parseUnlogHabitRequest } from '../../../utils/payload_parsing';
+import { unlogHabit } from '../../../utils/unlog-habit';
+import { EmissionNotFoundError, InvalidPayloadError } from '../../../utils/custom-errors';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,26 +16,32 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = parseUnlogHabitRequest(await request.json());
-    if (!payload) {
-      return NextResponse.json(
-        { error: 'invalid request body' },
-        { status: 400 }
-      );
-    }
 
-    const result = await dispatchUnlogHabit(payload.id, user.id, supabase);
-    if (result === null) {
-      return NextResponse.json(
-        { error: 'emission entry not found for this user' },
-        { status: 404 }
-      );
-    }
+    //May throw EmissionNotFoundError
+    await unlogHabit(payload.id, user.id, supabase);
 
     return NextResponse.json({
       success: true,
       message: 'Emission entry removed.'
     }, { status: 200 });
-  } catch (error: unknown) {
+
+  } 
+  catch (error: unknown) {
+    if (error instanceof InvalidPayloadError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      );
+    }
+
+    if (error instanceof EmissionNotFoundError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 404 }
+      );
+    }
+
+    //Unhandled error
     const message = error instanceof Error ? error.message : 'server error';
     console.error('API Error:', error);
     return NextResponse.json(

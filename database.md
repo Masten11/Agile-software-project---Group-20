@@ -90,3 +90,27 @@ FROM public.emissions
 WHERE created_at >= (now() - interval '7 days')
 GROUP BY date, user_id
 ORDER BY date ASC;
+
+DROP VIEW IF EXISTS view_yesterday_total;
+
+CREATE VIEW view_yesterday_total WITH (security_invoker = true) AS
+SELECT 
+  sum(co2_kg) as total_yesterday,
+  user_id
+FROM public.emissions
+WHERE created_at >= current_date - interval '1 day'
+  AND created_at < current_date
+GROUP BY user_id;
+
+DROP VIEW IF EXISTS view_today_details;
+
+CREATE VIEW view_today_details WITH (security_invoker = true) AS
+SELECT 
+  co2_kg,
+  details,
+  category,
+  user_id,
+  created_at
+FROM public.emissions
+WHERE created_at >= current_date
+ORDER BY created_at DESC;
