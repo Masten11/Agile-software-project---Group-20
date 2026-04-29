@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
 import BottomNav from "@/components/BottomNav";
 import { Shield, Moon, Sun, AlertTriangle, Check, Loader2, Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 /* ─── FloatingInput ─── */
 function FloatingInput({
