@@ -433,7 +433,7 @@ export default function SettingsPage() {
           </h3>
 
           <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-            Are you sure you want to delete your account?.
+            Are you sure you want to delete your account?
           </p>
 
           <div className="flex gap-3">
