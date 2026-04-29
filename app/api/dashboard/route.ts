@@ -34,6 +34,7 @@ export async function GET() {
       activities: activities || []
     }, { status: 200 });
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (err: unknown) {
     return NextResponse.json(
       { error: "Failed to load dashboard data" },

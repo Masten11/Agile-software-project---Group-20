@@ -1,4 +1,3 @@
-// app/api/register/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabaseServer";
 
@@ -8,14 +7,31 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { email, password, firstName, lastName, username } = body;
 
-    //  Basic validation
+    // Basic validation
     if (!email || !password) {
       return NextResponse.json(
         { error: "Email and password are required" },
         { status: 400 }
       );
     }
-    // Rebuild  custom metadata logic
+
+    // Validera lösenordsstyrka på servern
+    const checks = [
+      password.length >= 8,
+      /[A-Z]/.test(password),
+      /[0-9]/.test(password),
+      /[^A-Za-z0-9]/.test(password),
+    ];
+    const score = checks.filter(Boolean).length;
+
+    if (score < 2) {
+      return NextResponse.json(
+        { error: "Please choose a stronger password." },
+        { status: 400 }
+      );
+    }
+
+    // Rebuild custom metadata logic
     const metaData: Record<string, string> = {};
     
     if (firstName?.trim()) metaData.first_name = firstName.trim();

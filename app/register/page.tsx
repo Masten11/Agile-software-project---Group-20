@@ -121,8 +121,21 @@ export default function RegisterPage() {
   const onStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8) return triggerError("Password must be at least 8 characters");
+
+    // Validera styrkan på lösenordet i frontenden
+    const checks = [
+      password.length >= 8,
+      /[A-Z]/.test(password),
+      /[0-9]/.test(password),
+      /[^A-Za-z0-9]/.test(password),
+    ];
+    const score = checks.filter(Boolean).length;
+
+    if (score < 2) return triggerError("Please choose a stronger password.");
+
     if (password !== confirmPassword) return triggerError("Passwords do not match");
     setError("");
+    
     try {
       // Skickar in tomma strängar för namn och username
         const response = await fetch("/api/register", {

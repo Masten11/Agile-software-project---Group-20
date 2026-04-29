@@ -226,23 +226,43 @@ export default function SettingsPage() {
   // SAVE PASSWORD VIA API
   const handleSavePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 8) return;
+    
+    if (newPassword.length < 8 || !currentPassword) return; 
+
+    // Kontrollera styrkan på lösenordet innan vi skickar det till backend
+    const checks = [
+      newPassword.length >= 8,
+      /[A-Z]/.test(newPassword),
+      /[0-9]/.test(newPassword),
+      /[^A-Za-z0-9]/.test(newPassword),
+    ];
+    const score = checks.filter(Boolean).length;
+
+    // Om score är 0 eller 1 är lösenordet "Weak" (Rött)
+    if (score < 2) {
+      alert("Lösenordet är för svagt. Lägg till en stor bokstav, siffra eller specialtecken.");
+      return;
+    }
+    
     setIsSavingSecurity(true);
     
     try {
       const response = await fetch("/api/dashboard/settings/password", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: newPassword })
+        body: JSON.stringify({ 
+          currentPassword: currentPassword, 
+          password: newPassword 
+        })
       });
 
       if (response.ok) {
         setCurrentPassword("");
         setNewPassword("");
-        alert("Password updated successfully!");
+        alert("Lösenordet har uppdaterats!");
       } else {
         const data = await response.json();
-        alert(data.error || "Failed to update password");
+        alert(data.error || "Misslyckades med att uppdatera lösenordet");
       }
     } catch (error) {
       console.error("Failed to update password", error);
@@ -416,12 +436,12 @@ export default function SettingsPage() {
                   Deleting your account permanently removes all your data, Eco Score, and history. There is no going back.
                 </p>
                 <button
-  type="button"
-  onClick={() => setShowDeleteModal(true)}
-  className="w-full rounded-xl text-red-400 px-4 py-3 text-sm transition-all hover:bg-red-500/10 border border-red-400/20"
->
-  Delete Account
-</button>
+                  type="button"
+                  onClick={() => setShowDeleteModal(true)}
+                  className="w-full rounded-xl text-red-400 px-4 py-3 text-sm transition-all hover:bg-red-500/10 border border-red-400/20"
+                >
+                  Delete Account
+                </button>
               </div>
             </motion.div>
           </div>
@@ -471,12 +491,12 @@ export default function SettingsPage() {
             </button>
 
             <button
-  onClick={handleDeleteAccount}
-  disabled={isDeleting}
-  className="flex-1 rounded-xl py-3 text-sm text-red-400 border border-red-400/20 hover:bg-red-500/10 transition-all disabled:opacity-50"
->
-  {isDeleting ? "Deleting..." : "Delete"}
-</button>
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+              className="flex-1 rounded-xl py-3 text-sm text-red-400 border border-red-400/20 hover:bg-red-500/10 transition-all disabled:opacity-50"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </button>
           </div>
         </div>
       </motion.div>
