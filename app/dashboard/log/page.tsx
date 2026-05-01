@@ -5,19 +5,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/lib/supabase";
-import {
-  Car, Bus, Train, Bike, Plane,
-  Leaf, Zap, Trash2, Plus, ChevronDown,
-} from "lucide-react";
+import { Car, Bus, Train, Bike, Plane, Leaf, Zap, Trash2, Plus, ChevronDown } from "lucide-react";
 
 /* ─── Types ─── */
 type Category = "transport" | "food" | "energy";
+
 type Log = {
   id: string;
   category: Category;
-  summary: string;
+  details: string;
+  co2_kg: number;
   created_at: string;
-  co2_emissions_kg?: number; // <-- Lade till denna för CO2!
 };
 
 /* ─── Date options ─── */
@@ -33,7 +31,6 @@ function getDateWithOffset(offset: number): string {
   return d.toISOString().split("T")[0];
 }
 
-/* ─── Category tip ─── */
 const TIPS: Record<Category, string> = {
   transport: "Taking the train instead of driving saves ~5× more CO₂ per trip.",
   food: "A vegan meal produces up to 50× less CO₂ than a beef meal.",
@@ -41,9 +38,7 @@ const TIPS: Record<Category, string> = {
 };
 
 /* ─── Floating label input ─── */
-function FloatingInput({
-  label, value, onChange, type = "text",
-}: {
+function FloatingInput({ label, value, onChange, type = "text" }: {
   label: string; value: string;
   onChange: (v: string) => void;
   type?: string;
@@ -76,8 +71,7 @@ function FloatingInput({
         color: active ? (focused ? "#4ade80" : "#52525b") : "#52525b",
         letterSpacing: active ? "0.1em" : "0",
         textTransform: active ? "uppercase" : "none",
-        pointerEvents: "none",
-        transition: "all 0.2s ease",
+        pointerEvents: "none", transition: "all 0.2s ease",
         fontFamily: "var(--font-body)",
       }}>
         {label}
@@ -136,32 +130,22 @@ function TransportForm({ onSuccess }: { onSuccess: () => void }) {
     if (!from || !to || !mode) return;
     setSubmitting(true);
     setError(null);
-
     try {
       const response = await fetch("/api/log-habit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category: "transport",
-          body: {
-            start: from,
-            destination: to,
-            transportMode: mode.toLowerCase(),
-          },
+          body: { start: from, destination: to, transportMode: mode.toLowerCase() },
         }),
       });
-
       const result = await response.json();
-
       if (!response.ok) {
         setError(result.error || "Something went wrong");
         return;
       }
-
-      setFrom("");
-      setTo("");
-      setMode("");
-      onSuccess(); // Triggar refreshTrigger i LogPage = Data hämtas på nytt!
+      setFrom(""); setTo(""); setMode("");
+      onSuccess();
     } catch {
       setError("Failed to log habit. Please try again.");
     } finally {
@@ -173,7 +157,6 @@ function TransportForm({ onSuccess }: { onSuccess: () => void }) {
     <form onSubmit={handleSubmit} className="space-y-5">
       <FloatingInput label="From" value={from} onChange={(v) => { setFrom(v); setError(null); }} />
       <FloatingInput label="To" value={to} onChange={(v) => { setTo(v); setError(null); }} />
-
       <div>
         <p className="text-xs text-zinc-500 tracking-widest uppercase mb-3" style={{ fontFamily: "var(--font-body)" }}>
           Mode of transport
@@ -193,7 +176,6 @@ function TransportForm({ onSuccess }: { onSuccess: () => void }) {
             {mode || "Select transport"}
             <ChevronDown size={16} className={`transition-transform duration-200 ${modeOpen ? "rotate-180" : ""}`} />
           </button>
-
           <AnimatePresence>
             {modeOpen && (
               <motion.div
@@ -202,11 +184,7 @@ function TransportForm({ onSuccess }: { onSuccess: () => void }) {
                 exit={{ opacity: 0, y: 6, scale: 0.97 }}
                 transition={{ duration: 0.15 }}
                 className="absolute left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50"
-                style={{
-                  background: "#1e2128",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-                }}
+                style={{ background: "#1e2128", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}
               >
                 {modes.map((m) => (
                   <button
@@ -230,27 +208,20 @@ function TransportForm({ onSuccess }: { onSuccess: () => void }) {
           </AnimatePresence>
         </div>
       </div>
-
       <AnimatePresence>
         {error && (
-          <motion.p
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="text-red-400 text-sm"
-            style={{ fontFamily: "var(--font-body)" }}
-          >
+          <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="text-red-400 text-sm" style={{ fontFamily: "var(--font-body)" }}>
             {error}
           </motion.p>
         )}
       </AnimatePresence>
-
       <SubmitBtn disabled={!from || !to || !mode} loading={submitting} />
     </form>
   );
 }
 
-/* ─── Coming soon placeholder ─── */
+/* ─── Coming soon ─── */
 function ComingSoon({ category }: { category: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -274,9 +245,9 @@ export default function LogPage() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [dateOffset, setDateOffset] = useState(0);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
-  
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const categories: { id: Category; label: string; available: boolean }[] = [
@@ -288,40 +259,91 @@ export default function LogPage() {
   const selectedDate = getDateWithOffset(dateOffset);
   const loggedCategories = [...new Set(logs.map((l) => l.category))];
 
+  /* ─── Fetch logs ─── */
   useEffect(() => {
     const loadLogs = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      
-      const { data } = await supabase
-        .from("eco_activities")
-        // <-- VIKTIGT: Här ber vi databasen även om co2_emissions_kg!
-        .select("id, category, summary, created_at, co2_emissions_kg") 
-        .eq("user_id", user.id)
-        .eq("activity_date", selectedDate)
-        .order("created_at", { ascending: false });
-        
-      if (data) setLogs(data as Log[]);
-      setLoading(false); 
+      setLoading(true);
+      try {
+        if (dateOffset === 0) {
+          // Use API for today
+          const response = await fetch("/api/logged-habits");
+          if (!response.ok) throw new Error("Failed to fetch");
+          const data = await response.json();
+          // API returns { transport: [...], food: [...], energy: [...] }
+          const allLogs: Log[] = [
+            ...(data.transport || []),
+            ...(data.food || []),
+            ...(data.energy || []),
+          ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          setLogs(allLogs);
+        } else {
+          // Use Supabase directly for past dates
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+          const { data } = await supabase
+            .from("eco_activities")
+            .select("id, category, summary, co2_emissions_kg, created_at")
+            .eq("user_id", user.id)
+            .eq("activity_date", selectedDate)
+            .order("created_at", { ascending: false });
+
+          // Map to unified Log type
+          const mapped: Log[] = (data || []).map((row: {
+            id: string;
+            category: Category;
+            summary: string;
+            co2_emissions_kg: number;
+            created_at: string;
+          }) => ({
+            id: row.id,
+            category: row.category,
+            details: row.summary,
+            co2_kg: row.co2_emissions_kg,
+            created_at: row.created_at,
+          }));
+          setLogs(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to load logs:", err);
+      } finally {
+        setLoading(false);
+      }
     };
-
     loadLogs();
-  }, [selectedDate, refreshTrigger]); 
+  }, [selectedDate, refreshTrigger, dateOffset]);
 
+  /* ─── Delete log ─── */
   const handleDelete = async (id: string) => {
-    await supabase.from("eco_activities").delete().eq("id", id);
-    setLogs((prev) => prev.filter((l) => l.id !== id));
-    setDeleteConfirm(null);
-  };
-
-  const triggerRefresh = () => {
-    setRefreshTrigger((prev) => prev + 1);
+    setDeleting(id);
+    try {
+      if (dateOffset === 0) {
+        // Use unlog-habit API for today's logs
+        const response = await fetch("/api/unlog-habit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        });
+        if (!response.ok) {
+          const result = await response.json();
+          console.error("Failed to delete:", result.error);
+          return;
+        }
+      } else {
+        // Direct Supabase for past dates
+        await supabase.from("eco_activities").delete().eq("id", id);
+      }
+      setLogs((prev) => prev.filter((l) => l.id !== id));
+      setDeleteConfirm(null);
+    } catch (err) {
+      console.error("Delete failed:", err);
+    } finally {
+      setDeleting(null);
+    }
   };
 
   return (
     <div className="flex h-screen bg-[#111318] overflow-hidden">
       <Sidebar />
-
       <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
         <div className="max-w-5xl mx-auto px-6 py-10">
 
@@ -357,7 +379,6 @@ export default function LogPage() {
                 {DATE_OPTIONS[dateOffset].label}
                 <ChevronDown size={14} className={`transition-transform duration-200 ${dateDropdownOpen ? "rotate-180" : ""}`} />
               </button>
-
               <AnimatePresence>
                 {dateDropdownOpen && (
                   <motion.div
@@ -366,21 +387,12 @@ export default function LogPage() {
                     exit={{ opacity: 0, y: 6, scale: 0.97 }}
                     transition={{ duration: 0.15 }}
                     className="absolute right-0 top-full mt-2 rounded-xl overflow-hidden z-50"
-                    style={{
-                      background: "#1e2128",
-                      border: "1px solid rgba(255,255,255,0.09)",
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-                      minWidth: "140px",
-                    }}
+                    style={{ background: "#1e2128", border: "1px solid rgba(255,255,255,0.09)", boxShadow: "0 8px 24px rgba(0,0,0,0.4)", minWidth: "140px" }}
                   >
                     {DATE_OPTIONS.map((opt, i) => (
                       <button
                         key={opt.label}
-                        onClick={() => { 
-                          setLoading(true);
-                          setDateOffset(i); 
-                          setDateDropdownOpen(false); 
-                        }}
+                        onClick={() => { setLoading(true); setDateOffset(i); setDateDropdownOpen(false); }}
                         className="w-full px-4 py-2.5 text-sm text-left transition-colors duration-150"
                         style={{
                           color: dateOffset === i ? "#4ade80" : "#a1a1aa",
@@ -405,10 +417,7 @@ export default function LogPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
             className="flex items-center gap-4 px-5 py-3.5 rounded-2xl mb-8"
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.07)",
-            }}
+            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
           >
             <div className="flex gap-4 flex-1">
               {categories.map((cat) => {
@@ -465,7 +474,6 @@ export default function LogPage() {
                   ))}
                 </div>
 
-                {/* Form */}
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeCategory}
@@ -475,14 +483,13 @@ export default function LogPage() {
                     transition={{ duration: 0.22 }}
                   >
                     {activeCategory === "transport" && (
-                      <TransportForm onSuccess={triggerRefresh} /> 
+                      <TransportForm onSuccess={() => setRefreshTrigger(p => p + 1)} />
                     )}
                     {activeCategory === "food" && <ComingSoon category="food" />}
                     {activeCategory === "energy" && <ComingSoon category="energy" />}
                   </motion.div>
                 </AnimatePresence>
 
-                {/* Category tip */}
                 {activeCategory === "transport" && (
                   <div className="mt-6 flex items-start gap-3 px-4 py-3 rounded-xl"
                     style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
@@ -519,9 +526,7 @@ export default function LogPage() {
                 <div className="divide-y" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
                   {loading ? (
                     <div className="px-5 py-8 text-center">
-                      <p className="text-zinc-600 text-sm animate-pulse" style={{ fontFamily: "var(--font-body)" }}>
-                        Loading...
-                      </p>
+                      <p className="text-zinc-600 text-sm animate-pulse" style={{ fontFamily: "var(--font-body)" }}>Loading...</p>
                     </div>
                   ) : logs.length === 0 ? (
                     <div className="px-5 py-10 text-center">
@@ -549,36 +554,38 @@ export default function LogPage() {
                               style={{ background: "rgba(255,255,255,0.05)" }}>
                               <CategoryIcon category={log.category} />
                             </div>
-                            
-                            {/* Flex-1 tvingar texten och CO2-infon att dela utrymmet snyggt */}
                             <div className="flex-1 min-w-0 flex items-center justify-between pr-2">
-                              <div>
+                              <div className="min-w-0">
                                 <p className="text-xs text-zinc-500 capitalize mb-0.5" style={{ fontFamily: "var(--font-body)" }}>
                                   {log.category}
                                 </p>
                                 <p className="text-sm text-white truncate" style={{ fontFamily: "var(--font-body)" }}>
-                                  {log.summary || "Unknown activity"}
+                                  {log.details || "Unknown activity"}
                                 </p>
                               </div>
-                              
-                              {/* <-- Här visas din CO2 data snyggt! --> */}
-                              <div className="text-right">
+                              <div className="text-right shrink-0 ml-2">
                                 <p className="text-sm font-medium text-zinc-300" style={{ fontFamily: "var(--font-body)" }}>
-                                  {log.co2_emissions_kg ? log.co2_emissions_kg.toFixed(1) : "0"} <span className="text-xs text-zinc-500">kg CO₂</span>
+                                  {log.co2_kg ? log.co2_kg.toFixed(1) : "0"}
+                                  <span className="text-xs text-zinc-500 ml-1">kg CO₂</span>
                                 </p>
                               </div>
                             </div>
 
                             {deleteConfirm === log.id ? (
                               <div className="flex gap-1 shrink-0">
-                                <button onClick={() => handleDelete(log.id)}
-                                  className="text-xs px-2 py-1 rounded-lg text-red-400 transition-colors hover:bg-red-500/10"
-                                  style={{ fontFamily: "var(--font-body)" }}>
-                                  Delete
+                                <button
+                                  onClick={() => handleDelete(log.id)}
+                                  disabled={deleting === log.id}
+                                  className="text-xs px-2 py-1 rounded-lg text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                                  style={{ fontFamily: "var(--font-body)" }}
+                                >
+                                  {deleting === log.id ? "..." : "Delete"}
                                 </button>
-                                <button onClick={() => setDeleteConfirm(null)}
+                                <button
+                                  onClick={() => setDeleteConfirm(null)}
                                   className="text-xs px-2 py-1 rounded-lg text-zinc-500 transition-colors hover:text-zinc-300"
-                                  style={{ fontFamily: "var(--font-body)" }}>
+                                  style={{ fontFamily: "var(--font-body)" }}
+                                >
                                   Cancel
                                 </button>
                               </div>
