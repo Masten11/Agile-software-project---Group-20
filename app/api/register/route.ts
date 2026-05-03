@@ -63,6 +63,7 @@ export async function POST(request: Request) {
     // Return success
     return NextResponse.json({ data }, { status: 200 });
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (err: unknown) {
     return NextResponse.json(
       { error: "An unexpected error occurred during registration" },

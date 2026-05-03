@@ -13,7 +13,7 @@ type Category = "transport" | "food" | "energy";
 type Log = {
   id: string;
   category: Category;
-  details: string;
+  details: string | Record<string, unknown>;
   co2_kg: number;
   created_at: string;
 };
@@ -275,6 +275,7 @@ export default function LogPage() {
             ...(data.food || []),
             ...(data.energy || []),
           ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+          console.log("API response:", data);
           setLogs(allLogs);
         } else {
           // Use Supabase directly for past dates
@@ -560,8 +561,12 @@ export default function LogPage() {
                                   {log.category}
                                 </p>
                                 <p className="text-sm text-white truncate" style={{ fontFamily: "var(--font-body)" }}>
-                                  {log.details || "Unknown activity"}
-                                </p>
+  {typeof log.details === "string"
+    ? log.details
+    : typeof log.details === "object" && log.details !== null
+    ? `${(log.details as { transportMode?: string; start?: string; destination?: string }).transportMode ?? ""} · ${(log.details as { start?: string }).start ?? ""} → ${(log.details as { destination?: string }).destination ?? ""}`
+    : "Unknown activity"}
+</p>
                               </div>
                               <div className="text-right shrink-0 ml-2">
                                 <p className="text-sm font-medium text-zinc-300" style={{ fontFamily: "var(--font-body)" }}>
