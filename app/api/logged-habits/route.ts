@@ -31,13 +31,13 @@ export async function GET() {
     }
 
     const { data, error } = await supabase
-  .from('view_today_details')
-  .select('*')
-  .eq('user_id', user.id)
-  .returns<EmissionRow[]>();
+      .from('view_today_details')
+      .select('*')
+      .eq('user_id', user.id)
+      .returns<EmissionRow[]>();
 
-    if (error) {
-      throw error;
+      if (error) {
+        throw error;
     }
 
     const grouped = createEmptyLoggedHabits();
