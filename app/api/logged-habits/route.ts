@@ -51,7 +51,8 @@ export async function GET() {
     }
 
     return NextResponse.json(grouped, { status: 200 });
-  } catch (error: unknown) {
+  } 
+  catch (error: unknown) {
     if (error instanceof UnsupportedCategoryError) {
       console.error('Category mismatch in logged-habits endpoint:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
