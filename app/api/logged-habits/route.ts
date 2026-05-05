@@ -31,10 +31,10 @@ export async function GET() {
     }
 
     const { data, error } = await supabase
-      .from('view_today_details')
-      .select('id,user_id,category,co2_kg,details,created_at')
-      .eq('user_id', user.id)
-      .returns<EmissionRow[]>();
+  .from('view_today_details')
+  .select('*')
+  .eq('user_id', user.id)
+  .returns<EmissionRow[]>();
 
     if (error) {
       throw error;
