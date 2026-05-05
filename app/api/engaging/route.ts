@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabaseServer';
-import { CATEGORY_CONFIG, isValidCategory } from '../../../utils/config/engaging'; // Update the path as necessary
-import { getWeeklyUsage } from '../../../utils/get-weekly-usage'; // Update the path as necessary
+import { CATEGORY_CONFIG, isValidCategory } from '../../../lib/engaging/config';
+import { getWeeklyUsage } from '../../../lib/engaging/get-weekly-usage'; 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
