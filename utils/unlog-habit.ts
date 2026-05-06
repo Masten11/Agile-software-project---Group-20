@@ -9,7 +9,7 @@ export async function unlogHabit(
     supabase: SupabaseClient
   ): Promise<void> {
     const { data: deletedData, error } = await supabase
-      .from('emissions')
+      .from('eco_activities')
       .delete()
       .eq('id', id)
       .eq('user_id', userId)

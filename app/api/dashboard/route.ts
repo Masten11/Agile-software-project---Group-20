@@ -24,7 +24,7 @@ export async function GET() {
     const today = new Date().toISOString().split("T")[0];
     const { data: activities } = await supabase
       .from("eco_activities")
-      .select("category, co2_emissions_kg")
+      .select("category, co2_kg")
       .eq("user_id", user.id)
       .gte("activity_date", today);
 
