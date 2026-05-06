@@ -12,7 +12,7 @@ export const CATEGORY_CONFIG: Record<
   }
 > = {
   co2: {
-    viewName: 'co2_last_7_days',
+    viewName: 'view_week_total_co2',
     totalColumn: 'total_co2',
     totalUnit: 'kg_co2',
     impactUnit: 'trees_per_year',
@@ -22,7 +22,7 @@ export const CATEGORY_CONFIG: Record<
   },
 
   water: {
-    viewName: 'water_last_7_days',
+    viewName: 'view_week_total_water',
     totalColumn: 'total_water',
     totalUnit: 'liters',
     impactUnit: 'm2_farmland_one_day',
@@ -32,7 +32,7 @@ export const CATEGORY_CONFIG: Record<
   },
 
   electricity: {
-    viewName: 'electricity_last_7_days',
+    viewName: 'view_week_total_electricity',
     totalColumn: 'total_electricity',
     totalUnit: 'kwh',
     impactUnit: 'basic_households_one_day',
