@@ -47,17 +47,17 @@ export async function GET() {
 
     const [todayRes, weeklyRes, monthlyRes] = await Promise.all([
       supabase
-        .from('view_today_total')
+        .from('view_today_total_co2')
         .select('total_today,user_id')
         .eq('user_id', user.id)
         .maybeSingle<TodayRow>(),
       supabase
-        .from('view_weekly_stats')
+        .from('view_weekly_per_day_co2')
         .select('date,total_co2,user_id')
         .eq('user_id', user.id)
         .returns<WeeklyRow[]>(),
       supabase
-        .from('view_monthly_stats')
+        .from('view_monthly_per_week_co2')
         .select('week_start,total_co2,user_id')
         .eq('user_id', user.id)
         .returns<MonthlyRow[]>(),
