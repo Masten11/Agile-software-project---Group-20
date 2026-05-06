@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabaseServer';
 import { parseLogHabitRequest } from '../../../utils/payload_parsing';
-import { logHabitDispatcher } from '../../../utils/log-habit_dispatcher';
 import { InvalidPayloadError, UnsupportedCategoryError } from '../../../utils/custom-errors';
+import { getHabitHandler } from '../../../utils/habit-handlers';
 
 
 export async function POST(request: NextRequest) {
@@ -18,11 +18,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    //Hämta datan från frontenden och validera formatet
+    //Confirms data is of type {category: Category, body: unknown}
     const payload = parseLogHabitRequest(await request.json());
 
-    //Calculates the CO2 emissions and stores the result in the database per category
-    const result = await logHabitDispatcher(payload, user.id, supabase);
+    const handler = getHabitHandler(payload.category);
+    const parsed = handler.parse(payload.body); //Assures that the body is of the correct type for the category
+    const { metrics, extra } = await handler.calculate(parsed); //Calculates the metrics and extra data for the category
+    const result = await handler.store(
+      {parsed, 
+        metrics, 
+        extra, 
+        userId: user.id, 
+        supabase, 
+        category: payload.category}); //Stores the result in the database per category
 
     //Return the saved row from the database
     return NextResponse.json({

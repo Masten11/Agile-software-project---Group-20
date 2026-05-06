@@ -1,6 +1,4 @@
-import { Category, UnlogHabitRequest } from "./habit-types";
-import { LogHabitRequest } from "./habit-types";
-import { TransportationInput } from "./habit-types";
+import { Category, LogHabitRequest, UnlogHabitRequest } from "./habit-types";
 import { InvalidPayloadError } from "./custom-errors";
 
 
@@ -10,23 +8,6 @@ function isObject(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null;
 }
   
-
-//Helper function to validate the transportation input
-function isTransportationInput(value: unknown): value is TransportationInput {
-    if (!isObject(value)) {
-        return false;
-    }
-
-    const validModes = new Set(['car', 'bus', 'train', 'plane', 'bike']);
-
-    return (
-        typeof value.start === 'string' &&
-        typeof value.destination === 'string' &&
-        typeof value.transportMode === 'string' &&
-        validModes.has(value.transportMode)
-    );
-}
-
 
 //Helper function to validate the UUID
 function isUuid(value: string): boolean {
@@ -42,14 +23,15 @@ export function parseLogHabitRequest(payload: unknown): LogHabitRequest {
         throw new InvalidPayloadError();
     }
 
-    if (payload.category === Category.Transportation && isTransportationInput(payload.body)) {
-        return {
-        category: Category.Transportation,
+    const knownCategories = Object.values(Category);
+    if (knownCategories.includes(payload.category as Category)) {
+      return {
+        category: payload.category as Category,
         body: payload.body,
-        }; // type is transportationInput
+      };
     }
 
-    throw new InvalidPayloadError();
+    throw new InvalidPayloadError(`Unknown category: ${payload.category}`);
 }
 
 

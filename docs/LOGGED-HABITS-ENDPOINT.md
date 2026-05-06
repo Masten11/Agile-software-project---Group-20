@@ -25,6 +25,8 @@ Selected columns:
 - `user_id`
 - `category`
 - `co2_kg`
+- `water_l`
+- `energy_kwh`
 - `details`
 - `created_at`
 
@@ -33,6 +35,16 @@ Selected columns:
 Current response shape:
 
 - `{ transport: EmissionRow[] }`
+
+`EmissionRow` in this endpoint includes:
+- `id`
+- `user_id`
+- `category`
+- `co2_kg`
+- `water_l`
+- `energy_kwh`
+- `details`
+- `created_at`
 
 Behavior details:
 

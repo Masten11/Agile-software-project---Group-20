@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js/dist/index.mjs';
-import { TransportationInput, TransportMode } from '../habit-types';
+import { CalculationResult, Category, EmissionRow, HabitHandler, Metrics, TransportationInput, TransportMode } from '../habit-types';
+import { InvalidPayloadError } from '../custom-errors';
 
 const CO2_FACTORS: Record<TransportMode, number> = {
   car: 0.12,
@@ -9,18 +10,45 @@ const CO2_FACTORS: Record<TransportMode, number> = {
   plane: 0.25,
 };
 
-interface TransportationCalculationResult {
+interface TransportationParsedInput {
   start: string;
   destination: string;
   transportMode: TransportMode;
-  distanceInKm: number;
-  co2Emissions: number;
 }
 
+type TransportationExtra = {
+  distanceInKm: number;
+};
 
-export async function calculateTransportationCO2(
-  data: TransportationInput
-): Promise<TransportationCalculationResult> {
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isTransportationInput(value: unknown): value is TransportationInput {
+  if (!isObject(value)) {
+    return false;
+  }
+
+  const validModes = new Set(['car', 'bus', 'train', 'plane', 'bike']);
+  return (
+    typeof value.start === 'string' &&
+    typeof value.destination === 'string' &&
+    typeof value.transportMode === 'string' &&
+    validModes.has(value.transportMode)
+  );
+}
+
+function parseTransportationInput(raw: unknown): TransportationParsedInput {
+  if (!isTransportationInput(raw)) {
+    throw new InvalidPayloadError();
+  }
+
+  return raw;
+}
+
+async function calculateTransportationMetrics(
+  data: TransportationParsedInput
+): Promise<CalculationResult<TransportationExtra>> {
   const { start, destination, transportMode } = data;
 
   // Gör om meter till kilometer
@@ -30,34 +58,39 @@ export async function calculateTransportationCO2(
   const co2Emissions = distanceInKm * CO2_FACTORS[transportMode];
 
   return {
-    start,
-    destination,
-    transportMode,
-    distanceInKm,
-    co2Emissions,
+    metrics: {
+      co2_kg: co2Emissions,
+      water_l: 0,
+      energy_kwh: 0,
+    },
+    extra: {
+      distanceInKm,
+    },
   };
 }
 
-//Returns the saved row from the database
-export async function storeTransportationResult(
-  data: TransportationCalculationResult, 
-  userId: string,
-  supabase: SupabaseClient
-) {
-  const { start, destination, transportMode, distanceInKm, co2Emissions} = data;
+async function storeTransportationResult(args: {
+  parsed: TransportationParsedInput;
+  metrics: Metrics;
+  extra: TransportationExtra;
+  userId: string;
+  supabase: SupabaseClient;
+  category: Category;
+}): Promise<EmissionRow> {
+  const { userId, supabase, category, metrics, parsed, extra } = args;
 
   const { data: savedData, error } = await supabase
     .from('emissions')
     .insert([
       {
         user_id: userId,
-        category: 'transport',
-        co2_kg: co2Emissions,
+        category: category,
+        co2_kg: metrics.co2_kg,
+        water_l: metrics.water_l,
+        energy_kwh: metrics.energy_kwh,
         details: {
-          start,
-          destination,
-          transportMode,
-          distanceInKm,
+          ...parsed,
+          distanceInKm: extra.distanceInKm,
         },
       }
     ])
@@ -68,6 +101,16 @@ export async function storeTransportationResult(
 
   return savedData;
 }
+
+export const transportationHandler: HabitHandler<TransportationParsedInput, TransportationExtra> = {
+  parse: parseTransportationInput,
+  async calculate(parsed) {
+    return calculateTransportationMetrics(parsed);
+  },
+  async store(args) {
+    return storeTransportationResult(args);
+  },
+};
 
 
 //Helper function to get the distance between two places using Google Maps API

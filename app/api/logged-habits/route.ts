@@ -31,13 +31,13 @@ export async function GET() {
     }
 
     const { data, error } = await supabase
-  .from('view_today_details')
-  .select('*')
-  .eq('user_id', user.id)
-  .returns<EmissionRow[]>();
+      .from('view_today_details')
+      .select('*')
+      .eq('user_id', user.id)
+      .returns<EmissionRow[]>();
 
-    if (error) {
-      throw error;
+      if (error) {
+        throw error;
     }
 
     const grouped = createEmptyLoggedHabits();
@@ -51,7 +51,8 @@ export async function GET() {
     }
 
     return NextResponse.json(grouped, { status: 200 });
-  } catch (error: unknown) {
+  } 
+  catch (error: unknown) {
     if (error instanceof UnsupportedCategoryError) {
       console.error('Category mismatch in logged-habits endpoint:', error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });

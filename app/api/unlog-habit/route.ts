@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
 
     const payload = parseUnlogHabitRequest(await request.json());
 
+
     //May throw EmissionNotFoundError
     await unlogHabit(payload.id, user.id, supabase);
 
@@ -26,12 +27,14 @@ export async function POST(request: NextRequest) {
     }, { status: 200 });
 
   } 
-  catch (error: unknown) {
+  catch (error) {
     if (error instanceof InvalidPayloadError) {
       return NextResponse.json(
         { error: error.message },
         { status: 400 }
       );
+    
+    console.log(await request.json());
     }
 
     if (error instanceof EmissionNotFoundError) {
