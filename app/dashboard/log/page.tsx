@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/lib/supabase";
-import { Car, Bus, Train, Bike, Plane } from "lucide-react";
+import { Car, Bus, Train, Bike, Plane, Trash2 } from "lucide-react";
 import PlaceAutocompleteInput from "@/components/PlaceAutocompleteInput";
 
 /* ─── Types ─── */
@@ -66,9 +66,37 @@ function SubmitBtn({
 }
 
 /* ─── Category icon ─── */
-function CategoryIcon({ category }: { category: Category }) {
+function CategoryIcon({
+  category,
+  details,
+}: {
+  category: Category;
+  details?: string | Record<string, unknown>;
+}) {
   if (category === "transport") {
-    return <Car size={14} className="text-cyan-400" />;
+    let mode = "car"; // Standardikon om inget annat hittas
+
+    // Kolla ifall details är ett objekt (innan det formateras) eller en sträng (från databasen)
+    if (typeof details === "object" && details !== null) {
+      mode = (details as { transportMode?: string }).transportMode?.toLowerCase() || "car";
+    } else if (typeof details === "string") {
+      const lowerDetails = details.toLowerCase();
+      if (lowerDetails.includes("bus")) mode = "bus";
+      else if (lowerDetails.includes("train")) mode = "train";
+      else if (lowerDetails.includes("bike")) mode = "bike";
+      else if (lowerDetails.includes("plane")) mode = "plane";
+    }
+
+    // Returnera rätt Lucide-ikon baserat på transportmedlet
+    switch (mode) {
+      case "bus": return <Bus size={14} className="text-cyan-400" />;
+      case "train": return <Train size={14} className="text-cyan-400" />;
+      case "bike": return <Bike size={14} className="text-cyan-400" />;
+      case "plane": return <Plane size={14} className="text-cyan-400" />;
+      case "car":
+      default:
+        return <Car size={14} className="text-cyan-400" />;
+    }
   }
 
   return (
@@ -743,10 +771,7 @@ export default function LogPage() {
                   </span>
                 </div>
 
-                <div
-                  className="divide-y"
-                  style={{ borderColor: "rgba(255,255,255,0.05)" }}
-                >
+                <div className="divide-y divide-white/[0.07]">
                   {loading ? (
                     <div className="px-5 py-8 text-center">
                       <p
@@ -785,33 +810,40 @@ export default function LogPage() {
                   ) : (
                     <AnimatePresence initial={false}>
                       {logs.map((log) => {
-                        const details =
-                          typeof log.details === "string"
-                            ? log.details
-                            : typeof log.details === "object" &&
-                              log.details !== null
-                            ? `${
-                                (
-                                  log.details as {
-                                    transportMode?: string;
-                                    start?: string;
-                                    destination?: string;
-                                  }
-                                ).transportMode ?? ""
-                              } · ${
-                                (
-                                  log.details as {
-                                    start?: string;
-                                  }
-                                ).start ?? ""
-                              } → ${
-                                (
-                                  log.details as {
-                                    destination?: string;
-                                  }
-                                ).destination ?? ""
-                              }`
-                            : "Unknown activity";
+                        let details = "Unknown activity";
+
+// 1. Skapa en liten hjälpfunktion som formaterar platsen
+const formatLoc = (loc: string) => {
+  if (!loc) return "";
+  const parts = loc.split(",");
+  
+  // Om adressen har fler delar (ex "Borås, Sweden"), ta bort den sista delen.
+  // Om det bara är ett ord (ex "Sweden"), behåll det.
+  return parts.length > 1 ? parts.slice(0, -1).join(",").trim() : loc.trim();
+};
+
+// 2. Använd funktionen när details skapas
+if (typeof log.details === "object" && log.details !== null) {
+  const start = (log.details as { start?: string }).start ?? "";
+  const dest = (log.details as { destination?: string }).destination ?? "";
+  
+  // Formatera både start och destination innan de sätts ihop
+  details = `${formatLoc(start)} → ${formatLoc(dest)}`;
+  
+} else if (typeof log.details === "string") {
+  // Rensa bort eventuell transport-text (t.ex. "car · ")
+  const rawStr = log.details.includes(" · ")
+    ? log.details.split(" · ")[1]
+    : log.details;
+    
+  // Om det är en sparad rutt med en pil, formatera båda sidorna
+  if (rawStr.includes(" → ")) {
+    const [s, d] = rawStr.split(" → ");
+    details = `${formatLoc(s)} → ${formatLoc(d)}`;
+  } else {
+    details = rawStr;
+  }
+}
 
                         return (
                           <motion.div
@@ -830,7 +862,7 @@ export default function LogPage() {
                                   background: "rgba(255,255,255,0.05)",
                                 }}
                               >
-                                <CategoryIcon category={log.category} />
+                                <CategoryIcon category={log.category} details={log.details} />
                               </div>
 
                               <div className="flex-1 min-w-0 flex items-center justify-between pr-2">
@@ -884,21 +916,17 @@ export default function LogPage() {
                                 </div>
                               ) : (
                                 <button
-                                  onClick={() => setDeleteConfirm(log.id)}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors group/del shrink-0"
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background =
-                                      "rgba(248,113,113,0.1)";
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background =
-                                      "transparent";
-                                  }}
-                                >
-                                  <span className="text-zinc-600 group-hover/del:text-red-400 transition-colors text-xs">
-                                    ×
-                                  </span>
-                                </button>
+  onClick={() => setDeleteConfirm(log.id)}
+  className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors group/del shrink-0"
+  onMouseEnter={(e) => {
+    e.currentTarget.style.background = "rgba(248,113,113,0.1)";
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.background = "transparent";
+  }}
+>
+  <Trash2 size={13} className="text-zinc-600 group-hover/del:text-red-400 transition-colors" />
+</button>
                               )}
                             </div>
                           </motion.div>

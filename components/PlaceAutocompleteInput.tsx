@@ -39,7 +39,6 @@ export default function PlaceAutocompleteInput({
     if (!autocomplete) return;
 
     const place = autocomplete.getPlace();
-
     const address = place.formatted_address || place.name || "";
 
     onChange(address);
@@ -61,10 +60,13 @@ export default function PlaceAutocompleteInput({
   }
 
   return (
-    <div className="space-y-1">
-      <label className="block text-sm font-medium text-gray-700">
+    <div className="space-y-3"> {/* Ökade avståndet något för att matcha designen */}
+      <p 
+        className="text-xs text-zinc-500 tracking-widest uppercase"
+        style={{ fontFamily: "var(--font-body)" }}
+      >
         {label}
-      </label>
+      </p>
 
       <Autocomplete
         onLoad={(autocomplete) => {
@@ -81,7 +83,13 @@ export default function PlaceAutocompleteInput({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          className="w-full flex items-center justify-between px-5 py-4 rounded-2xl text-sm outline-none focus:ring-1 focus:ring-[#4ade80]/50 transition-all duration-200"
+          style={{
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            color: "#ffffff",
+            fontFamily: "var(--font-body)",
+          }}
         />
       </Autocomplete>
     </div>
