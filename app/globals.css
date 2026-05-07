@@ -77,3 +77,56 @@ body {
   0%, 100% { transform: translateY(0px); }
   50%       { transform: translateY(-10px); }
 }
+
+/* ── Google Places Autocomplete – dark theme ── */
+.pac-container {
+  background-color: #1e2128 !important; /* Använd background-color istället för background */
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  margin-top: 6px !important;
+  overflow: hidden !important;
+  font-family: var(--font-body), sans-serif !important;
+  z-index: 10000 !important; /* Viktigt för att den ska ligga över allt annat */
+}
+
+.pac-item {
+  background-color: transparent !important;
+  color: #a1a1aa !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+  padding: 12px 16px !important;
+  cursor: pointer !important;
+  font-size: 13px !important;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.pac-item:first-child {
+  border-top: none !important;
+}
+
+.pac-item:hover,
+.pac-item-selected {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+}
+
+.pac-item-query {
+  color: #ffffff !important;
+  font-size: 13px !important;
+}
+
+.pac-matched {
+  color: #4ade80 !important;
+  font-weight: 600 !important;
+}
+
+.pac-icon {
+  /* Gör standard-ikonen (pin) ljusare istället för svart */
+  filter: invert(0.8) !important;
+}
+
+/* Döljer "powered by Google"-loggan för ett renare UI */
+.pac-logo::after {
+  display: none !important;
+}
+  
