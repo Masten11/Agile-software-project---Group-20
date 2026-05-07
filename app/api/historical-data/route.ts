@@ -81,9 +81,12 @@ export async function GET() {
         continue;
       }
 
-      const dayLabel = date.toLocaleDateString('sv-SE', { weekday: 'short' });
-      const normalizedDayLabel =
-        dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1).toLowerCase();
+      // getDay() returnerar 0 för Sön, 1 för Mån, 2 för Tis etc.
+      const jsDay = date.getDay(); 
+      
+      // Eftersom WEEKDAY_LABELS börjar med Måndag på index 0, flyttar vi Söndag (0) till slutet (6)
+      const labelIndex = jsDay === 0 ? 6 : jsDay - 1;
+      const normalizedDayLabel = WEEKDAY_LABELS[labelIndex];
 
       if (!weeklyBucketMap.has(normalizedDayLabel)) {
         continue;
