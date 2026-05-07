@@ -2,18 +2,12 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
-import { Leaf, Zap, Car, TrendingUp, Flame, Calendar, Plus, ChevronDown } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Leaf, Zap, Car, TrendingUp, Flame, Calendar, Plus, ChevronDown, Info, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import BottomNav from "@/components/BottomNav";
-
+import { supabase } from "@/lib/supabase";
 import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Cell // <-- LÄGG TILL DENNA
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell
 } from "recharts";
 
 /* ── Circular Eco Score ── */
@@ -32,10 +26,7 @@ function EcoScoreRing({ score }: { score: number }) {
             fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
           <motion.circle
             cx="100" cy="100" r={radius}
-            fill="none"
-            stroke={color}
-            strokeWidth="10"
-            strokeLinecap="round"
+            fill="none" stroke={color} strokeWidth="10" strokeLinecap="round"
             strokeDasharray={circumference}
             initial={{ strokeDashoffset: circumference }}
             animate={{ strokeDashoffset: circumference - progress }}
@@ -66,14 +57,8 @@ function EcoScoreRing({ score }: { score: number }) {
 }
 
 /* ── Category card ── */
-function CategoryCard({
-  icon: Icon, label, color, logged, href,
-}: {
-  icon: React.ElementType;
-  label: string;
-  color: string;
-  logged: boolean;
-  href: string;
+function CategoryCard({ icon: Icon, label, color, logged, href }: {
+  icon: React.ElementType; label: string; color: string; logged: boolean; href: string;
 }) {
   return (
     <motion.a
@@ -97,10 +82,8 @@ function CategoryCard({
         </p>
       </div>
       {!logged && (
-        <div
-          className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 group-hover:bg-green-400/20"
-          style={{ border: "1px solid rgba(74,222,128,0.3)" }}
-        >
+        <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 group-hover:bg-green-400/20"
+          style={{ border: "1px solid rgba(74,222,128,0.3)" }}>
           <Plus size={16} className="text-green-400" strokeWidth={2.5} />
         </div>
       )}
@@ -108,112 +91,274 @@ function CategoryCard({
   );
 }
 
-/* ── Placeholder chart ── */
-function ChartPlaceholder({ label }: { label: string }) {
+/* ── Eco Score chart (hardcoded placeholder) ── */
+function EcoScoreChart() {
   const [range, setRange] = useState("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  // --- NYTT: För mobil-markering ---
   const [isMobile, setIsMobile] = useState(false);
   const [activeBarIndex, setActiveBarIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    // Kollar om skärmen är mindre än 768px (typisk mobil/surfplatta)
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile(); 
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
   }, []);
-  // ---------------------------------
 
   const datasets = {
     week: [
-      { name: "Mon", value: 18 },
-      { name: "Tue", value: 25 },
-      { name: "Wed", value: 20 },
-      { name: "Thu", value: 28 },
-      { name: "Fri", value: 22 },
-      { name: "Sat", value: 30 },
-      { name: "Sun", value: 24 },
+      { name: "Mon", value: 18 }, { name: "Tue", value: 25 }, { name: "Wed", value: 20 },
+      { name: "Thu", value: 28 }, { name: "Fri", value: 22 }, { name: "Sat", value: 30 }, { name: "Sun", value: 24 },
     ],
     month: [
-      { name: "Week 1", value: 120 },
-      { name: "Week 2", value: 98 },
-      { name: "Week 3", value: 135 },
-      { name: "Week 4", value: 110 },
-      { name: "Week 5", value: 126 },
+      { name: "Week 1", value: 120 }, { name: "Week 2", value: 98 },
+      { name: "Week 3", value: 135 }, { name: "Week 4", value: 110 }, { name: "Week 5", value: 126 },
     ],
     year: [
-      { name: "Jan", value: 410 },
-      { name: "Feb", value: 380 },
-      { name: "Mar", value: 450 },
-      { name: "Apr", value: 420 },
-      { name: "May", value: 470 },
-      { name: "Jun", value: 430 },
-      { name: "Jul", value: 490 },
-      { name: "Aug", value: 460 },
-      { name: "Sep", value: 440 },
-      { name: "Oct", value: 500 },
-      { name: "Nov", value: 470 },
-      { name: "Dec", value: 520 },
+      { name: "Jan", value: 410 }, { name: "Feb", value: 380 }, { name: "Mar", value: 450 },
+      { name: "Apr", value: 420 }, { name: "May", value: 470 }, { name: "Jun", value: 430 },
+      { name: "Jul", value: 490 }, { name: "Aug", value: 460 }, { name: "Sep", value: 440 },
+      { name: "Oct", value: 500 }, { name: "Nov", value: 470 }, { name: "Dec", value: 520 },
     ],
   };
 
   const data = datasets[range as keyof typeof datasets];
 
   return (
-    <div
-      className="rounded-2xl p-6 relative"
-      style={{
-        overflow: "visible", 
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.07)",
-      }}
-    >
-      {/* Header */}
+    <div className="rounded-2xl p-6 relative"
+      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
       <div className="flex justify-between items-center mb-6">
-        <p
-          className="text-zinc-400 text-sm tracking-widest uppercase"
-          style={{ fontFamily: "var(--font-body)" }}
-        >
-          {label}
+        <p className="text-zinc-400 text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-body)" }}>
+          Eco Score – last 7 days
         </p>
-
         <div className="relative">
-          <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
+          <button onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.07)",
-              color: "#a1a1aa",
-            }}
-          >
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "#a1a1aa" }}>
             {range}
             <ChevronDown size={14} />
           </button>
-
           {dropdownOpen && (
-            <div
-              className="absolute right-0 mt-2 rounded-xl overflow-hidden z-999"    
+            <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50"
+              style={{ background: "#1e2128", border: "1px solid rgba(255,255,255,0.09)" }}>
+              {["week", "month", "year"].map((opt) => (
+                <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); setActiveBarIndex(null); }}
+                  className="px-4 py-2 text-sm cursor-pointer hover:bg-white/5"
+                  style={{ color: range === opt ? "#4ade80" : "#a1a1aa", fontFamily: "var(--font-body)" }}>
+                  {opt}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div style={{ width: "100%", height: 260 }}>
+        <ResponsiveContainer>
+          <BarChart data={data}>
+            <XAxis dataKey="name" stroke="#71717a" tick={{ fontSize: 12 }} />
+            <YAxis stroke="#71717a" tick={{ fontSize: 12 }} />
+            {/* Lade till itemStyle={{ color: "#ffffff" }} för mobil-vitt värde */}
+            <Tooltip 
+              cursor={{ fill: "transparent" }}
+              contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }} 
+              itemStyle={{ color: "#ffffff" }}
+            />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]}
+              onClick={(_, index) => { if (isMobile) setActiveBarIndex(index); }}>
+              {data.map((_, index) => (
+                <Cell key={`cell-${index}`}
+                  fill={isMobile && activeBarIndex === index ? "#86efac" : "#4ade80"} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+/* ── CO2 chart with real data + engaging popover ── */
+type ChartPoint = { name: string; value: number };
+
+function CO2Chart({ userId }: { userId: string | null }) {
+  const [range, setRange] = useState<"week" | "month">("week");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [activeBarIndex, setActiveBarIndex] = useState<number | null>(null);
+
+  const [weeklyData, setWeeklyData] = useState<ChartPoint[]>([]);
+  const [monthlyData, setMonthlyData] = useState<ChartPoint[]>([]);
+  const [chartLoading, setChartLoading] = useState(true);
+
+  // Engaging popover state
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [engagingText, setEngagingText] = useState<string | null>(null);
+  const [engagingLoading, setEngagingLoading] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // Fetch historical CO2 data
+  useEffect(() => {
+    async function fetchData() {
+      setChartLoading(true);
+      try {
+        const res = await fetch("/api/historical-data");
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data = await res.json();
+
+        if (data.weekly_stats) {
+          setWeeklyData(
+            data.weekly_stats.map((row: { day: string; total: number }) => ({
+              name: row.day,
+              value: Number(row.total.toFixed(2)),
+            }))
+          );
+        }
+
+        if (data.monthly_stats) {
+          setMonthlyData(
+            data.monthly_stats.map((row: { week: string; total: number }) => ({
+              name: row.week,
+              value: Number(row.total.toFixed(2)),
+            }))
+          );
+        }
+      } catch (err) {
+        console.error("Failed to load CO2 chart data:", err);
+      } finally {
+        setChartLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  // Close popover on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setPopoverOpen(false);
+      }
+    };
+    if (popoverOpen) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [popoverOpen]);
+
+  // Fetch engaging text when popover opens
+  const handleInfoClick = async () => {
+    if (popoverOpen) {
+      setPopoverOpen(false);
+      return;
+    }
+    setPopoverOpen(true);
+    if (engagingText) return; 
+    if (!userId) return;
+
+    setEngagingLoading(true);
+    try {
+      const res = await fetch("/api/engaging", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, category: "co2" }),
+      });
+      const data = await res.json();
+      if (res.ok && data.text) {
+        setEngagingText(data.text);
+      } else {
+        setEngagingText("Not enough data yet — keep logging your habits!");
+      }
+    } catch {
+      setEngagingText("Could not load impact data.");
+    } finally {
+      setEngagingLoading(false);
+    }
+  };
+
+  const data = range === "week" ? weeklyData : monthlyData;
+
+  return (
+    <div className="rounded-2xl p-6 relative"
+      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-2">
+          <p className="text-zinc-400 text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-body)" }}>
+            CO₂ usage
+          </p>
+
+          {/* Info button + popover */}
+          <div className="relative" ref={popoverRef}>
+            <button
+              onClick={handleInfoClick}
+              className="w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200"
               style={{
-                background: "#1e2128",
-                border: "1px solid rgba(255,255,255,0.09)",
+                background: popoverOpen ? "rgba(74,222,128,0.15)" : "rgba(255,255,255,0.05)",
+                border: `1px solid ${popoverOpen ? "rgba(74,222,128,0.3)" : "rgba(255,255,255,0.08)"}`,
               }}
             >
-              {["week", "month", "year"].map((opt) => (
-                <div
-                  key={opt}
-                  onClick={() => {
-                    setRange(opt);
-                    setDropdownOpen(false);
-                    setActiveBarIndex(null); // Nollställ markering när man byter vy
-                  }}
-                  className="px-4 py-2 text-sm cursor-pointer"
+              {popoverOpen
+                ? <X size={11} className="text-green-400" />
+                : <Info size={11} className="text-zinc-500" />}
+            </button>
+
+            <AnimatePresence>
+              {popoverOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                  transition={{ duration: 0.18 }}
+                  // Gjorde tooltipen responsive med md:left-0 och -left-20 på mobilen för att den inte ska åka ut!
+                  className="absolute -left-20 md:left-0 top-full mt-2 z-60 rounded-2xl p-4 w-[85vw] sm:w-65"
                   style={{
-                    color: range === opt ? "#4ade80" : "#a1a1aa",
+                    background: "#1e2128",
+                    border: "1px solid rgba(74,222,128,0.15)",
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                    maxWidth: "280px"
                   }}
                 >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-base">🌍</span>
+                    <p className="text-xs text-green-400 font-medium tracking-wider uppercase"
+                      style={{ fontFamily: "var(--font-body)" }}>
+                      Your impact this week
+                    </p>
+                  </div>
+                  {engagingLoading ? (
+                    <p className="text-zinc-500 text-xs animate-pulse" style={{ fontFamily: "var(--font-body)" }}>
+                      Calculating your impact...
+                    </p>
+                  ) : (
+                    <p className="text-zinc-300 text-sm leading-relaxed" style={{ fontFamily: "var(--font-body)" }}>
+                      {engagingText}
+                    </p>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        <div className="relative">
+          <button onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "#a1a1aa" }}>
+            {range}
+            <ChevronDown size={14} />
+          </button>
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50"
+              style={{ background: "#1e2128", border: "1px solid rgba(255,255,255,0.09)" }}>
+              {(["week", "month"] as const).map((opt) => (
+                <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); setActiveBarIndex(null); }}
+                  className="px-4 py-2 text-sm cursor-pointer hover:bg-white/5"
+                  style={{ color: range === opt ? "#4ade80" : "#a1a1aa", fontFamily: "var(--font-body)" }}>
                   {opt}
                 </div>
               ))}
@@ -223,48 +368,35 @@ function ChartPlaceholder({ label }: { label: string }) {
       </div>
 
       {/* Chart */}
-      <div style={{ width: "100%", height: 260, position: "relative", zIndex: 1 }}>
-        <ResponsiveContainer>
-          <BarChart data={data}>
-            <XAxis
-              dataKey="name"
-              stroke="#71717a"
-              tick={{ fontSize: 12 }}
-            />
-            <YAxis
-              stroke="#71717a"
-              tick={{ fontSize: 12 }}
-            />
-            <Tooltip
-              cursor={{ fill: "transparent" }}
-              contentStyle={{
-                background: "#18181b",
-                border: "1px solid #27272a",
-                borderRadius: "12px",
-                color: "#ffffff",
-              }}
-            />
-            <Bar
-              dataKey="value"
-              radius={[6, 6, 0, 0]}
-              // Sätt indexet som aktivt när man trycker (endast mobil)
-              onClick={(_, index) => {
-                if (isMobile) setActiveBarIndex(index);
-              }}
-            >
-              {/* Iterera över datan och skapa individuella celler för att styra färg */}
-              {data.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  // Om det är mobil och denna cell är klickad -> ljusgrön, annars vanlig grön
-                  fill={isMobile && activeBarIndex === index ? "#86efac" : "#4ade80"}
-                  style={{ transition: "fill 0.2s ease" }}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      {chartLoading ? (
+        <div className="h-64 flex items-center justify-center">
+          <p className="text-zinc-600 text-sm animate-pulse" style={{ fontFamily: "var(--font-body)" }}>
+            Loading data...
+          </p>
+        </div>
+      ) : (
+        <div style={{ width: "100%", height: 260 }}>
+          <ResponsiveContainer>
+            <BarChart data={data}>
+              <XAxis dataKey="name" stroke="#71717a" tick={{ fontSize: 12 }} />
+              <YAxis stroke="#71717a" tick={{ fontSize: 12 }} unit=" kg" />
+              <Tooltip
+                cursor={{ fill: "transparent" }}
+                contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }}
+                itemStyle={{ color: "#ffffff" }} 
+                formatter={(value: unknown) => [`${value} kg CO₂`, "Emissions"]}
+              />
+              <Bar dataKey="value" radius={[6, 6, 0, 0]}
+                onClick={(_, index) => { if (isMobile) setActiveBarIndex(index); }}>
+                {data.map((_, index) => (
+                  <Cell key={`cell-${index}`}
+                    fill={isMobile && activeBarIndex === index ? "#86efac" : "#4ade80"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 }
@@ -283,10 +415,7 @@ function LogBanner({ loggedCount, href }: { loggedCount: number; href: string })
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
         className="flex items-center justify-between gap-4 px-6 py-4 rounded-2xl cursor-pointer mb-8"
-        style={{
-          background: "rgba(74,222,128,0.06)",
-          border: "1px solid rgba(74,222,128,0.18)",
-        }}
+        style={{ background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.18)" }}
       >
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
@@ -295,19 +424,16 @@ function LogBanner({ loggedCount, href }: { loggedCount: number; href: string })
           </div>
           <div>
             <p className="text-white text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>
-              {loggedCount === 0
-                ? "You haven't logged any habits today"
-                : `${loggedCount}/3 habits logged — keep going!`}
+              {loggedCount === 0 ? "You haven't logged any habits today" : `${loggedCount}/3 habits logged — keep going!`}
             </p>
-            <p className="text-zinc-400 text-sm mt-0.5" style={{ fontFamily: "var(--font-body)" }}>
+            {/* Gömmer grå undertext på mobil via hidden md:block */}
+            <p className="hidden md:block text-zinc-400 text-sm mt-0.5" style={{ fontFamily: "var(--font-body)" }}>
               Log your habits to update your Eco Score
             </p>
           </div>
         </div>
-        <div
-          className="shrink-0 px-4 py-2 rounded-xl text-sm font-semibold text-black"
-          style={{ background: "#4ade80" }}
-        >
+        <div className="shrink-0 px-4 py-2 rounded-xl text-sm font-semibold text-black"
+          style={{ background: "#4ade80" }}>
           Log now
         </div>
       </motion.a>
@@ -345,63 +471,47 @@ function TipsCarousel() {
         style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
         <div className="flex items-center gap-2">
           <TrendingUp size={15} className="text-green-400" />
-          <p className="text-zinc-300 text-sm tracking-widest uppercase"
-            style={{ fontFamily: "var(--font-body)" }}>Daily Tip</p>
+          <p className="text-zinc-300 text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-body)" }}>
+            Daily Tip
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex gap-1.5">
             {TIPS.map((_, i) => (
               <button key={i} onClick={() => { setDirection(i > index ? 1 : -1); setIndex(i); }}
                 className="rounded-full transition-all duration-300"
-                style={{
-                  width: i === index ? "16px" : "6px",
-                  height: "6px",
-                  background: i === index ? "#4ade80" : "rgba(255,255,255,0.15)",
-                }} />
+                style={{ width: i === index ? "16px" : "6px", height: "6px", background: i === index ? "#4ade80" : "rgba(255,255,255,0.15)" }} />
             ))}
           </div>
           <div className="flex gap-1">
             {(["←", "→"] as const).map((arrow, i) => (
               <button key={arrow} onClick={() => go(i === 0 ? -1 : 1)}
                 className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all duration-200 hover:text-green-400"
-                style={{
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  color: "#71717a",
-                  fontFamily: "var(--font-body)",
-                }}>
+                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#71717a", fontFamily: "var(--font-body)" }}>
                 {arrow}
               </button>
             ))}
           </div>
         </div>
       </div>
-
       <div className="relative overflow-hidden" style={{ height: "100px" }}>
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
-            key={index}
-            custom={direction}
+            key={index} custom={direction}
             variants={{
               enter: (d: number) => ({ opacity: 0, x: d > 0 ? 40 : -40 }),
               center: { opacity: 1, x: 0 },
               exit: (d: number) => ({ opacity: 0, x: d > 0 ? -40 : 40 }),
             }}
-            initial="enter"
-            animate="center"
-            exit="exit"
+            initial="enter" animate="center" exit="exit"
             transition={{ duration: 0.25, ease: "easeOut" }}
             className="absolute inset-0 flex items-center gap-4 px-5"
             style={{ background: "rgba(255,255,255,0.02)" }}
           >
             <span className="text-3xl shrink-0">{TIPS[index].icon}</span>
             <div>
-              <p className="text-white text-sm font-medium mb-1" style={{ fontFamily: "var(--font-body)" }}>
-                {TIPS[index].title}
-              </p>
-              <p className="text-zinc-400 text-sm leading-relaxed" style={{ fontFamily: "var(--font-body)" }}>
-                {TIPS[index].tip}
-              </p>
+              <p className="text-white text-sm font-medium mb-1" style={{ fontFamily: "var(--font-body)" }}>{TIPS[index].title}</p>
+              <p className="text-zinc-400 text-sm leading-relaxed" style={{ fontFamily: "var(--font-body)" }}>{TIPS[index].tip}</p>
             </div>
           </motion.div>
         </AnimatePresence>
@@ -414,6 +524,7 @@ function TipsCarousel() {
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState("USER");
+  const [userId, setUserId] = useState<string | null>(null);
   const [ecoScore, setEcoScore] = useState(1000);
   const [streak, setStreak] = useState(0);
   const [loggedToday, setLoggedToday] = useState<string[]>([]);
@@ -421,25 +532,27 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchDashboardData() {
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) setUserId(user.id);
+
         const response = await fetch("/api/dashboard");
         if (!response.ok) throw new Error("Failed to fetch");
-        
         const data = await response.json();
 
-        if (data.firstName) {
-          setFirstName(data.firstName.toUpperCase());
-        }
+        if (data.firstName) setFirstName(data.firstName.toUpperCase());
 
         if (data.activities && data.activities.length > 0) {
-          const categories = data.activities.map((a: { category: string }) => a.category.toLowerCase());
-          setLoggedToday(categories);
-
-          const totalEmissions = data.activities.reduce((sum: number, act: { co2_emissions_kg?: number | string }) => 
-            sum + Number(act.co2_emissions_kg || 0), 0
+          const uniqueCategories = Array.from(
+            new Set(data.activities.map((a: { category: string }) => a.category.toLowerCase()))
+          );
+          setLoggedToday(uniqueCategories as string[]);
+          
+          const totalEmissions = data.activities.reduce(
+            (sum: number, act: { co2_emissions_kg?: number | string }) => sum + Number(act.co2_emissions_kg || 0), 0
           );
           setEcoScore(Math.max(0, Math.round(1000 - totalEmissions * 50)));
         }
-        
+
         setStreak(1);
       } catch (error) {
         console.error("Error loading dashboard:", error);
@@ -447,7 +560,6 @@ export default function DashboardPage() {
         setLoading(false);
       }
     }
-
     fetchDashboardData();
   }, []);
 
@@ -462,7 +574,6 @@ export default function DashboardPage() {
   return (
     <div className="flex h-screen bg-[#111318] overflow-hidden">
       <Sidebar />
-
       <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
         <div className="max-w-5xl mx-auto px-6 py-10">
 
@@ -478,17 +589,16 @@ export default function DashboardPage() {
                 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px,3vw,40px)" }}>
                 GOOD MORNING, {firstName}
               </h1>
-              <p className="text-zinc-400 text-sm flex items-center gap-2"
-                style={{ fontFamily: "var(--font-body)" }}>
+              <p className="text-zinc-400 text-sm flex items-center gap-2" style={{ fontFamily: "var(--font-body)" }}>
                 <Calendar size={13} />
                 {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
               </p>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full"
+            <div className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-full"
               style={{ background: "rgba(74,222,128,0.07)", border: "1px solid rgba(74,222,128,0.18)" }}>
               <Flame size={14} className="text-green-400" />
               <span className="text-green-400 text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>
-                {streak} day streak
+                {streak} day<span className="hidden md:inline"> streak</span>
               </span>
             </div>
           </motion.div>
@@ -498,37 +608,25 @@ export default function DashboardPage() {
 
           {/* Score + categories */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-
-            {/* Eco Score card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
               className="rounded-2xl p-8 flex flex-col items-center justify-center"
-              style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.07)",
-              }}
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
             >
               <EcoScoreRing score={ecoScore} />
               <div className="flex gap-6 mt-6 pt-6 w-full"
                 style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                {[
-                  { label: "Yesterday", val: "—" },
-                  { label: "Weekly avg", val: "—" },
-                  { label: "Best day", val: "—" },
-                ].map((s) => (
+                {[{ label: "Yesterday", val: "—" }, { label: "Weekly avg", val: "—" }, { label: "Best day", val: "—" }].map((s) => (
                   <div key={s.label} className="flex-1 text-center">
-                    <p className="text-white text-base font-semibold"
-                      style={{ fontFamily: "var(--font-display)" }}>{s.val}</p>
-                    <p className="text-zinc-400 text-sm mt-0.5"
-                      style={{ fontFamily: "var(--font-body)" }}>{s.label}</p>
+                    <p className="text-white text-base font-semibold" style={{ fontFamily: "var(--font-display)" }}>{s.val}</p>
+                    <p className="text-zinc-400 text-sm mt-0.5" style={{ fontFamily: "var(--font-body)" }}>{s.label}</p>
                   </div>
                 ))}
               </div>
             </motion.div>
 
-            {/* Categories */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -536,8 +634,7 @@ export default function DashboardPage() {
               className="flex flex-col gap-4"
             >
               <div className="flex items-center justify-between">
-                <p className="text-zinc-400 text-sm tracking-widest uppercase"
-                  style={{ fontFamily: "var(--font-body)" }}>
+                <p className="text-zinc-400 text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-body)" }}>
                   Today&apos;s habits
                 </p>
                 <p className="text-zinc-400 text-sm" style={{ fontFamily: "var(--font-body)" }}>
@@ -559,8 +656,8 @@ export default function DashboardPage() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8"
           >
-            <ChartPlaceholder label="Eco Score – last 7 days" />
-            <ChartPlaceholder label="CO₂ usage – last 7 days" />
+            <EcoScoreChart />
+            <CO2Chart userId={userId} />
           </motion.div>
 
           <TipsCarousel />
