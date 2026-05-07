@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabaseServer';
 
 type TodayRow = {
-  total_today: number | string | null;
+  total_co2: number | string | null;
   user_id: string;
 };
 
@@ -48,7 +48,7 @@ export async function GET() {
     const [todayRes, weeklyRes, monthlyRes] = await Promise.all([
       supabase
         .from('view_today_total_co2')
-        .select('total_today,user_id')
+        .select('total_co2,user_id')
         .eq('user_id', user.id)
         .maybeSingle<TodayRow>(),
       supabase
@@ -68,7 +68,7 @@ export async function GET() {
     }
 
     const daily_stats = {
-      today_total: toNumber(todayRes.data?.total_today),
+      today_total: toNumber(todayRes.data?.total_co2),
     };
 
     const weeklyBucketMap = new Map<string, number>(
