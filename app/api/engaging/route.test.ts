@@ -4,85 +4,119 @@ import { NextRequest } from 'next/server';
 import * as supabaseServer from '@/lib/supabaseServer';
 import * as getWeeklyUsageModule from '@/lib/getWeeklyUsage';
 
-// Mocka externa beroenden
+// Vi mockar bort databasen och auth-modulen
 vi.mock('@/lib/supabaseServer');
 vi.mock('@/lib/getWeeklyUsage');
 
-describe('POST /api/impact', () => {
-  const mockUser = { id: 'user_123' };
+describe('API Route: /api/impact', () => {
+  const mockUser = { id: 'user_abc_123' };
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('ska returnera 401 om användaren inte är inloggad', async () => {
-    // Simulera att getUser returnerar null/error
+  // --- TEST 1: AUTHENTICATION ---
+  it('ska returnera 401 om sessionen saknas', async () => {
     (supabaseServer.createClient as any).mockResolvedValue({
-      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: new Error('Auth failed') }) }
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) }
     });
 
-    const req = new NextRequest('http://localhost/api/impact', {
+    const req = new NextRequest('http://localhost', {
       method: 'POST',
-      body: JSON.stringify({ user_id: 'user_123', category: 'co2' })
+      body: JSON.stringify({ user_id: 'user_abc_123', category: 'co2' })
     });
 
     const res = await POST(req);
     expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.error).toBe('You have not logged in');
+    expect(await res.json()).toEqual({ error: 'You have not logged in' });
   });
 
-  it('ska returnera 403 om user_id inte matchar inloggad användare', async () => {
+  // --- TEST 2: VALIDERING AV JSON-BODY ---
+  it('ska returnera 400 om user_id eller category saknas i bodyn', async () => {
     (supabaseServer.createClient as any).mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }) }
     });
 
-    const req = new NextRequest('http://localhost/api/impact', {
+    // Skickar en tom body
+    const req = new NextRequest('http://localhost', {
       method: 'POST',
-      body: JSON.stringify({ user_id: 'wrong_user', category: 'co2' })
-    });
-
-    const res = await POST(req);
-    expect(res.status).toBe(403);
-  });
-
-  it('ska beräkna korrekt impact value för co2', async () => {
-    // 1. Mocka inloggad användare
-    (supabaseServer.createClient as any).mockResolvedValue({
-      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }) }
-    });
-
-    // 2. Mocka databas-svar (getWeeklyUsage returnerar t.ex. 100 kg CO2)
-    vi.spyOn(getWeeklyUsageModule, 'getWeeklyUsage').mockResolvedValue(100);
-
-    const req = new NextRequest('http://localhost/api/impact', {
-      method: 'POST',
-      body: JSON.stringify({ user_id: 'user_123', category: 'co2' })
-    });
-
-    const res = await POST(req);
-    const json = await res.json();
-
-    expect(res.status).toBe(200);
-    // 100 / 20 = 5 enligt din config.ts
-    expect(json.impact_value).toBe(5);
-    expect(json.text).toContain('5 trees');
-    expect(json.total_unit).toBe('kg_co2');
-  });
-
-  it('ska returnera 400 för en ogiltig kategori', async () => {
-    (supabaseServer.createClient as any).mockResolvedValue({
-      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }) }
-    });
-
-    const req = new NextRequest('http://localhost/api/impact', {
-      method: 'POST',
-      body: JSON.stringify({ user_id: 'user_123', category: 'invalid_cat' })
+      body: JSON.stringify({ category: 'co2' }) // user_id saknas
     });
 
     const res = await POST(req);
     expect(res.status).toBe(400);
-    const json = await res.json();
-    expect(json.error).toBe('Invalid category');
+    expect(await res.json()).toEqual({ error: 'Missing user_id or category' });
+  });
+
+  it('ska returnera 400 om kategorin är ogiltig', async () => {
+    (supabaseServer.createClient as any).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }) }
+    });
+
+    const req = new NextRequest('http://localhost', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: 'user_abc_123', category: 'pizza' }) // ogiltig
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: 'Invalid category' });
+  });
+
+  // --- TEST 3: BEHÖRIGHETSKONTROLL (USER MATCH) ---
+  it('ska returnera 403 om man försöker hämta data för en annan användare', async () => {
+    (supabaseServer.createClient as any).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }) }
+    });
+
+    const req = new NextRequest('http://localhost', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: 'någon_annan_id', category: 'co2' })
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: 'You are not allowed to access this user data' });
+  });
+
+  // --- TEST 4: KORREKTA BERÄKNINGAR ---
+  it('ska beräkna vattenpåverkan korrekt (total / 4)', async () => {
+    (supabaseServer.createClient as any).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }) }
+    });
+
+    // Mocka att databasen returnerar 100 liter
+    vi.spyOn(getWeeklyUsageModule, 'getWeeklyUsage').mockResolvedValue(100);
+
+    const req = new NextRequest('http://localhost', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: 'user_abc_123', category: 'water' })
+    });
+
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.impact_value).toBe(25); // 100 / 4 = 25
+    expect(data.text).toBe('Your water usage from the last 7 days could irrigate 25 m² of farmland for one day.');
+  });
+
+  // --- TEST 5: SYSTEMFEL ---
+  it('ska returnera 500 om databasanropet kraschar', async () => {
+    (supabaseServer.createClient as any).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }) }
+    });
+
+    // Simulera ett oväntat fel (t.ex. nätverksfel till databasen)
+    vi.spyOn(getWeeklyUsageModule, 'getWeeklyUsage').mockRejectedValue(new Error('DB Crash'));
+
+    const req = new NextRequest('http://localhost', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: 'user_abc_123', category: 'co2' })
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: 'Something went wrong' });
   });
 });
