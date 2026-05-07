@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js/dist/index.mjs';
-import { CalculationResult, Category, EmissionRow, HabitHandler, Metrics, TransportationInput, TransportMode } from '../habit-types';
+import { CalculationResult, Category, Eco_Activities_Row, HabitHandler, Metrics, TransportationInput, TransportMode } from '../habit-types';
 import { InvalidPayloadError } from '../custom-errors';
 
 const CO2_FACTORS: Record<TransportMode, number> = {
@@ -76,11 +76,11 @@ async function storeTransportationResult(args: {
   userId: string;
   supabase: SupabaseClient;
   category: Category;
-}): Promise<EmissionRow> {
+}): Promise<Eco_Activities_Row> {
   const { userId, supabase, category, metrics, parsed, extra } = args;
 
   const { data: savedData, error } = await supabase
-    .from('emissions')
+    .from('eco_activities')
     .insert([
       {
         user_id: userId,
