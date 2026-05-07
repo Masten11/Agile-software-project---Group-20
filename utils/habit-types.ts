@@ -2,6 +2,8 @@ import { SupabaseClient } from '@supabase/supabase-js/dist/index.mjs';
 
 export enum Category {
   Transportation = 'transport', //Add more categories here
+  Shower = 'shower',
+  Dishwasher = 'dishwasher'
 }
 
 export type LogHabitRequest = {
@@ -11,7 +13,7 @@ export type LogHabitRequest = {
 
 
 //Type for the emission row in the database
-export type EmissionRow = {
+export type Eco_Activities_Row = {
   id: string;
   user_id: string;
   category: string;
@@ -43,7 +45,7 @@ export interface HabitHandler<Parsed, TExtra> {
     userId: string;
     supabase: SupabaseClient;
     category: Category;
-  }) => Promise<EmissionRow>;
+  }) => Promise<Eco_Activities_Row>;
 }
 
 /////////////////////////////
