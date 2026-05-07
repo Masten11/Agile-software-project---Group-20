@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest"
+    "test": "vitest --config vitest.config.ts"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",
