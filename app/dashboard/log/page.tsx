@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect, type FormEvent } from "react";
@@ -23,7 +24,6 @@ type Log = {
 const DATE_OPTIONS = [
   { label: "Today", offset: 0 },
   { label: "Yesterday", offset: 1 },
-  { label: "2 days ago", offset: 2 },
 ];
 
 function getDateWithOffset(offset: number): string {
@@ -74,9 +74,8 @@ function CategoryIcon({
   details?: string | Record<string, unknown>;
 }) {
   if (category === "transport") {
-    let mode = "car"; // Standardikon om inget annat hittas
+    let mode = "car";
 
-    // Kolla ifall details är ett objekt (innan det formateras) eller en sträng (från databasen)
     if (typeof details === "object" && details !== null) {
       mode = (details as { transportMode?: string }).transportMode?.toLowerCase() || "car";
     } else if (typeof details === "string") {
@@ -87,7 +86,6 @@ function CategoryIcon({
       else if (lowerDetails.includes("plane")) mode = "plane";
     }
 
-    // Returnera rätt Lucide-ikon baserat på transportmedlet
     switch (mode) {
       case "bus": return <Bus size={14} className="text-cyan-400" />;
       case "train": return <Train size={14} className="text-cyan-400" />;
@@ -107,7 +105,7 @@ function CategoryIcon({
 }
 
 /* ─── Transport form ─── */
-function TransportForm({ onSuccess }: { onSuccess: () => void }) {
+function TransportForm({ selectedDate, onSuccess }: { selectedDate: string, onSuccess: () => void }) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
@@ -150,11 +148,11 @@ function TransportForm({ onSuccess }: { onSuccess: () => void }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category: "transport",
+          date: selectedDate, // <--- HÄR SKICKAR VI MED DATUMET TILL BACKEND!
           body: {
             start: from,
             destination: to,
             transportMode: mode.toLowerCase(),
-
             startPlaceId: fromPlace.placeId,
             startLat: fromPlace.lat,
             startLng: fromPlace.lng,
@@ -390,14 +388,11 @@ export default function LogPage() {
 
       try {
         if (dateOffset === 0) {
+          // Lita på ditt fungerande API för 'Today'
           const response = await fetch("/api/logged-habits");
-
-          if (!response.ok) {
-            throw new Error("Failed to fetch");
-          }
+          if (!response.ok) throw new Error("Failed to fetch");
 
           const data = await response.json();
-
           const allLogs: Log[] = [
             ...(data.transport || []),
             ...(data.food || []),
@@ -406,35 +401,28 @@ export default function LogPage() {
             (a, b) =>
               new Date(b.created_at).getTime() -
               new Date(a.created_at).getTime()
-          );
+          ); // Sorterar nyaste överst
 
           setLogs(allLogs);
         } else {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
+          // För 'Yesterday', hämta från Supabase med KORREKT kolumn ('details')
+          const { data: { user } } = await supabase.auth.getUser();
 
           if (!user) return;
 
           const { data } = await supabase
             .from("eco_activities")
-            .select("id, category, summary, co2_emissions_kg, created_at")
+            .select("id, category, details, co2_kg, created_at") // <-- HÄR ÄR RÄTTNINGEN: details!
             .eq("user_id", user.id)
             .eq("activity_date", selectedDate)
-            .order("created_at", { ascending: false });
+            .order("created_at", { ascending: false }); // Sorterar nyaste överst
 
           const mapped: Log[] = (data || []).map(
-            (row: {
-              id: string;
-              category: Category;
-              summary: string;
-              co2_emissions_kg: number;
-              created_at: string;
-            }) => ({
+            (row: any) => ({
               id: row.id,
               category: row.category,
-              details: row.summary,
-              co2_kg: row.co2_emissions_kg,
+              details: row.details, 
+              co2_kg: row.co2_kg,
               created_at: row.created_at,
             })
           );
@@ -455,20 +443,17 @@ export default function LogPage() {
     setDeleting(id);
 
     try {
-      if (dateOffset === 0) {
-        const response = await fetch("/api/unlog-habit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id }),
-        });
+      // Vi raderar numera alltid via API, oavsett datum! Det är säkrast.
+      const response = await fetch("/api/unlog-habit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
 
-        if (!response.ok) {
-          const result = await response.json();
-          console.error("Failed to delete:", result.error);
-          return;
-        }
-      } else {
-        await supabase.from("eco_activities").delete().eq("id", id);
+      if (!response.ok) {
+        const result = await response.json();
+        console.error("Failed to delete:", result.error);
+        return;
       }
 
       setLogs((prev) => prev.filter((l) => l.id !== id));
@@ -704,6 +689,7 @@ export default function LogPage() {
                   >
                     {activeCategory === "transport" && (
                       <TransportForm
+                        selectedDate={selectedDate}
                         onSuccess={() => setRefreshTrigger((p) => p + 1)}
                       />
                     )}
@@ -812,38 +798,28 @@ export default function LogPage() {
                       {logs.map((log) => {
                         let details = "Unknown activity";
 
-// 1. Skapa en liten hjälpfunktion som formaterar platsen
-const formatLoc = (loc: string) => {
-  if (!loc) return "";
-  const parts = loc.split(",");
-  
-  // Om adressen har fler delar (ex "Borås, Sweden"), ta bort den sista delen.
-  // Om det bara är ett ord (ex "Sweden"), behåll det.
-  return parts.length > 1 ? parts.slice(0, -1).join(",").trim() : loc.trim();
-};
+                        const formatLoc = (loc: string) => {
+                          if (!loc) return "";
+                          const parts = loc.split(",");
+                          return parts.length > 1 ? parts.slice(0, -1).join(",").trim() : loc.trim();
+                        };
 
-// 2. Använd funktionen när details skapas
-if (typeof log.details === "object" && log.details !== null) {
-  const start = (log.details as { start?: string }).start ?? "";
-  const dest = (log.details as { destination?: string }).destination ?? "";
-  
-  // Formatera både start och destination innan de sätts ihop
-  details = `${formatLoc(start)} → ${formatLoc(dest)}`;
-  
-} else if (typeof log.details === "string") {
-  // Rensa bort eventuell transport-text (t.ex. "car · ")
-  const rawStr = log.details.includes(" · ")
-    ? log.details.split(" · ")[1]
-    : log.details;
-    
-  // Om det är en sparad rutt med en pil, formatera båda sidorna
-  if (rawStr.includes(" → ")) {
-    const [s, d] = rawStr.split(" → ");
-    details = `${formatLoc(s)} → ${formatLoc(d)}`;
-  } else {
-    details = rawStr;
-  }
-}
+                        if (typeof log.details === "object" && log.details !== null) {
+                          const start = (log.details as { start?: string }).start ?? "";
+                          const dest = (log.details as { destination?: string }).destination ?? "";
+                          details = `${formatLoc(start)} → ${formatLoc(dest)}`;
+                        } else if (typeof log.details === "string") {
+                          const rawStr = log.details.includes(" · ")
+                            ? log.details.split(" · ")[1]
+                            : log.details;
+                            
+                          if (rawStr.includes(" → ")) {
+                            const [s, d] = rawStr.split(" → ");
+                            details = `${formatLoc(s)} → ${formatLoc(d)}`;
+                          } else {
+                            details = rawStr;
+                          }
+                        }
 
                         return (
                           <motion.div
@@ -916,17 +892,17 @@ if (typeof log.details === "object" && log.details !== null) {
                                 </div>
                               ) : (
                                 <button
-  onClick={() => setDeleteConfirm(log.id)}
-  className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors group/del shrink-0"
-  onMouseEnter={(e) => {
-    e.currentTarget.style.background = "rgba(248,113,113,0.1)";
-  }}
-  onMouseLeave={(e) => {
-    e.currentTarget.style.background = "transparent";
-  }}
->
-  <Trash2 size={13} className="text-zinc-600 group-hover/del:text-red-400 transition-colors" />
-</button>
+                                  onClick={() => setDeleteConfirm(log.id)}
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors group/del shrink-0"
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = "rgba(248,113,113,0.1)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = "transparent";
+                                  }}
+                                >
+                                  <Trash2 size={13} className="text-zinc-600 group-hover/del:text-red-400 transition-colors" />
+                                </button>
                               )}
                             </div>
                           </motion.div>

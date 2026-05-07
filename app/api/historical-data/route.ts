@@ -81,11 +81,14 @@ export async function GET() {
         continue;
       }
 
-      // getDay() returnerar 0 för Sön, 1 för Mån, 2 för Tis etc.
+      // 1. Hämta veckodagen som en siffra (0 = Söndag, 1 = Måndag, 2 = Tisdag, osv.)
       const jsDay = date.getDay(); 
       
-      // Eftersom WEEKDAY_LABELS börjar med Måndag på index 0, flyttar vi Söndag (0) till slutet (6)
+      // 2. Vår WEEKDAY_LABELS börjar med Måndag (index 0). 
+      // Därför flyttar vi Söndag (0) till slutet (index 6), annars tar vi siffran minus 1.
       const labelIndex = jsDay === 0 ? 6 : jsDay - 1;
+      
+      // 3. Plocka ut rätt svensk etikett exakt som den står i WEEKDAY_LABELS
       const normalizedDayLabel = WEEKDAY_LABELS[labelIndex];
 
       if (!weeklyBucketMap.has(normalizedDayLabel)) {

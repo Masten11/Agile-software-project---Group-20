@@ -76,8 +76,9 @@ async function storeTransportationResult(args: {
   userId: string;
   supabase: SupabaseClient;
   category: Category;
+  date?: string; // <--- Säg till TypeScript att vi kan skicka in datum
 }): Promise<Eco_Activities_Row> {
-  const { userId, supabase, category, metrics, parsed, extra } = args;
+  const { userId, supabase, category, metrics, parsed, extra, date } = args;
 
   const { data: savedData, error } = await supabase
     .from('eco_activities')
@@ -92,6 +93,8 @@ async function storeTransportationResult(args: {
           ...parsed,
           distanceInKm: extra.distanceInKm,
         },
+        // Om 'date' skickades med används det, annars tar vi dagens datum
+        activity_date: date || new Date().toISOString().split('T')[0],
       }
     ])
     .select()
@@ -111,7 +114,6 @@ export const transportationHandler: HabitHandler<TransportationParsedInput, Tran
     return storeTransportationResult(args);
   },
 };
-
 
 //Helper function to get the distance between two places using Google Maps API
 async function getDistance(start: string, destination: string): Promise<number> {

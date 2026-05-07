@@ -45,6 +45,7 @@ export interface HabitHandler<Parsed, TExtra> {
     userId: string;
     supabase: SupabaseClient;
     category: Category;
+    date?: string; // <--- HÄR ÄR FIXEN! Nu stämmer kontraktet överens med logiken.
   }) => Promise<Eco_Activities_Row>;
 }
 
@@ -66,4 +67,3 @@ export interface TransportationInput {
 export type UnlogHabitRequest = {
   id: string;
 };
-
