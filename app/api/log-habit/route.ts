@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     // Return the saved row from the database
     return NextResponse.json({
       success: true,
-      message: 'Emission entry created.',
+      message: 'Habit entry created.',
       data: result
     }, { status: 201 });
 
