@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect, type FormEvent } from "react";
@@ -17,7 +16,7 @@ type Log = {
   category: Category;
   details: string | Record<string, unknown>;
   co2_kg: number;
-  created_at: string;
+  activity_date: string; // <-- Ändrat från created_at
 };
 
 /* ─── Date options ─── */
@@ -142,13 +141,16 @@ function TransportForm({ selectedDate, onSuccess }: { selectedDate: string, onSu
     setSubmitting(true);
     setError(null);
 
+    // Lägg till nuvarande klockslag för att sorteringen ska bli perfekt i databasen!
+    const fullTimestamp = `${selectedDate}T${new Date().toISOString().split('T')[1]}`;
+
     try {
       const response = await fetch("/api/log-habit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category: "transport",
-          date: selectedDate, // <--- HÄR SKICKAR VI MED DATUMET TILL BACKEND!
+          date: fullTimestamp, 
           body: {
             start: from,
             destination: to,
@@ -388,42 +390,51 @@ export default function LogPage() {
 
       try {
         if (dateOffset === 0) {
-          // Lita på ditt fungerande API för 'Today'
           const response = await fetch("/api/logged-habits");
-          if (!response.ok) throw new Error("Failed to fetch");
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch");
+          }
 
           const data = await response.json();
+
           const allLogs: Log[] = [
             ...(data.transport || []),
             ...(data.food || []),
             ...(data.energy || []),
           ].sort(
             (a, b) =>
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime()
-          ); // Sorterar nyaste överst
+              // SORTERING FIX: Använder activity_date eftersom created_at inte finns
+              new Date(b.activity_date || 0).getTime() -
+              new Date(a.activity_date || 0).getTime()
+          );
 
           setLogs(allLogs);
         } else {
-          // För 'Yesterday', hämta från Supabase med KORREKT kolumn ('details')
           const { data: { user } } = await supabase.auth.getUser();
 
           if (!user) return;
 
+          // Hämta loggar för valt dygn med .gte och .lte eftersom det nu finns klockslag med
+          const startOfDay = `${selectedDate}T00:00:00.000Z`;
+          const endOfDay = `${selectedDate}T23:59:59.999Z`;
+
           const { data } = await supabase
             .from("eco_activities")
-            .select("id, category, details, co2_kg, created_at") // <-- HÄR ÄR RÄTTNINGEN: details!
+            .select("id, category, details, co2_kg, activity_date") 
             .eq("user_id", user.id)
-            .eq("activity_date", selectedDate)
-            .order("created_at", { ascending: false }); // Sorterar nyaste överst
+            .gte("activity_date", startOfDay)
+            .lte("activity_date", endOfDay)
+            .order("activity_date", { ascending: false }); // Sorterar direkt i databasen
 
           const mapped: Log[] = (data || []).map(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (row: any) => ({
               id: row.id,
               category: row.category,
-              details: row.details, 
+              details: row.details,
               co2_kg: row.co2_kg,
-              created_at: row.created_at,
+              activity_date: row.activity_date,
             })
           );
 
@@ -443,7 +454,6 @@ export default function LogPage() {
     setDeleting(id);
 
     try {
-      // Vi raderar numera alltid via API, oavsett datum! Det är säkrast.
       const response = await fetch("/api/unlog-habit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -801,18 +811,24 @@ export default function LogPage() {
                         const formatLoc = (loc: string) => {
                           if (!loc) return "";
                           const parts = loc.split(",");
-                          return parts.length > 1 ? parts.slice(0, -1).join(",").trim() : loc.trim();
+                          return parts.length > 1
+                            ? parts.slice(0, -1).join(",").trim()
+                            : loc.trim();
                         };
 
                         if (typeof log.details === "object" && log.details !== null) {
-                          const start = (log.details as { start?: string }).start ?? "";
-                          const dest = (log.details as { destination?: string }).destination ?? "";
+                          const start =
+                            (log.details as { start?: string }).start ?? "";
+                          const dest =
+                            (log.details as { destination?: string })
+                              .destination ?? "";
+
                           details = `${formatLoc(start)} → ${formatLoc(dest)}`;
                         } else if (typeof log.details === "string") {
                           const rawStr = log.details.includes(" · ")
                             ? log.details.split(" · ")[1]
                             : log.details;
-                            
+
                           if (rawStr.includes(" → ")) {
                             const [s, d] = rawStr.split(" → ");
                             details = `${formatLoc(s)} → ${formatLoc(d)}`;
@@ -838,7 +854,10 @@ export default function LogPage() {
                                   background: "rgba(255,255,255,0.05)",
                                 }}
                               >
-                                <CategoryIcon category={log.category} details={log.details} />
+                                <CategoryIcon
+                                  category={log.category}
+                                  details={log.details}
+                                />
                               </div>
 
                               <div className="flex-1 min-w-0 flex items-center justify-between pr-2">
@@ -895,13 +914,18 @@ export default function LogPage() {
                                   onClick={() => setDeleteConfirm(log.id)}
                                   className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors group/del shrink-0"
                                   onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = "rgba(248,113,113,0.1)";
+                                    e.currentTarget.style.background =
+                                      "rgba(248,113,113,0.1)";
                                   }}
                                   onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = "transparent";
+                                    e.currentTarget.style.background =
+                                      "transparent";
                                   }}
                                 >
-                                  <Trash2 size={13} className="text-zinc-600 group-hover/del:text-red-400 transition-colors" />
+                                  <Trash2
+                                    size={13}
+                                    className="text-zinc-600 group-hover/del:text-red-400 transition-colors"
+                                  />
                                 </button>
                               )}
                             </div>

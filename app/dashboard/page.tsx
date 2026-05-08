@@ -157,12 +157,8 @@ function EcoScoreChart() {
           <BarChart data={data}>
             <XAxis dataKey="name" stroke="#71717a" tick={{ fontSize: 12 }} />
             <YAxis stroke="#71717a" tick={{ fontSize: 12 }} />
-            {/* Lade till itemStyle={{ color: "#ffffff" }} för mobil-vitt värde */}
-            <Tooltip 
-              cursor={{ fill: "transparent" }}
-              contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }} 
-              itemStyle={{ color: "#ffffff" }}
-            />
+            <Tooltip cursor={{ fill: "transparent" }}
+              contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }} />
             <Bar dataKey="value" radius={[6, 6, 0, 0]}
               onClick={(_, index) => { if (isMobile) setActiveBarIndex(index); }}>
               {data.map((_, index) => (
@@ -181,13 +177,15 @@ function EcoScoreChart() {
 type ChartPoint = { name: string; value: number };
 
 function CO2Chart({ userId }: { userId: string | null }) {
-  const [range, setRange] = useState<"week" | "month">("week");
+  // Lade till "year" här
+  const [range, setRange] = useState<"week" | "month" | "year">("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [activeBarIndex, setActiveBarIndex] = useState<number | null>(null);
 
   const [weeklyData, setWeeklyData] = useState<ChartPoint[]>([]);
   const [monthlyData, setMonthlyData] = useState<ChartPoint[]>([]);
+  const [yearlyData, setYearlyData] = useState<ChartPoint[]>([]); // Nytt state för året
   const [chartLoading, setChartLoading] = useState(true);
 
   // Engaging popover state
@@ -212,6 +210,7 @@ function CO2Chart({ userId }: { userId: string | null }) {
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
 
+        // Map weekly_stats
         if (data.weekly_stats) {
           setWeeklyData(
             data.weekly_stats.map((row: { day: string; total: number }) => ({
@@ -221,10 +220,21 @@ function CO2Chart({ userId }: { userId: string | null }) {
           );
         }
 
+        // Map monthly_stats
         if (data.monthly_stats) {
           setMonthlyData(
             data.monthly_stats.map((row: { week: string; total: number }) => ({
               name: row.week,
+              value: Number(row.total.toFixed(2)),
+            }))
+          );
+        }
+
+        // Map yearly_stats
+        if (data.yearly_stats) {
+          setYearlyData(
+            data.yearly_stats.map((row: { month: string; total: number }) => ({
+              name: row.month,
               value: Number(row.total.toFixed(2)),
             }))
           );
@@ -256,7 +266,7 @@ function CO2Chart({ userId }: { userId: string | null }) {
       return;
     }
     setPopoverOpen(true);
-    if (engagingText) return; 
+    if (engagingText) return; // already fetched
     if (!userId) return;
 
     setEngagingLoading(true);
@@ -279,7 +289,8 @@ function CO2Chart({ userId }: { userId: string | null }) {
     }
   };
 
-  const data = range === "week" ? weeklyData : monthlyData;
+  // Välj rätt data baserat på dropdownen
+  const data = range === "week" ? weeklyData : range === "month" ? monthlyData : yearlyData;
 
   return (
     <div className="rounded-2xl p-6 relative"
@@ -314,7 +325,6 @@ function CO2Chart({ userId }: { userId: string | null }) {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.97 }}
                   transition={{ duration: 0.18 }}
-                  // Gjorde tooltipen responsive med md:left-0 och -left-20 på mobilen för att den inte ska åka ut!
                   className="absolute -left-20 md:left-0 top-full mt-2 z-60 rounded-2xl p-4 w-[85vw] sm:w-65"
                   style={{
                     background: "#1e2128",
@@ -355,7 +365,7 @@ function CO2Chart({ userId }: { userId: string | null }) {
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50"
               style={{ background: "#1e2128", border: "1px solid rgba(255,255,255,0.09)" }}>
-              {(["week", "month"] as const).map((opt) => (
+              {(["week", "month", "year"] as const).map((opt) => (
                 <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); setActiveBarIndex(null); }}
                   className="px-4 py-2 text-sm cursor-pointer hover:bg-white/5"
                   style={{ color: range === opt ? "#4ade80" : "#a1a1aa", fontFamily: "var(--font-body)" }}>
@@ -383,7 +393,7 @@ function CO2Chart({ userId }: { userId: string | null }) {
               <Tooltip
                 cursor={{ fill: "transparent" }}
                 contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }}
-                itemStyle={{ color: "#ffffff" }} 
+                itemStyle={{ color: "#ffffff" }}
                 formatter={(value: unknown) => [`${value} kg CO₂`, "Emissions"]}
               />
               <Bar dataKey="value" radius={[6, 6, 0, 0]}
@@ -426,7 +436,6 @@ function LogBanner({ loggedCount, href }: { loggedCount: number; href: string })
             <p className="text-white text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>
               {loggedCount === 0 ? "You haven't logged any habits today" : `${loggedCount}/3 habits logged — keep going!`}
             </p>
-            {/* Gömmer grå undertext på mobil via hidden md:block */}
             <p className="hidden md:block text-zinc-400 text-sm mt-0.5" style={{ fontFamily: "var(--font-body)" }}>
               Log your habits to update your Eco Score
             </p>
@@ -532,6 +541,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchDashboardData() {
       try {
+        // Get user ID for engaging API
         const { data: { user } } = await supabase.auth.getUser();
         if (user) setUserId(user.id);
 
