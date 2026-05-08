@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
-import { Leaf, Zap, Car, TrendingUp, Flame, Calendar, Plus, ChevronDown, Info, X } from "lucide-react";
+import { Zap, Car, TrendingUp, Flame, Calendar, Plus, ChevronDown, Info, X, Droplet } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/lib/supabase";
@@ -77,26 +77,27 @@ function CategoryCard({ icon: Icon, label, color, logged, href }: {
       </div>
       <div className="flex-1">
         <p className="text-white text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>{label}</p>
-        <p className="text-sm mt-0.5" style={{ color: logged ? color : "#71717a", fontFamily: "var(--font-body)" }}>
+        <p className="text-sm mt-0.5" style={{ color: logged ? "#a1a1aa" : "#71717a", fontFamily: "var(--font-body)" }}>
           {logged ? "✓ Logged today" : "Not logged yet"}
         </p>
       </div>
       {!logged && (
-        <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 group-hover:bg-green-400/20"
-          style={{ border: "1px solid rgba(74,222,128,0.3)" }}>
-          <Plus size={16} className="text-green-400" strokeWidth={2.5} />
+        <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:bg-white/10"
+          style={{ border: "1px solid rgba(255,255,255,0.15)" }}>
+          <Plus size={16} className="text-zinc-500 group-hover:text-white transition-colors duration-300" strokeWidth={2.5} />
         </div>
       )}
     </motion.a>
   );
 }
 
-/* ── Eco Score chart (hardcoded placeholder) ── */
+/* ── Eco Score chart ── */
 function EcoScoreChart() {
   const [range, setRange] = useState("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [activeBarIndex, setActiveBarIndex] = useState<number | null>(null);
+  const [activeBarName, setActiveBarName] = useState<string | null>(null);
+  const [hoveredBarName, setHoveredBarName] = useState<string | null>(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -142,7 +143,7 @@ function EcoScoreChart() {
             <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50"
               style={{ background: "#1e2128", border: "1px solid rgba(255,255,255,0.09)" }}>
               {["week", "month", "year"].map((opt) => (
-                <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); setActiveBarIndex(null); }}
+                <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); setActiveBarName(null); setHoveredBarName(null); }}
                   className="px-4 py-2 text-sm cursor-pointer hover:bg-white/5"
                   style={{ color: range === opt ? "#4ade80" : "#a1a1aa", fontFamily: "var(--font-body)" }}>
                   {opt}
@@ -157,14 +158,118 @@ function EcoScoreChart() {
           <BarChart data={data}>
             <XAxis dataKey="name" stroke="#71717a" tick={{ fontSize: 12 }} />
             <YAxis stroke="#71717a" tick={{ fontSize: 12 }} />
-            <Tooltip cursor={{ fill: "transparent" }}
-              contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }} />
+            <Tooltip 
+              cursor={{ fill: "transparent" }}
+              contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }}
+              itemStyle={{ color: "#ffffff" }}
+              formatter={(value: unknown) => [`${value}`, "Eco Score"]}
+            />
             <Bar dataKey="value" radius={[6, 6, 0, 0]}
-              onClick={(_, index) => { if (isMobile) setActiveBarIndex(index); }}>
-              {data.map((_, index) => (
-                <Cell key={`cell-${index}`}
-                  fill={isMobile && activeBarIndex === index ? "#86efac" : "#4ade80"} />
+              onMouseEnter={(entry) => { if (!isMobile && entry?.name) setHoveredBarName(entry.name); }}
+              onMouseLeave={() => { if (!isMobile) setHoveredBarName(null); }}
+              onClick={(entry) => { if (isMobile && entry?.name) setActiveBarName(entry.name); }}>
+              {data.map((entry) => {
+                const isActive = (isMobile && activeBarName === entry.name) || (!isMobile && hoveredBarName === entry.name);
+                return (
+                  <Cell key={`cell-${entry.name}`}
+                    fill="#4ade80"
+                    fillOpacity={isActive ? 1 : 0.7}
+                    className="transition-all duration-300" />
+                );
+              })}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+/* ── ENERGY chart (hardcoded placeholder) ── */
+function EnergyChart() {
+  const [range, setRange] = useState("week");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [activeBarName, setActiveBarName] = useState<string | null>(null);
+  const [hoveredBarName, setHoveredBarName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const datasets = {
+    week: [
+      { name: "Mon", value: 12.4 }, { name: "Tue", value: 14.1 }, { name: "Wed", value: 11.2 },
+      { name: "Thu", value: 15.6 }, { name: "Fri", value: 13.8 }, { name: "Sat", value: 18.2 }, { name: "Sun", value: 17.5 },
+    ],
+    month: [
+      { name: "Week 1", value: 85 }, { name: "Week 2", value: 92 },
+      { name: "Week 3", value: 78 }, { name: "Week 4", value: 88 }, { name: "Week 5", value: 95 },
+    ],
+    year: [
+      { name: "Jan", value: 420 }, { name: "Feb", value: 390 }, { name: "Mar", value: 350 },
+      { name: "Apr", value: 280 }, { name: "May", value: 250 }, { name: "Jun", value: 220 },
+      { name: "Jul", value: 240 }, { name: "Aug", value: 260 }, { name: "Sep", value: 290 },
+      { name: "Oct", value: 340 }, { name: "Nov", value: 380 }, { name: "Dec", value: 430 },
+    ],
+  };
+
+  const data = datasets[range as keyof typeof datasets];
+
+  return (
+    <div className="rounded-2xl p-6 relative"
+      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+      <div className="flex justify-between items-center mb-6">
+        <p className="text-zinc-400 text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-body)" }}>
+          Energy usage
+        </p>
+        <div className="relative">
+          <button onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "#a1a1aa" }}>
+            {range}
+            <ChevronDown size={14} />
+          </button>
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50"
+              style={{ background: "#1e2128", border: "1px solid rgba(255,255,255,0.09)" }}>
+              {["week", "month", "year"].map((opt) => (
+                <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); setActiveBarName(null); setHoveredBarName(null); }}
+                  className="px-4 py-2 text-sm cursor-pointer hover:bg-white/5"
+                  style={{ color: range === opt ? "#c084fc" : "#a1a1aa", fontFamily: "var(--font-body)" }}>
+                  {opt}
+                </div>
               ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div style={{ width: "100%", height: 260 }}>
+        <ResponsiveContainer>
+          <BarChart data={data}>
+            <XAxis dataKey="name" stroke="#71717a" tick={{ fontSize: 12 }} />
+            <YAxis stroke="#71717a" tick={{ fontSize: 12 }} unit=" kWh" />
+            <Tooltip 
+              cursor={{ fill: "transparent" }}
+              contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }}
+              itemStyle={{ color: "#ffffff" }}
+              formatter={(value: unknown) => [`${value} kWh`, "Energy"]} />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]}
+              onMouseEnter={(entry) => { if (!isMobile && entry?.name) setHoveredBarName(entry.name); }}
+              onMouseLeave={() => { if (!isMobile) setHoveredBarName(null); }}
+              onClick={(entry) => { if (isMobile && entry?.name) setActiveBarName(entry.name); }}>
+              {data.map((entry) => {
+                const isActive = (isMobile && activeBarName === entry.name) || (!isMobile && hoveredBarName === entry.name);
+                return (
+                  <Cell key={`cell-${entry.name}`}
+                    fill="#c084fc"
+                    fillOpacity={isActive ? 1 : 0.7}
+                    className="transition-all duration-300" />
+                );
+              })}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -177,18 +282,17 @@ function EcoScoreChart() {
 type ChartPoint = { name: string; value: number };
 
 function CO2Chart({ userId }: { userId: string | null }) {
-  // Lade till "year" här
   const [range, setRange] = useState<"week" | "month" | "year">("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [activeBarIndex, setActiveBarIndex] = useState<number | null>(null);
+  const [activeBarName, setActiveBarName] = useState<string | null>(null);
+  const [hoveredBarName, setHoveredBarName] = useState<string | null>(null);
 
   const [weeklyData, setWeeklyData] = useState<ChartPoint[]>([]);
   const [monthlyData, setMonthlyData] = useState<ChartPoint[]>([]);
-  const [yearlyData, setYearlyData] = useState<ChartPoint[]>([]); // Nytt state för året
+  const [yearlyData, setYearlyData] = useState<ChartPoint[]>([]);
   const [chartLoading, setChartLoading] = useState(true);
 
-  // Engaging popover state
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [engagingText, setEngagingText] = useState<string | null>(null);
   const [engagingLoading, setEngagingLoading] = useState(false);
@@ -201,7 +305,6 @@ function CO2Chart({ userId }: { userId: string | null }) {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Fetch historical CO2 data
   useEffect(() => {
     async function fetchData() {
       setChartLoading(true);
@@ -210,34 +313,20 @@ function CO2Chart({ userId }: { userId: string | null }) {
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
 
-        // Map weekly_stats
         if (data.weekly_stats) {
-          setWeeklyData(
-            data.weekly_stats.map((row: { day: string; total: number }) => ({
-              name: row.day,
-              value: Number(row.total.toFixed(2)),
-            }))
-          );
+          setWeeklyData(data.weekly_stats.map((row: { day: string; total: number }) => ({
+            name: row.day, value: Number(row.total.toFixed(2)),
+          })));
         }
-
-        // Map monthly_stats
         if (data.monthly_stats) {
-          setMonthlyData(
-            data.monthly_stats.map((row: { week: string; total: number }) => ({
-              name: row.week,
-              value: Number(row.total.toFixed(2)),
-            }))
-          );
+          setMonthlyData(data.monthly_stats.map((row: { week: string; total: number }) => ({
+            name: row.week, value: Number(row.total.toFixed(2)),
+          })));
         }
-
-        // Map yearly_stats
         if (data.yearly_stats) {
-          setYearlyData(
-            data.yearly_stats.map((row: { month: string; total: number }) => ({
-              name: row.month,
-              value: Number(row.total.toFixed(2)),
-            }))
-          );
+          setYearlyData(data.yearly_stats.map((row: { month: string; total: number }) => ({
+            name: row.month, value: Number(row.total.toFixed(2)),
+          })));
         }
       } catch (err) {
         console.error("Failed to load CO2 chart data:", err);
@@ -248,7 +337,6 @@ function CO2Chart({ userId }: { userId: string | null }) {
     fetchData();
   }, []);
 
-  // Close popover on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
@@ -259,14 +347,13 @@ function CO2Chart({ userId }: { userId: string | null }) {
     return () => document.removeEventListener("mousedown", handler);
   }, [popoverOpen]);
 
-  // Fetch engaging text when popover opens
   const handleInfoClick = async () => {
     if (popoverOpen) {
       setPopoverOpen(false);
       return;
     }
     setPopoverOpen(true);
-    if (engagingText) return; // already fetched
+    if (engagingText) return;
     if (!userId) return;
 
     setEngagingLoading(true);
@@ -289,33 +376,27 @@ function CO2Chart({ userId }: { userId: string | null }) {
     }
   };
 
-  // Välj rätt data baserat på dropdownen
   const data = range === "week" ? weeklyData : range === "month" ? monthlyData : yearlyData;
 
   return (
     <div className="rounded-2xl p-6 relative"
       style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-
-      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-2">
           <p className="text-zinc-400 text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-body)" }}>
             CO₂ usage
           </p>
 
-          {/* Info button + popover */}
           <div className="relative" ref={popoverRef}>
             <button
               onClick={handleInfoClick}
               className="w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200"
               style={{
-                background: popoverOpen ? "rgba(74,222,128,0.15)" : "rgba(255,255,255,0.05)",
-                border: `1px solid ${popoverOpen ? "rgba(74,222,128,0.3)" : "rgba(255,255,255,0.08)"}`,
+                background: popoverOpen ? "rgba(251,146,60,0.15)" : "rgba(255,255,255,0.05)",
+                border: `1px solid ${popoverOpen ? "rgba(251,146,60,0.3)" : "rgba(255,255,255,0.08)"}`,
               }}
             >
-              {popoverOpen
-                ? <X size={11} className="text-green-400" />
-                : <Info size={11} className="text-zinc-500" />}
+              {popoverOpen ? <X size={11} className="text-orange-400" /> : <Info size={11} className="text-zinc-500" />}
             </button>
 
             <AnimatePresence>
@@ -325,29 +406,23 @@ function CO2Chart({ userId }: { userId: string | null }) {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.97 }}
                   transition={{ duration: 0.18 }}
-                  className="absolute -left-20 md:left-0 top-full mt-2 z-60 rounded-2xl p-4 w-[85vw] sm:w-65"
+                  className="absolute -left-20 md:left-0 top-full mt-2 z-50 rounded-2xl p-4 w-[85vw] sm:w-65"
                   style={{
-                    background: "#1e2128",
-                    border: "1px solid rgba(74,222,128,0.15)",
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-                    maxWidth: "280px"
+                    background: "#1e2128", border: "1px solid rgba(251,146,60,0.15)",
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.4)", maxWidth: "280px"
                   }}
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-base">🌍</span>
-                    <p className="text-xs text-green-400 font-medium tracking-wider uppercase"
+                    <p className="text-xs text-orange-400 font-medium tracking-wider uppercase"
                       style={{ fontFamily: "var(--font-body)" }}>
                       Your impact this week
                     </p>
                   </div>
                   {engagingLoading ? (
-                    <p className="text-zinc-500 text-xs animate-pulse" style={{ fontFamily: "var(--font-body)" }}>
-                      Calculating your impact...
-                    </p>
+                    <p className="text-zinc-500 text-xs animate-pulse" style={{ fontFamily: "var(--font-body)" }}>Calculating your impact...</p>
                   ) : (
-                    <p className="text-zinc-300 text-sm leading-relaxed" style={{ fontFamily: "var(--font-body)" }}>
-                      {engagingText}
-                    </p>
+                    <p className="text-zinc-300 text-sm leading-relaxed" style={{ fontFamily: "var(--font-body)" }}>{engagingText}</p>
                   )}
                 </motion.div>
               )}
@@ -359,16 +434,15 @@ function CO2Chart({ userId }: { userId: string | null }) {
           <button onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "#a1a1aa" }}>
-            {range}
-            <ChevronDown size={14} />
+            {range} <ChevronDown size={14} />
           </button>
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50"
               style={{ background: "#1e2128", border: "1px solid rgba(255,255,255,0.09)" }}>
               {(["week", "month", "year"] as const).map((opt) => (
-                <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); setActiveBarIndex(null); }}
+                <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); setActiveBarName(null); setHoveredBarName(null); }}
                   className="px-4 py-2 text-sm cursor-pointer hover:bg-white/5"
-                  style={{ color: range === opt ? "#4ade80" : "#a1a1aa", fontFamily: "var(--font-body)" }}>
+                  style={{ color: range === opt ? "#fb923c" : "#a1a1aa", fontFamily: "var(--font-body)" }}>
                   {opt}
                 </div>
               ))}
@@ -377,12 +451,9 @@ function CO2Chart({ userId }: { userId: string | null }) {
         </div>
       </div>
 
-      {/* Chart */}
       {chartLoading ? (
         <div className="h-64 flex items-center justify-center">
-          <p className="text-zinc-600 text-sm animate-pulse" style={{ fontFamily: "var(--font-body)" }}>
-            Loading data...
-          </p>
+          <p className="text-zinc-600 text-sm animate-pulse" style={{ fontFamily: "var(--font-body)" }}>Loading data...</p>
         </div>
       ) : (
         <div style={{ width: "100%", height: 260 }}>
@@ -394,14 +465,143 @@ function CO2Chart({ userId }: { userId: string | null }) {
                 cursor={{ fill: "transparent" }}
                 contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }}
                 itemStyle={{ color: "#ffffff" }}
-                formatter={(value: unknown) => [`${value} kg CO₂`, "Emissions"]}
+                formatter={(value: unknown) => [`${value} kg`, "CO₂"]}
               />
               <Bar dataKey="value" radius={[6, 6, 0, 0]}
-                onClick={(_, index) => { if (isMobile) setActiveBarIndex(index); }}>
-                {data.map((_, index) => (
-                  <Cell key={`cell-${index}`}
-                    fill={isMobile && activeBarIndex === index ? "#86efac" : "#4ade80"} />
-                ))}
+                onMouseEnter={(entry) => { if (!isMobile && entry?.name) setHoveredBarName(entry.name); }}
+                onMouseLeave={() => { if (!isMobile) setHoveredBarName(null); }}
+                onClick={(entry) => { if (isMobile && entry?.name) setActiveBarName(entry.name); }}>
+                {data.map((entry) => {
+                  const isActive = (isMobile && activeBarName === entry.name) || (!isMobile && hoveredBarName === entry.name);
+                  return (
+                    <Cell key={`cell-${entry.name}`}
+                      fill="#fb923c"
+                      fillOpacity={isActive ? 1 : 0.7}
+                      className="transition-all duration-300" />
+                  );
+                })}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── WATER chart with real data ── */
+function WaterChart() {
+  const [range, setRange] = useState<"week" | "month" | "year">("week");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [activeBarName, setActiveBarName] = useState<string | null>(null);
+  const [hoveredBarName, setHoveredBarName] = useState<string | null>(null);
+
+  const [weeklyData, setWeeklyData] = useState<ChartPoint[]>([]);
+  const [monthlyData, setMonthlyData] = useState<ChartPoint[]>([]);
+  const [yearlyData, setYearlyData] = useState<ChartPoint[]>([]);
+  const [chartLoading, setChartLoading] = useState(true);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  useEffect(() => {
+    async function fetchData() {
+      setChartLoading(true);
+      try {
+        const res = await fetch("/api/historical-data");
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data = await res.json();
+
+        if (data.water_weekly_stats) {
+          setWeeklyData(data.water_weekly_stats.map((row: { day: string; total: number }) => ({
+            name: row.day, value: Number(row.total.toFixed(1)),
+          })));
+        }
+        if (data.water_monthly_stats) {
+          setMonthlyData(data.water_monthly_stats.map((row: { week: string; total: number }) => ({
+            name: row.week, value: Number(row.total.toFixed(1)),
+          })));
+        }
+        if (data.water_yearly_stats) {
+          setYearlyData(data.water_yearly_stats.map((row: { month: string; total: number }) => ({
+            name: row.month, value: Number(row.total.toFixed(1)),
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to load Water chart data:", err);
+      } finally {
+        setChartLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const data = range === "week" ? weeklyData : range === "month" ? monthlyData : yearlyData;
+
+  return (
+    <div className="rounded-2xl p-6 relative"
+      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-2">
+          <p className="text-zinc-400 text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-body)" }}>
+            Water usage
+          </p>
+        </div>
+        <div className="relative">
+          <button onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "#a1a1aa" }}>
+            {range} <ChevronDown size={14} />
+          </button>
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50"
+              style={{ background: "#1e2128", border: "1px solid rgba(255,255,255,0.09)" }}>
+              {(["week", "month", "year"] as const).map((opt) => (
+                <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); setActiveBarName(null); setHoveredBarName(null); }}
+                  className="px-4 py-2 text-sm cursor-pointer hover:bg-white/5"
+                  style={{ color: range === opt ? "#22d3ee" : "#a1a1aa", fontFamily: "var(--font-body)" }}>
+                  {opt}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {chartLoading ? (
+        <div className="h-64 flex items-center justify-center">
+          <p className="text-zinc-600 text-sm animate-pulse" style={{ fontFamily: "var(--font-body)" }}>Loading data...</p>
+        </div>
+      ) : (
+        <div style={{ width: "100%", height: 260 }}>
+          <ResponsiveContainer>
+            <BarChart data={data}>
+              <XAxis dataKey="name" stroke="#71717a" tick={{ fontSize: 12 }} />
+              <YAxis stroke="#71717a" tick={{ fontSize: 12 }} unit=" L" />
+              <Tooltip
+                cursor={{ fill: "transparent" }}
+                contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }}
+                itemStyle={{ color: "#ffffff" }}
+                formatter={(value: unknown) => [`${value} L`, "Water"]}
+              />
+              <Bar dataKey="value" radius={[6, 6, 0, 0]}
+                onMouseEnter={(entry) => { if (!isMobile && entry?.name) setHoveredBarName(entry.name); }}
+                onMouseLeave={() => { if (!isMobile) setHoveredBarName(null); }}
+                onClick={(entry) => { if (isMobile && entry?.name) setActiveBarName(entry.name); }}>
+                {data.map((entry) => {
+                  const isActive = (isMobile && activeBarName === entry.name) || (!isMobile && hoveredBarName === entry.name);
+                  return (
+                    <Cell key={`cell-${entry.name}`}
+                      fill="#22d3ee"
+                      fillOpacity={isActive ? 1 : 0.7}
+                      className="transition-all duration-300" />
+                  );
+                })}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -473,7 +673,7 @@ function TipsCarousel() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.4 }}
-      className="rounded-2xl overflow-hidden"
+      className="rounded-2xl overflow-hidden mb-8"
       style={{ border: "1px solid rgba(255,255,255,0.07)" }}
     >
       <div className="px-5 py-3 flex items-center justify-between"
@@ -541,7 +741,6 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        // Get user ID for engaging API
         const { data: { user } } = await supabase.auth.getUser();
         if (user) setUserId(user.id);
 
@@ -553,7 +752,11 @@ export default function DashboardPage() {
 
         if (data.activities && data.activities.length > 0) {
           const uniqueCategories = Array.from(
-            new Set(data.activities.map((a: { category: string }) => a.category.toLowerCase()))
+            new Set(data.activities.map((a: { category: string }) => {
+              const c = a.category.toLowerCase();
+              if (c === "shower" || c === "dishwasher") return "water";
+              return c;
+            }))
           );
           setLoggedToday(uniqueCategories as string[]);
           
@@ -652,14 +855,14 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-3">
-                <CategoryCard icon={Car} label="Transport" color="#22d3ee" logged={loggedToday.includes("transport")} href="/dashboard/log" />
-                <CategoryCard icon={Leaf} label="Food" color="#4ade80" logged={loggedToday.includes("food")} href="/dashboard/log" />
-                <CategoryCard icon={Zap} label="Energy" color="#facc15" logged={loggedToday.includes("energy")} href="/dashboard/log" />
+                <CategoryCard icon={Car} label="Transport" color="#fb923c" logged={loggedToday.includes("transport")} href="/dashboard/log" />
+                <CategoryCard icon={Droplet} label="Water Usage" color="#22d3ee" logged={loggedToday.includes("water")} href="/dashboard/log" />
+                <CategoryCard icon={Zap} label="Energy" color="#c084fc" logged={loggedToday.includes("energy")} href="/dashboard/log" />
               </div>
             </motion.div>
           </div>
 
-          {/* Charts */}
+          {/* Charts Grid (2x2) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -668,6 +871,8 @@ export default function DashboardPage() {
           >
             <EcoScoreChart />
             <CO2Chart userId={userId} />
+            <WaterChart />
+            <EnergyChart />
           </motion.div>
 
           <TipsCarousel />
