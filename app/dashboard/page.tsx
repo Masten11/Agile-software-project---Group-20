@@ -443,7 +443,6 @@ function LogBanner({ loggedCount, href }: { loggedCount: number; href: string })
 
 /* ── Tips carousel ── */
 const TIPS = [
-  { icon: "🥗", title: "Eat plant-based", tip: "Choosing a plant-based meal instead of beef saves up to 5 kg CO₂ — that's worth +500 points." },
   { icon: "🚌", title: "Use public transport", tip: "Taking the bus instead of driving 10 minutes saves ~1 kg CO₂ — worth +100 points." },
   { icon: "🚿", title: "Shorter showers", tip: "Cutting your shower from 15 to 5 minutes saves ~0.3 kg CO₂ and conserves water." },
   { icon: "💡", title: "Turn off lights", tip: "Turning off lights when leaving a room saves ~0.05 kg CO₂ per hour — small but it adds up." },
@@ -643,7 +642,7 @@ export default function DashboardPage() {
               </div>
               <div className="grid grid-cols-1 gap-3">
                 <CategoryCard icon={Car} label="Transport" color="#22d3ee" logged={loggedToday.includes("transport")} href="/dashboard/log" />
-                <CategoryCard icon={Leaf} label="Food" color="#4ade80" logged={loggedToday.includes("food")} href="/dashboard/log" />
+                <CategoryCard icon={Leaf} label="Water" color="#4ade80" logged={loggedToday.includes("water")} href="/dashboard/log" />
                 <CategoryCard icon={Zap} label="Energy" color="#facc15" logged={loggedToday.includes("energy")} href="/dashboard/log" />
               </div>
             </motion.div>

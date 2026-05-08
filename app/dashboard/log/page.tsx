@@ -10,17 +10,22 @@ import { Car, Bus, Train, Bike, Plane, Trash2 } from "lucide-react";
 import PlaceAutocompleteInput from "@/components/PlaceAutocompleteInput";
 
 /* ─── Types ─── */
-type Category = "transport" | "food" | "energy";
+
+type Category = "transport" | "water" | "energy";
 
 type Log = {
   id: string;
   category: Category;
   details: string | Record<string, unknown>;
   co2_kg: number;
-  created_at: string;
+  water_l?: number;
+  energy_kwh?: number;
+  activity_date?: string;
+  created_at?: string;
 };
 
 /* ─── Date options ─── */
+
 const DATE_OPTIONS = [
   { label: "Today", offset: 0 },
   { label: "Yesterday", offset: 1 },
@@ -32,13 +37,24 @@ function getDateWithOffset(offset: number): string {
   return d.toISOString().split("T")[0];
 }
 
+function getDayRange(dateString: string) {
+  const start = new Date(`${dateString}T00:00:00`);
+  const end = new Date(`${dateString}T23:59:59.999`);
+
+  return {
+    startIso: start.toISOString(),
+    endIso: end.toISOString(),
+  };
+}
+
 const TIPS: Record<Category, string> = {
   transport: "Taking the train instead of driving saves ~5× more CO₂ per trip.",
-  food: "A vegan meal produces up to 50× less CO₂ than a beef meal.",
-  energy: "Reducing your shower by 5 minutes saves ~0.3 kg CO₂ per day.",
+  water: "Shorter showers can save 30–60 liters of water every time.",
+  energy: "Running appliances on eco mode can reduce energy and water usage.",
 };
 
 /* ─── Submit button ─── */
+
 function SubmitBtn({
   disabled,
   loading,
@@ -66,6 +82,7 @@ function SubmitBtn({
 }
 
 /* ─── Category icon ─── */
+
 function CategoryIcon({
   category,
   details,
@@ -77,7 +94,9 @@ function CategoryIcon({
     let mode = "car";
 
     if (typeof details === "object" && details !== null) {
-      mode = (details as { transportMode?: string }).transportMode?.toLowerCase() || "car";
+      mode =
+        (details as { transportMode?: string }).transportMode?.toLowerCase() ||
+        "car";
     } else if (typeof details === "string") {
       const lowerDetails = details.toLowerCase();
       if (lowerDetails.includes("bus")) mode = "bus";
@@ -87,25 +106,30 @@ function CategoryIcon({
     }
 
     switch (mode) {
-      case "bus": return <Bus size={14} className="text-cyan-400" />;
-      case "train": return <Train size={14} className="text-cyan-400" />;
-      case "bike": return <Bike size={14} className="text-cyan-400" />;
-      case "plane": return <Plane size={14} className="text-cyan-400" />;
+      case "bus":
+        return <Bus size={14} className="text-cyan-400" />;
+      case "train":
+        return <Train size={14} className="text-cyan-400" />;
+      case "bike":
+        return <Bike size={14} className="text-cyan-400" />;
+      case "plane":
+        return <Plane size={14} className="text-cyan-400" />;
       case "car":
       default:
         return <Car size={14} className="text-cyan-400" />;
     }
   }
 
-  return (
-    <span className="text-xs text-zinc-500">
-      {category === "food" ? "F" : "E"}
-    </span>
-  );
+  if (category === "water") {
+    return <span className="text-sm">💧</span>;
+  }
+
+  return <span className="text-xs text-zinc-500">E</span>;
 }
 
-/* ─── Transport form ─── */
-function TransportForm({ selectedDate, onSuccess }: { selectedDate: string, onSuccess: () => void }) {
+/* ─── Transport form: kept as you had it ─── */
+
+function TransportForm({ onSuccess }: { onSuccess: () => void }) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
@@ -331,7 +355,251 @@ function TransportForm({ selectedDate, onSuccess }: { selectedDate: string, onSu
   );
 }
 
+/* ─── Water form ─── */
+
+function WaterForm({ onSuccess }: { onSuccess: () => void }) {
+  const [type, setType] = useState<"shower" | "dishwasher" | "">("");
+  const [minutes, setMinutes] = useState("");
+  const [usesEcoMode, setUsesEcoMode] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!type) return;
+
+    if (type === "shower" && (!minutes || Number(minutes) <= 0)) {
+      setError("Please enter a valid shower length.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setError("You must be logged in to log water usage.");
+        return;
+      }
+
+      let water_l = 0;
+      let energy_kwh = 0;
+      let co2_kg = 0;
+      let details: Record<string, unknown> = {};
+
+      if (type === "shower") {
+        const showerMinutes = Number(minutes);
+
+        water_l = showerMinutes * 9;
+        energy_kwh = showerMinutes * 0.35;
+        co2_kg = energy_kwh * 0.05;
+
+        details = {
+          type: "shower",
+          minutes: showerMinutes,
+          litersPerMinute: 9,
+        };
+      }
+
+      if (type === "dishwasher") {
+        water_l = usesEcoMode ? 10 : 15;
+        energy_kwh = usesEcoMode ? 0.8 : 1.2;
+        co2_kg = energy_kwh * 0.05;
+
+        details = {
+          type: "dishwasher",
+          ecoMode: usesEcoMode,
+        };
+      }
+
+      const { error: insertError } = await supabase
+        .from("eco_activities")
+        .insert({
+          user_id: user.id,
+          category: "water",
+          co2_kg,
+          water_l,
+          energy_kwh,
+          details,
+        });
+
+      if (insertError) {
+        setError(insertError.message);
+        return;
+      }
+
+      setType("");
+      setMinutes("");
+      setUsesEcoMode(false);
+      onSuccess();
+    } catch {
+      setError("Failed to log water usage. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div>
+        <p
+          className="text-xs text-zinc-500 tracking-widest uppercase mb-3"
+          style={{ fontFamily: "var(--font-body)" }}
+        >
+          Water activity
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setType("shower");
+              setError(null);
+            }}
+            className="px-4 py-4 rounded-2xl text-sm transition-all"
+            style={{
+              background:
+                type === "shower"
+                  ? "rgba(74,222,128,0.1)"
+                  : "rgba(255,255,255,0.04)",
+              border:
+                type === "shower"
+                  ? "1px solid rgba(74,222,128,0.25)"
+                  : "1px solid rgba(255,255,255,0.07)",
+              color: type === "shower" ? "#4ade80" : "#a1a1aa",
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            🚿 Shower
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setType("dishwasher");
+              setError(null);
+            }}
+            className="px-4 py-4 rounded-2xl text-sm transition-all"
+            style={{
+              background:
+                type === "dishwasher"
+                  ? "rgba(74,222,128,0.1)"
+                  : "rgba(255,255,255,0.04)",
+              border:
+                type === "dishwasher"
+                  ? "1px solid rgba(74,222,128,0.25)"
+                  : "1px solid rgba(255,255,255,0.07)",
+              color: type === "dishwasher" ? "#4ade80" : "#a1a1aa",
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            🍽️ Dishwasher
+          </button>
+        </div>
+      </div>
+
+      {type === "shower" && (
+        <div>
+          <label
+            className="text-xs text-zinc-500 tracking-widest uppercase mb-3 block"
+            style={{ fontFamily: "var(--font-body)" }}
+          >
+            Shower length
+          </label>
+
+          <input
+            type="number"
+            min="1"
+            value={minutes}
+            onChange={(e) => {
+              setMinutes(e.target.value);
+              setError(null);
+            }}
+            placeholder="Minutes, e.g. 8"
+            className="w-full px-5 py-4 rounded-2xl text-sm outline-none"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              color: "#ffffff",
+              fontFamily: "var(--font-body)",
+            }}
+          />
+        </div>
+      )}
+
+      {type === "dishwasher" && (
+        <div
+          className="flex items-center justify-between px-5 py-4 rounded-2xl"
+          style={{
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.07)",
+          }}
+        >
+          <div>
+            <p
+              className="text-sm text-zinc-300"
+              style={{ fontFamily: "var(--font-body)" }}
+            >
+              Eco mode
+            </p>
+
+            <p
+              className="text-xs text-zinc-600 mt-1"
+              style={{ fontFamily: "var(--font-body)" }}
+            >
+              Uses less water and energy
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setUsesEcoMode((prev) => !prev)}
+            className="w-12 h-7 rounded-full transition-all relative"
+            style={{
+              background: usesEcoMode
+                ? "#4ade80"
+                : "rgba(255,255,255,0.12)",
+            }}
+          >
+            <span
+              className="absolute top-1 w-5 h-5 rounded-full bg-black transition-all"
+              style={{
+                left: usesEcoMode ? "22px" : "4px",
+              }}
+            />
+          </button>
+        </div>
+      )}
+
+      <AnimatePresence>
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="text-red-400 text-sm"
+            style={{ fontFamily: "var(--font-body)" }}
+          >
+            {error}
+          </motion.p>
+        )}
+      </AnimatePresence>
+
+      <SubmitBtn
+        disabled={!type || (type === "shower" && !minutes)}
+        loading={submitting}
+      />
+    </form>
+  );
+}
+
 /* ─── Coming soon ─── */
+
 function ComingSoon({ category }: { category: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -342,14 +610,14 @@ function ComingSoon({ category }: { category: string }) {
           border: "1px solid rgba(255,255,255,0.07)",
         }}
       >
-        <span className="text-xl">{category === "food" ? "🥗" : "⚡"}</span>
+        <span className="text-xl">{category === "energy" ? "⚡" : "💧"}</span>
       </div>
 
       <p
         className="text-zinc-400 text-sm font-medium mb-1"
         style={{ fontFamily: "var(--font-body)" }}
       >
-        {category === "food" ? "Food" : "Energy"} logging coming soon
+        {category === "energy" ? "Energy" : "Water"} logging coming soon
       </p>
 
       <p
@@ -363,8 +631,10 @@ function ComingSoon({ category }: { category: string }) {
 }
 
 /* ─── Main page ─── */
+
 export default function LogPage() {
-  const [activeCategory, setActiveCategory] = useState<Category>("transport");
+  const [activeCategory, setActiveCategory] =
+    useState<Category>("transport");
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -375,7 +645,7 @@ export default function LogPage() {
 
   const categories: { id: Category; label: string; available: boolean }[] = [
     { id: "transport", label: "Transport", available: true },
-    { id: "food", label: "Food", available: true },
+    { id: "water", label: "Water", available: true },
     { id: "energy", label: "Energy", available: true },
   ];
 
@@ -387,72 +657,76 @@ export default function LogPage() {
       setLoading(true);
 
       try {
-        if (dateOffset === 0) {
-          // Lita på ditt fungerande API för 'Today'
-          const response = await fetch("/api/logged-habits");
-          if (!response.ok) throw new Error("Failed to fetch");
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-          const data = await response.json();
-          const allLogs: Log[] = [
-            ...(data.transport || []),
-            ...(data.food || []),
-            ...(data.energy || []),
-          ].sort(
-            (a, b) =>
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime()
-          ); // Sorterar nyaste överst
-
-          setLogs(allLogs);
-        } else {
-          // För 'Yesterday', hämta från Supabase med KORREKT kolumn ('details')
-          const { data: { user } } = await supabase.auth.getUser();
-
-          if (!user) return;
-
-          const { data } = await supabase
-            .from("eco_activities")
-            .select("id, category, details, co2_kg, created_at") // <-- HÄR ÄR RÄTTNINGEN: details!
-            .eq("user_id", user.id)
-            .eq("activity_date", selectedDate)
-            .order("created_at", { ascending: false }); // Sorterar nyaste överst
-
-          const mapped: Log[] = (data || []).map(
-            (row: any) => ({
-              id: row.id,
-              category: row.category,
-              details: row.details, 
-              co2_kg: row.co2_kg,
-              created_at: row.created_at,
-            })
-          );
-
-          setLogs(mapped);
+        if (!user) {
+          setLogs([]);
+          return;
         }
+
+        const { startIso, endIso } = getDayRange(selectedDate);
+
+        const { data, error } = await supabase
+          .from("eco_activities")
+          .select(
+            "id, category, details, co2_kg, water_l, energy_kwh, activity_date"
+          )
+          .eq("user_id", user.id)
+          .gte("activity_date", startIso)
+          .lte("activity_date", endIso)
+          .order("activity_date", { ascending: false });
+
+        if (error) {
+          console.error("Failed to load logs:", error.message);
+          setLogs([]);
+          return;
+        }
+
+        const mapped: Log[] = (data || []).map(
+          (row: {
+            id: string;
+            category: Category;
+            details: string | Record<string, unknown> | null;
+            co2_kg: number | string | null;
+            water_l: number | string | null;
+            energy_kwh: number | string | null;
+            activity_date: string;
+          }) => ({
+            id: row.id,
+            category: row.category,
+            details: row.details ?? {},
+            co2_kg: Number(row.co2_kg ?? 0),
+            water_l: Number(row.water_l ?? 0),
+            energy_kwh: Number(row.energy_kwh ?? 0),
+            activity_date: row.activity_date,
+          })
+        );
+
+        setLogs(mapped);
       } catch (err) {
         console.error("Failed to load logs:", err);
+        setLogs([]);
       } finally {
         setLoading(false);
       }
     };
 
     loadLogs();
-  }, [selectedDate, refreshTrigger, dateOffset]);
+  }, [selectedDate, refreshTrigger]);
 
   const handleDelete = async (id: string) => {
     setDeleting(id);
 
     try {
-      // Vi raderar numera alltid via API, oavsett datum! Det är säkrast.
-      const response = await fetch("/api/unlog-habit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
+      const { error } = await supabase
+        .from("eco_activities")
+        .delete()
+        .eq("id", id);
 
-      if (!response.ok) {
-        const result = await response.json();
-        console.error("Failed to delete:", result.error);
+      if (error) {
+        console.error("Delete failed:", error.message);
         return;
       }
 
@@ -694,31 +968,34 @@ export default function LogPage() {
                       />
                     )}
 
-                    {activeCategory === "food" && <ComingSoon category="food" />}
+                    {activeCategory === "water" && (
+                      <WaterForm
+                        onSuccess={() => setRefreshTrigger((p) => p + 1)}
+                      />
+                    )}
+
                     {activeCategory === "energy" && (
                       <ComingSoon category="energy" />
                     )}
                   </motion.div>
                 </AnimatePresence>
 
-                {activeCategory === "transport" && (
-                  <div
-                    className="mt-6 flex items-start gap-3 px-4 py-3 rounded-xl"
-                    style={{
-                      background: "rgba(255,255,255,0.02)",
-                      border: "1px solid rgba(255,255,255,0.05)",
-                    }}
-                  >
-                    <span className="text-base shrink-0">💡</span>
+                <div
+                  className="mt-6 flex items-start gap-3 px-4 py-3 rounded-xl"
+                  style={{
+                    background: "rgba(255,255,255,0.02)",
+                    border: "1px solid rgba(255,255,255,0.05)",
+                  }}
+                >
+                  <span className="text-base shrink-0">💡</span>
 
-                    <p
-                      className="text-zinc-500 text-xs leading-relaxed"
-                      style={{ fontFamily: "var(--font-body)" }}
-                    >
-                      {TIPS[activeCategory]}
-                    </p>
-                  </div>
-                )}
+                  <p
+                    className="text-zinc-500 text-xs leading-relaxed"
+                    style={{ fontFamily: "var(--font-body)" }}
+                  >
+                    {TIPS[activeCategory]}
+                  </p>
+                </div>
               </div>
             </motion.div>
 
@@ -801,24 +1078,62 @@ export default function LogPage() {
                         const formatLoc = (loc: string) => {
                           if (!loc) return "";
                           const parts = loc.split(",");
-                          return parts.length > 1 ? parts.slice(0, -1).join(",").trim() : loc.trim();
+                          return parts.length > 1
+                            ? parts.slice(0, -1).join(",").trim()
+                            : loc.trim();
                         };
 
-                        if (typeof log.details === "object" && log.details !== null) {
-                          const start = (log.details as { start?: string }).start ?? "";
-                          const dest = (log.details as { destination?: string }).destination ?? "";
-                          details = `${formatLoc(start)} → ${formatLoc(dest)}`;
-                        } else if (typeof log.details === "string") {
-                          const rawStr = log.details.includes(" · ")
-                            ? log.details.split(" · ")[1]
-                            : log.details;
-                            
-                          if (rawStr.includes(" → ")) {
-                            const [s, d] = rawStr.split(" → ");
-                            details = `${formatLoc(s)} → ${formatLoc(d)}`;
-                          } else {
-                            details = rawStr;
+                        if (log.category === "transport") {
+                          if (
+                            typeof log.details === "object" &&
+                            log.details !== null
+                          ) {
+                            const start =
+                              (log.details as { start?: string }).start ?? "";
+                            const dest =
+                              (log.details as { destination?: string })
+                                .destination ?? "";
+
+                            details = `${formatLoc(start)} → ${formatLoc(
+                              dest
+                            )}`;
+                          } else if (typeof log.details === "string") {
+                            const rawStr = log.details.includes(" · ")
+                              ? log.details.split(" · ")[1]
+                              : log.details;
+
+                            if (rawStr.includes(" → ")) {
+                              const [s, d] = rawStr.split(" → ");
+                              details = `${formatLoc(s)} → ${formatLoc(d)}`;
+                            } else {
+                              details = rawStr;
+                            }
                           }
+                        }
+
+                        if (log.category === "water") {
+                          if (
+                            typeof log.details === "object" &&
+                            log.details !== null
+                          ) {
+                            const d = log.details as {
+                              type?: string;
+                              minutes?: number;
+                              ecoMode?: boolean;
+                            };
+
+                            if (d.type === "shower") {
+                              details = `Shower · ${d.minutes ?? 0} min`;
+                            } else if (d.type === "dishwasher") {
+                              details = d.ecoMode
+                                ? "Dishwasher · Eco mode"
+                                : "Dishwasher";
+                            }
+                          }
+                        }
+
+                        if (log.category === "energy") {
+                          details = "Energy activity";
                         }
 
                         return (
@@ -838,7 +1153,10 @@ export default function LogPage() {
                                   background: "rgba(255,255,255,0.05)",
                                 }}
                               >
-                                <CategoryIcon category={log.category} details={log.details} />
+                                <CategoryIcon
+                                  category={log.category}
+                                  details={log.details}
+                                />
                               </div>
 
                               <div className="flex-1 min-w-0 flex items-center justify-between pr-2">
@@ -859,15 +1177,33 @@ export default function LogPage() {
                                 </div>
 
                                 <div className="text-right shrink-0 ml-2">
-                                  <p
-                                    className="text-sm font-medium text-zinc-300"
-                                    style={{ fontFamily: "var(--font-body)" }}
-                                  >
-                                    {log.co2_kg ? log.co2_kg.toFixed(1) : "0"}
-                                    <span className="text-xs text-zinc-500 ml-1">
-                                      kg CO₂
-                                    </span>
-                                  </p>
+                                  {log.category === "water" ? (
+                                    <p
+                                      className="text-sm font-medium text-zinc-300"
+                                      style={{
+                                        fontFamily: "var(--font-body)",
+                                      }}
+                                    >
+                                      {Number(log.water_l ?? 0).toFixed(0)}
+                                      <span className="text-xs text-zinc-500 ml-1">
+                                        L
+                                      </span>
+                                    </p>
+                                  ) : (
+                                    <p
+                                      className="text-sm font-medium text-zinc-300"
+                                      style={{
+                                        fontFamily: "var(--font-body)",
+                                      }}
+                                    >
+                                      {log.co2_kg
+                                        ? log.co2_kg.toFixed(1)
+                                        : "0"}
+                                      <span className="text-xs text-zinc-500 ml-1">
+                                        kg CO₂
+                                      </span>
+                                    </p>
+                                  )}
                                 </div>
                               </div>
 
@@ -895,13 +1231,18 @@ export default function LogPage() {
                                   onClick={() => setDeleteConfirm(log.id)}
                                   className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors group/del shrink-0"
                                   onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = "rgba(248,113,113,0.1)";
+                                    e.currentTarget.style.background =
+                                      "rgba(248,113,113,0.1)";
                                   }}
                                   onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = "transparent";
+                                    e.currentTarget.style.background =
+                                      "transparent";
                                   }}
                                 >
-                                  <Trash2 size={13} className="text-zinc-600 group-hover/del:text-red-400 transition-colors" />
+                                  <Trash2
+                                    size={13}
+                                    className="text-zinc-600 group-hover/del:text-red-400 transition-colors"
+                                  />
                                 </button>
                               )}
                             </div>

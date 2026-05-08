@@ -1,9 +1,9 @@
 import { SupabaseClient } from '@supabase/supabase-js/dist/index.mjs';
 
 export enum Category {
-  Transportation = 'transport', //Add more categories here
-  Shower = 'shower',
-  Dishwasher = 'dishwasher'
+  Transportation = 'transport',
+  Water = 'water',
+  Energy = 'energy',
 }
 
 export type LogHabitRequest = {
@@ -11,9 +11,8 @@ export type LogHabitRequest = {
   body: unknown;
 };
 
-
-//Type for the emission row in the database
-export type Eco_Activities_Row = {
+// Type for the emission row in the database
+export type EmissionRow = {
   id: string;
   user_id: string;
   category: string;
@@ -51,19 +50,32 @@ export interface HabitHandler<Parsed, TExtra> {
 
 /////////////////////////////
 /// Input types for log-habit endpoint
-////////////////////////////7
+/////////////////////////////
 
 export type TransportMode = 'car' | 'bus' | 'train' | 'plane' | 'bike';
 
 export interface TransportationInput {
   start: string;
   destination: string;
-  transportMode: TransportMode; // Begränsa till giltiga val
+  transportMode: TransportMode;
 }
+
+export interface ShowerInput {
+  type: 'shower';
+  minutes: number;
+}
+
+export interface DishwasherInput {
+  type: 'dishwasher';
+  ecoMode: boolean;
+}
+
+export type WaterInput = ShowerInput | DishwasherInput;
 
 /////////////////////////////
 /// Input types for unlog-habit endpoint
-////////////////////////////7
+/////////////////////////////
+
 export type UnlogHabitRequest = {
   id: string;
 };
