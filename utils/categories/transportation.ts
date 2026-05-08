@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js/dist/index.mjs';
-import { CalculationResult, Category, EmissionRow, HabitHandler, Metrics, TransportationInput, TransportMode } from '../habit-types';
+import { CalculationResult, Category, Eco_Activities_Row, HabitHandler, Metrics, TransportationInput, TransportMode } from '../habit-types';
 import { InvalidPayloadError } from '../custom-errors';
 
 const CO2_FACTORS: Record<TransportMode, number> = {
@@ -76,11 +76,12 @@ async function storeTransportationResult(args: {
   userId: string;
   supabase: SupabaseClient;
   category: Category;
-}): Promise<EmissionRow> {
-  const { userId, supabase, category, metrics, parsed, extra } = args;
+  date?: string; // <--- Säg till TypeScript att vi kan skicka in datum
+}): Promise<Eco_Activities_Row> {
+  const { userId, supabase, category, metrics, parsed, extra, date } = args;
 
   const { data: savedData, error } = await supabase
-    .from('emissions')
+    .from('eco_activities')
     .insert([
       {
         user_id: userId,
@@ -92,6 +93,8 @@ async function storeTransportationResult(args: {
           ...parsed,
           distanceInKm: extra.distanceInKm,
         },
+        // Om 'date' skickades med används det, annars tar vi dagens datum
+        activity_date: date || new Date().toISOString().split('T')[0],
       }
     ])
     .select()
@@ -111,7 +114,6 @@ export const transportationHandler: HabitHandler<TransportationParsedInput, Tran
     return storeTransportationResult(args);
   },
 };
-
 
 //Helper function to get the distance between two places using Google Maps API
 async function getDistance(start: string, destination: string): Promise<number> {

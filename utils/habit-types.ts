@@ -44,7 +44,8 @@ export interface HabitHandler<Parsed, TExtra> {
     userId: string;
     supabase: SupabaseClient;
     category: Category;
-  }) => Promise<EmissionRow>;
+    date?: string; // <--- HÄR ÄR FIXEN! Nu stämmer kontraktet överens med logiken.
+  }) => Promise<Eco_Activities_Row>;
 }
 
 /////////////////////////////

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect, type FormEvent } from "react";
@@ -28,7 +29,6 @@ type Log = {
 const DATE_OPTIONS = [
   { label: "Today", offset: 0 },
   { label: "Yesterday", offset: 1 },
-  { label: "2 days ago", offset: 2 },
 ];
 
 function getDateWithOffset(offset: number): string {
@@ -172,11 +172,11 @@ function TransportForm({ onSuccess }: { onSuccess: () => void }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category: "transport",
+          date: selectedDate, // <--- HÄR SKICKAR VI MED DATUMET TILL BACKEND!
           body: {
             start: from,
             destination: to,
             transportMode: mode.toLowerCase(),
-
             startPlaceId: fromPlace.placeId,
             startLat: fromPlace.lat,
             startLng: fromPlace.lng,
@@ -963,6 +963,7 @@ export default function LogPage() {
                   >
                     {activeCategory === "transport" && (
                       <TransportForm
+                        selectedDate={selectedDate}
                         onSuccess={() => setRefreshTrigger((p) => p + 1)}
                       />
                     )}

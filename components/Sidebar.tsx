@@ -6,15 +6,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import {
-  LayoutDashboard, Leaf, BarChart2, Trophy,
+  LayoutDashboard, Leaf, Trophy,
   Settings, Sprout, Users, PanelLeftClose,
   PanelLeftOpen, LogOut, MoreHorizontal,
 } from "lucide-react";
 
+// Raden för progress är borttagen här
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/dashboard/log", icon: Leaf, label: "Log Habits" },
-  { href: "/dashboard/progress", icon: BarChart2, label: "Progress" },
   { href: "/dashboard/leaderboard", icon: Trophy, label: "Leaderboard" },
   { href: "/dashboard/socials", icon: Users, label: "Socials" },
   { href: "/dashboard/settings", icon: Settings, label: "Settings" },
@@ -194,22 +194,22 @@ export default function Sidebar() {
 
             {/* Profile card button */}
             <button
-  onClick={() => setPopoverOpen(!popoverOpen)}
-  onMouseEnter={e => {
-    e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-    e.currentTarget.style.border = "1px solid rgba(255,255,255,0.12)";
-  }}
-  onMouseLeave={e => {
-    e.currentTarget.style.background = popoverOpen ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)";
-    e.currentTarget.style.border = popoverOpen ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,255,255,0.05)";
-  }}
-  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group/profile"
-  style={{
-    background: popoverOpen ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
-    border: popoverOpen ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,255,255,0.05)",
-  }}
->
-           
+              onClick={() => setPopoverOpen(!popoverOpen)}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                e.currentTarget.style.border = "1px solid rgba(255,255,255,0.12)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = popoverOpen ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)";
+                e.currentTarget.style.border = popoverOpen ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,255,255,0.05)";
+              }}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group/profile"
+              style={{
+                background: popoverOpen ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
+                border: popoverOpen ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,255,255,0.05)",
+              }}
+            >
+            
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold text-black"
                 style={{ background: "linear-gradient(135deg, #4ade80, #22d3ee)" }}
@@ -250,18 +250,18 @@ export default function Sidebar() {
             style={{ border: "1px solid rgba(255,255,255,0.05)" }}
           >
             {collapsed
-  ? <PanelLeftOpen size={16} className="text-zinc-500 group-hover/collapse:text-zinc-300 transition-colors" />
-  : (
-    <>
-      <PanelLeftClose size={16} className="text-zinc-500 group-hover/collapse:text-zinc-300 transition-colors" />
-      <span
-        className="text-xs text-zinc-500 group-hover/collapse:text-zinc-300 transition-colors"
-        style={{ fontFamily: "var(--font-body)" }}
-      >
-        Collapse
-      </span>
-    </>
-  )}
+              ? <PanelLeftOpen size={16} className="text-zinc-500 group-hover/collapse:text-zinc-300 transition-colors" />
+              : (
+                <>
+                  <PanelLeftClose size={16} className="text-zinc-500 group-hover/collapse:text-zinc-300 transition-colors" />
+                  <span
+                    className="text-xs text-zinc-500 group-hover/collapse:text-zinc-300 transition-colors"
+                    style={{ fontFamily: "var(--font-body)" }}
+                  >
+                    Collapse
+                  </span>
+                </>
+              )}
           </button>
         </div>
       </motion.aside>

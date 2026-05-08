@@ -81,9 +81,15 @@ export async function GET() {
         continue;
       }
 
-      const dayLabel = date.toLocaleDateString('sv-SE', { weekday: 'short' });
-      const normalizedDayLabel =
-        dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1).toLowerCase();
+      // 1. Hämta veckodagen som en siffra (0 = Söndag, 1 = Måndag, 2 = Tisdag, osv.)
+      const jsDay = date.getDay(); 
+      
+      // 2. Vår WEEKDAY_LABELS börjar med Måndag (index 0). 
+      // Därför flyttar vi Söndag (0) till slutet (index 6), annars tar vi siffran minus 1.
+      const labelIndex = jsDay === 0 ? 6 : jsDay - 1;
+      
+      // 3. Plocka ut rätt svensk etikett exakt som den står i WEEKDAY_LABELS
+      const normalizedDayLabel = WEEKDAY_LABELS[labelIndex];
 
       if (!weeklyBucketMap.has(normalizedDayLabel)) {
         continue;
