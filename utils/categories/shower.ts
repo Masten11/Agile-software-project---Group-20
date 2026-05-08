@@ -96,8 +96,9 @@ async function storeShowerResult(args: {
   userId: string;
   supabase: SupabaseClient;
   category: Category;
+  date?: string;
 }): Promise<Eco_Activities_Row> {
-  const { userId, supabase, category, metrics, parsed, extra } = args;
+  const { userId, supabase, category, metrics, parsed, extra, date } = args;
 
 
   const { data: savedData, error } = await supabase
@@ -109,6 +110,7 @@ async function storeShowerResult(args: {
         co2_kg: metrics.co2_kg,
         water_l: metrics.water_l,
         energy_kwh: metrics.energy_kwh,
+        activity_date: date,
         details: {
           type: 'shower',
           minutes: parsed.minutes,
