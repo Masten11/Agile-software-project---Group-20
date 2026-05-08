@@ -11,7 +11,6 @@ import {
   PanelLeftOpen, LogOut, MoreHorizontal,
 } from "lucide-react";
 
-// Raden för progress är borttagen här
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/dashboard/log", icon: Leaf, label: "Log Habits" },
@@ -31,6 +30,8 @@ export default function Sidebar() {
   const [username, setUsername] = useState("username");
   const [initial, setInitial] = useState("U");
   const [lastName, setLastName] = useState("");
+  // Nytt state för färgen (med standardfärgen som fallback)
+  const [avatarGradient, setAvatarGradient] = useState("linear-gradient(135deg, #4ade80, #22d3ee)");
 
   useEffect(() => {
     async function fetchUserData() {
@@ -38,9 +39,11 @@ export default function Sidebar() {
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("first_name, last_name, username")
+          // Lade till avatar_gradient i select-anropet
+          .select("first_name, last_name, username, avatar_gradient")
           .eq("id", user.id)
           .single();
+          
         if (profile) {
           if (profile.first_name) {
             setFirstName(profile.first_name);
@@ -48,6 +51,8 @@ export default function Sidebar() {
           }
           if (profile.username) setUsername(profile.username);
           if (profile.last_name) setLastName(profile.last_name);
+          // Uppdatera färgen om den finns i databasen
+          if (profile.avatar_gradient) setAvatarGradient(profile.avatar_gradient);
         }
       }
     }
@@ -212,7 +217,7 @@ export default function Sidebar() {
             
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold text-black"
-                style={{ background: "linear-gradient(135deg, #4ade80, #22d3ee)" }}
+                style={{ background: avatarGradient }} // <-- Kopplad till statet
               >
                 {initial}
               </div>
