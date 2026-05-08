@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState, useEffect, type FormEvent } from "react";
@@ -9,17 +10,24 @@ import { Car, Bus, Train, Bike, Plane, Trash2 } from "lucide-react";
 import PlaceAutocompleteInput from "@/components/PlaceAutocompleteInput";
 
 /* ─── Types ─── */
-type Category = "transport" | "food" | "energy";
+
+// Backend-kategorierna
+type BackendCategory = "transport" | "shower" | "dishwasher" | "energy";
+// UI-flikarna
+type UiTab = "transport" | "water" | "energy";
 
 type Log = {
   id: string;
-  category: Category;
+  category: BackendCategory | string;
   details: string | Record<string, unknown>;
   co2_kg: number;
-  activity_date: string; // <-- Ändrat från created_at
+  water_l?: number;
+  energy_kwh?: number;
+  activity_date: string;
 };
 
 /* ─── Date options ─── */
+
 const DATE_OPTIONS = [
   { label: "Today", offset: 0 },
   { label: "Yesterday", offset: 1 },
@@ -31,13 +39,24 @@ function getDateWithOffset(offset: number): string {
   return d.toISOString().split("T")[0];
 }
 
-const TIPS: Record<Category, string> = {
+function getDayRange(dateString: string) {
+  const start = new Date(`${dateString}T00:00:00`);
+  const end = new Date(`${dateString}T23:59:59.999`);
+
+  return {
+    startIso: start.toISOString(),
+    endIso: end.toISOString(),
+  };
+}
+
+const TIPS: Record<UiTab, string> = {
   transport: "Taking the train instead of driving saves ~5× more CO₂ per trip.",
-  food: "A vegan meal produces up to 50× less CO₂ than a beef meal.",
-  energy: "Reducing your shower by 5 minutes saves ~0.3 kg CO₂ per day.",
+  water: "Shorter showers can save 30–60 liters of water every time.",
+  energy: "Running appliances on eco mode can reduce energy and water usage.",
 };
 
 /* ─── Submit button ─── */
+
 function SubmitBtn({
   disabled,
   loading,
@@ -65,18 +84,21 @@ function SubmitBtn({
 }
 
 /* ─── Category icon ─── */
+
 function CategoryIcon({
   category,
   details,
 }: {
-  category: Category;
+  category: string;
   details?: string | Record<string, unknown>;
 }) {
   if (category === "transport") {
     let mode = "car";
 
     if (typeof details === "object" && details !== null) {
-      mode = (details as { transportMode?: string }).transportMode?.toLowerCase() || "car";
+      mode =
+        (details as { transportMode?: string }).transportMode?.toLowerCase() ||
+        "car";
     } else if (typeof details === "string") {
       const lowerDetails = details.toLowerCase();
       if (lowerDetails.includes("bus")) mode = "bus";
@@ -86,25 +108,30 @@ function CategoryIcon({
     }
 
     switch (mode) {
-      case "bus": return <Bus size={14} className="text-cyan-400" />;
-      case "train": return <Train size={14} className="text-cyan-400" />;
-      case "bike": return <Bike size={14} className="text-cyan-400" />;
-      case "plane": return <Plane size={14} className="text-cyan-400" />;
+      case "bus":
+        return <Bus size={14} className="text-cyan-400" />;
+      case "train":
+        return <Train size={14} className="text-cyan-400" />;
+      case "bike":
+        return <Bike size={14} className="text-cyan-400" />;
+      case "plane":
+        return <Plane size={14} className="text-cyan-400" />;
       case "car":
       default:
         return <Car size={14} className="text-cyan-400" />;
     }
   }
 
-  return (
-    <span className="text-xs text-zinc-500">
-      {category === "food" ? "F" : "E"}
-    </span>
-  );
+  if (category === "water" || category === "shower" || category === "dishwasher") {
+    return <span className="text-sm">💧</span>;
+  }
+
+  return <span className="text-xs text-zinc-500">E</span>;
 }
 
 /* ─── Transport form ─── */
-function TransportForm({ selectedDate, onSuccess }: { selectedDate: string, onSuccess: () => void }) {
+
+function TransportForm({ selectedDate, onSuccess }: { selectedDate: string; onSuccess: () => void }) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
@@ -141,7 +168,7 @@ function TransportForm({ selectedDate, onSuccess }: { selectedDate: string, onSu
     setSubmitting(true);
     setError(null);
 
-    // Lägg till nuvarande klockslag för att sorteringen ska bli perfekt i databasen!
+    // Klockslag + datum för rätt sortering i databasen
     const fullTimestamp = `${selectedDate}T${new Date().toISOString().split('T')[1]}`;
 
     try {
@@ -333,7 +360,220 @@ function TransportForm({ selectedDate, onSuccess }: { selectedDate: string, onSu
   );
 }
 
+/* ─── Water form ─── */
+
+function WaterForm({ selectedDate, onSuccess }: { selectedDate: string; onSuccess: () => void }) {
+  const [type, setType] = useState<"shower" | "dishwasher" | "">("");
+  const [minutes, setMinutes] = useState("");
+  const [usesEcoMode, setUsesEcoMode] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!type) return;
+
+    if (type === "shower" && (!minutes || Number(minutes) <= 0)) {
+      setError("Please enter a valid shower length.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    // Klockslag + datum för rätt sortering i databasen
+    const fullTimestamp = `${selectedDate}T${new Date().toISOString().split('T')[1]}`;
+
+    try {
+      const payloadBody = type === "shower" 
+        ? { minutes: Number(minutes) }
+        : { ecoMode: usesEcoMode };
+
+      const response = await fetch("/api/log-habit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: type, // Backend förväntar sig 'shower' eller 'dishwasher'
+          date: fullTimestamp,
+          body: payloadBody,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(result.error || "Something went wrong");
+        return;
+      }
+
+      setType("");
+      setMinutes("");
+      setUsesEcoMode(false);
+      onSuccess();
+    } catch {
+      setError("Failed to log water usage. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div>
+        <p
+          className="text-xs text-zinc-500 tracking-widest uppercase mb-3"
+          style={{ fontFamily: "var(--font-body)" }}
+        >
+          Water activity
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setType("shower");
+              setError(null);
+            }}
+            className="px-4 py-4 rounded-2xl text-sm transition-all"
+            style={{
+              background:
+                type === "shower"
+                  ? "rgba(74,222,128,0.1)"
+                  : "rgba(255,255,255,0.04)",
+              border:
+                type === "shower"
+                  ? "1px solid rgba(74,222,128,0.25)"
+                  : "1px solid rgba(255,255,255,0.07)",
+              color: type === "shower" ? "#4ade80" : "#a1a1aa",
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            🚿 Shower
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setType("dishwasher");
+              setError(null);
+            }}
+            className="px-4 py-4 rounded-2xl text-sm transition-all"
+            style={{
+              background:
+                type === "dishwasher"
+                  ? "rgba(74,222,128,0.1)"
+                  : "rgba(255,255,255,0.04)",
+              border:
+                type === "dishwasher"
+                  ? "1px solid rgba(74,222,128,0.25)"
+                  : "1px solid rgba(255,255,255,0.07)",
+              color: type === "dishwasher" ? "#4ade80" : "#a1a1aa",
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            🍽️ Dishwasher
+          </button>
+        </div>
+      </div>
+
+      {type === "shower" && (
+        <div>
+          <label
+            className="text-xs text-zinc-500 tracking-widest uppercase mb-3 block"
+            style={{ fontFamily: "var(--font-body)" }}
+          >
+            Shower length
+          </label>
+
+          <input
+            type="number"
+            min="1"
+            value={minutes}
+            onChange={(e) => {
+              setMinutes(e.target.value);
+              setError(null);
+            }}
+            placeholder="Minutes, e.g. 8"
+            className="w-full px-5 py-4 rounded-2xl text-sm outline-none"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              color: "#ffffff",
+              fontFamily: "var(--font-body)",
+            }}
+          />
+        </div>
+      )}
+
+      {type === "dishwasher" && (
+        <div
+          className="flex items-center justify-between px-5 py-4 rounded-2xl"
+          style={{
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.07)",
+          }}
+        >
+          <div>
+            <p
+              className="text-sm text-zinc-300"
+              style={{ fontFamily: "var(--font-body)" }}
+            >
+              Eco mode
+            </p>
+
+            <p
+              className="text-xs text-zinc-600 mt-1"
+              style={{ fontFamily: "var(--font-body)" }}
+            >
+              Uses less water and energy
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setUsesEcoMode((prev) => !prev)}
+            className="w-12 h-7 rounded-full transition-all relative"
+            style={{
+              background: usesEcoMode
+                ? "#4ade80"
+                : "rgba(255,255,255,0.12)",
+            }}
+          >
+            <span
+              className="absolute top-1 w-5 h-5 rounded-full bg-black transition-all"
+              style={{
+                left: usesEcoMode ? "22px" : "4px",
+              }}
+            />
+          </button>
+        </div>
+      )}
+
+      <AnimatePresence>
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="text-red-400 text-sm"
+            style={{ fontFamily: "var(--font-body)" }}
+          >
+            {error}
+          </motion.p>
+        )}
+      </AnimatePresence>
+
+      <SubmitBtn
+        disabled={!type || (type === "shower" && !minutes)}
+        loading={submitting}
+      />
+    </form>
+  );
+}
+
 /* ─── Coming soon ─── */
+
 function ComingSoon({ category }: { category: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -344,14 +584,14 @@ function ComingSoon({ category }: { category: string }) {
           border: "1px solid rgba(255,255,255,0.07)",
         }}
       >
-        <span className="text-xl">{category === "food" ? "🥗" : "⚡"}</span>
+        <span className="text-xl">{category === "energy" ? "⚡" : "💧"}</span>
       </div>
 
       <p
         className="text-zinc-400 text-sm font-medium mb-1"
         style={{ fontFamily: "var(--font-body)" }}
       >
-        {category === "food" ? "Food" : "Energy"} logging coming soon
+        {category === "energy" ? "Energy" : "Water"} logging coming soon
       </p>
 
       <p
@@ -365,8 +605,9 @@ function ComingSoon({ category }: { category: string }) {
 }
 
 /* ─── Main page ─── */
+
 export default function LogPage() {
-  const [activeCategory, setActiveCategory] = useState<Category>("transport");
+  const [activeCategory, setActiveCategory] = useState<UiTab>("transport");
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -375,80 +616,85 @@ export default function LogPage() {
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const categories: { id: Category; label: string; available: boolean }[] = [
+  // Tabs for the UI
+  const tabs: { id: UiTab; label: string; available: boolean }[] = [
     { id: "transport", label: "Transport", available: true },
-    { id: "food", label: "Food", available: true },
+    { id: "water", label: "Water Usage", available: true },
     { id: "energy", label: "Energy", available: true },
   ];
 
   const selectedDate = getDateWithOffset(dateOffset);
-  const loggedCategories = [...new Set(logs.map((l) => l.category))];
+
+  // Map backend categories to UI tabs for the green dot indicators
+  const loggedUiTabs = [...new Set(logs.map((l) => {
+    if (l.category === "shower" || l.category === "dishwasher") return "water";
+    return l.category;
+  }))];
 
   useEffect(() => {
     const loadLogs = async () => {
       setLoading(true);
 
       try {
-        if (dateOffset === 0) {
-          const response = await fetch("/api/logged-habits");
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-          if (!response.ok) {
-            throw new Error("Failed to fetch");
-          }
-
-          const data = await response.json();
-
-          const allLogs: Log[] = [
-            ...(data.transport || []),
-            ...(data.food || []),
-            ...(data.energy || []),
-          ].sort(
-            (a, b) =>
-              // SORTERING FIX: Använder activity_date eftersom created_at inte finns
-              new Date(b.activity_date || 0).getTime() -
-              new Date(a.activity_date || 0).getTime()
-          );
-
-          setLogs(allLogs);
-        } else {
-          const { data: { user } } = await supabase.auth.getUser();
-
-          if (!user) return;
-
-          // Hämta loggar för valt dygn med .gte och .lte eftersom det nu finns klockslag med
-          const startOfDay = `${selectedDate}T00:00:00.000Z`;
-          const endOfDay = `${selectedDate}T23:59:59.999Z`;
-
-          const { data } = await supabase
-            .from("eco_activities")
-            .select("id, category, details, co2_kg, activity_date") 
-            .eq("user_id", user.id)
-            .gte("activity_date", startOfDay)
-            .lte("activity_date", endOfDay)
-            .order("activity_date", { ascending: false }); // Sorterar direkt i databasen
-
-          const mapped: Log[] = (data || []).map(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (row: any) => ({
-              id: row.id,
-              category: row.category,
-              details: row.details,
-              co2_kg: row.co2_kg,
-              activity_date: row.activity_date,
-            })
-          );
-
-          setLogs(mapped);
+        if (!user) {
+          setLogs([]);
+          return;
         }
+
+        const startOfDay = `${selectedDate}T00:00:00.000Z`;
+        const endOfDay = `${selectedDate}T23:59:59.999Z`;
+
+        const { data, error } = await supabase
+          .from("eco_activities")
+          .select(
+            "id, category, details, co2_kg, water_l, energy_kwh, activity_date"
+          )
+          .eq("user_id", user.id)
+          .gte("activity_date", startOfDay)
+          .lte("activity_date", endOfDay)
+          .order("activity_date", { ascending: false });
+
+        if (error) {
+          console.error("Failed to load logs:", error.message);
+          setLogs([]);
+          return;
+        }
+
+        const mapped: Log[] = (data || []).map(
+          (row: {
+            id: string;
+            category: BackendCategory;
+            details: string | Record<string, unknown> | null;
+            co2_kg: number | string | null;
+            water_l: number | string | null;
+            energy_kwh: number | string | null;
+            activity_date: string;
+          }) => ({
+            id: row.id,
+            category: row.category,
+            details: row.details ?? {},
+            co2_kg: Number(row.co2_kg ?? 0),
+            water_l: Number(row.water_l ?? 0),
+            energy_kwh: Number(row.energy_kwh ?? 0),
+            activity_date: row.activity_date,
+          })
+        );
+
+        setLogs(mapped);
       } catch (err) {
         console.error("Failed to load logs:", err);
+        setLogs([]);
       } finally {
         setLoading(false);
       }
     };
 
     loadLogs();
-  }, [selectedDate, refreshTrigger, dateOffset]);
+  }, [selectedDate, refreshTrigger]);
 
   const handleDelete = async (id: string) => {
     setDeleting(id);
@@ -592,17 +838,17 @@ export default function LogPage() {
             }}
           >
             <div className="flex gap-4 flex-1">
-              {categories.map((cat) => {
-                const done = loggedCategories.includes(cat.id);
+              {tabs.map((tab) => {
+                const done = loggedUiTabs.includes(tab.id);
 
                 return (
-                  <div key={cat.id} className="flex items-center gap-1.5">
+                  <div key={tab.id} className="flex items-center gap-1.5">
                     <div
                       className="w-2 h-2 rounded-full transition-colors duration-300"
                       style={{
                         background: done
                           ? "#4ade80"
-                          : cat.available
+                          : tab.available
                           ? "rgba(255,255,255,0.15)"
                           : "rgba(255,255,255,0.06)",
                       }}
@@ -613,14 +859,14 @@ export default function LogPage() {
                       style={{
                         color: done
                           ? "#4ade80"
-                          : cat.available
+                          : tab.available
                           ? "#52525b"
                           : "#3f3f46",
                         fontFamily: "var(--font-body)",
                       }}
                     >
-                      {cat.label}
-                      {!cat.available && " (soon)"}
+                      {tab.label}
+                      {!tab.available && " (soon)"}
                     </span>
                   </div>
                 );
@@ -631,7 +877,7 @@ export default function LogPage() {
               className="text-xs text-zinc-500 shrink-0"
               style={{ fontFamily: "var(--font-body)" }}
             >
-              {loggedCategories.length} / 3 logged
+              {loggedUiTabs.length} / 3 logged
             </span>
           </motion.div>
 
@@ -656,35 +902,35 @@ export default function LogPage() {
                     border: "1px solid rgba(255,255,255,0.06)",
                   }}
                 >
-                  {categories.map((cat) => (
+                  {tabs.map((tab) => (
                     <button
-                      key={cat.id}
+                      key={tab.id}
                       onClick={() => {
-                        if (cat.available) {
-                          setActiveCategory(cat.id);
+                        if (tab.available) {
+                          setActiveCategory(tab.id);
                         }
                       }}
                       className="flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200"
                       style={{
                         background:
-                          activeCategory === cat.id
+                          activeCategory === tab.id
                             ? "rgba(74,222,128,0.1)"
                             : "transparent",
                         border:
-                          activeCategory === cat.id
+                          activeCategory === tab.id
                             ? "1px solid rgba(74,222,128,0.25)"
                             : "1px solid transparent",
                         color:
-                          activeCategory === cat.id
+                          activeCategory === tab.id
                             ? "#4ade80"
-                            : cat.available
+                            : tab.available
                             ? "#71717a"
                             : "#3f3f46",
                         fontFamily: "var(--font-body)",
-                        cursor: cat.available ? "pointer" : "default",
+                        cursor: tab.available ? "pointer" : "default",
                       }}
                     >
-                      {cat.label}
+                      {tab.label}
                     </button>
                   ))}
                 </div>
@@ -704,31 +950,35 @@ export default function LogPage() {
                       />
                     )}
 
-                    {activeCategory === "food" && <ComingSoon category="food" />}
+                    {activeCategory === "water" && (
+                      <WaterForm
+                        selectedDate={selectedDate}
+                        onSuccess={() => setRefreshTrigger((p) => p + 1)}
+                      />
+                    )}
+
                     {activeCategory === "energy" && (
                       <ComingSoon category="energy" />
                     )}
                   </motion.div>
                 </AnimatePresence>
 
-                {activeCategory === "transport" && (
-                  <div
-                    className="mt-6 flex items-start gap-3 px-4 py-3 rounded-xl"
-                    style={{
-                      background: "rgba(255,255,255,0.02)",
-                      border: "1px solid rgba(255,255,255,0.05)",
-                    }}
-                  >
-                    <span className="text-base shrink-0">💡</span>
+                <div
+                  className="mt-6 flex items-start gap-3 px-4 py-3 rounded-xl"
+                  style={{
+                    background: "rgba(255,255,255,0.02)",
+                    border: "1px solid rgba(255,255,255,0.05)",
+                  }}
+                >
+                  <span className="text-base shrink-0">💡</span>
 
-                    <p
-                      className="text-zinc-500 text-xs leading-relaxed"
-                      style={{ fontFamily: "var(--font-body)" }}
-                    >
-                      {TIPS[activeCategory]}
-                    </p>
-                  </div>
-                )}
+                  <p
+                    className="text-zinc-500 text-xs leading-relaxed"
+                    style={{ fontFamily: "var(--font-body)" }}
+                  >
+                    {TIPS[activeCategory]}
+                  </p>
+                </div>
               </div>
             </motion.div>
 
@@ -816,25 +1066,57 @@ export default function LogPage() {
                             : loc.trim();
                         };
 
-                        if (typeof log.details === "object" && log.details !== null) {
-                          const start =
-                            (log.details as { start?: string }).start ?? "";
-                          const dest =
-                            (log.details as { destination?: string })
-                              .destination ?? "";
+                        if (log.category === "transport") {
+                          if (
+                            typeof log.details === "object" &&
+                            log.details !== null
+                          ) {
+                            const start =
+                              (log.details as { start?: string }).start ?? "";
+                            const dest =
+                              (log.details as { destination?: string })
+                                .destination ?? "";
 
-                          details = `${formatLoc(start)} → ${formatLoc(dest)}`;
-                        } else if (typeof log.details === "string") {
-                          const rawStr = log.details.includes(" · ")
-                            ? log.details.split(" · ")[1]
-                            : log.details;
+                            details = `${formatLoc(start)} → ${formatLoc(
+                              dest
+                            )}`;
+                          } else if (typeof log.details === "string") {
+                            const rawStr = log.details.includes(" · ")
+                              ? log.details.split(" · ")[1]
+                              : log.details;
 
-                          if (rawStr.includes(" → ")) {
-                            const [s, d] = rawStr.split(" → ");
-                            details = `${formatLoc(s)} → ${formatLoc(d)}`;
-                          } else {
-                            details = rawStr;
+                            if (rawStr.includes(" → ")) {
+                              const [s, d] = rawStr.split(" → ");
+                              details = `${formatLoc(s)} → ${formatLoc(d)}`;
+                            } else {
+                              details = rawStr;
+                            }
                           }
+                        }
+
+                        if (log.category === "water" || log.category === "shower" || log.category === "dishwasher") {
+                          if (
+                            typeof log.details === "object" &&
+                            log.details !== null
+                          ) {
+                            const d = log.details as {
+                              type?: string;
+                              minutes?: number;
+                              ecoMode?: boolean;
+                            };
+
+                            if (d.type === "shower") {
+                              details = `Shower · ${d.minutes ?? 0} min`;
+                            } else if (d.type === "dishwasher") {
+                              details = d.ecoMode
+                                ? "Dishwasher · Eco mode"
+                                : "Dishwasher";
+                            }
+                          }
+                        }
+
+                        if (log.category === "energy") {
+                          details = "Energy activity";
                         }
 
                         return (
@@ -866,7 +1148,7 @@ export default function LogPage() {
                                     className="text-xs text-zinc-500 capitalize mb-0.5"
                                     style={{ fontFamily: "var(--font-body)" }}
                                   >
-                                    {log.category}
+                                    {log.category === "shower" || log.category === "dishwasher" ? "water" : log.category}
                                   </p>
 
                                   <p
@@ -878,15 +1160,33 @@ export default function LogPage() {
                                 </div>
 
                                 <div className="text-right shrink-0 ml-2">
-                                  <p
-                                    className="text-sm font-medium text-zinc-300"
-                                    style={{ fontFamily: "var(--font-body)" }}
-                                  >
-                                    {log.co2_kg ? log.co2_kg.toFixed(1) : "0"}
-                                    <span className="text-xs text-zinc-500 ml-1">
-                                      kg CO₂
-                                    </span>
-                                  </p>
+                                  {log.category === "water" || log.category === "shower" || log.category === "dishwasher" ? (
+                                    <p
+                                      className="text-sm font-medium text-zinc-300"
+                                      style={{
+                                        fontFamily: "var(--font-body)",
+                                      }}
+                                    >
+                                      {Number(log.water_l ?? 0).toFixed(0)}
+                                      <span className="text-xs text-zinc-500 ml-1">
+                                        L
+                                      </span>
+                                    </p>
+                                  ) : (
+                                    <p
+                                      className="text-sm font-medium text-zinc-300"
+                                      style={{
+                                        fontFamily: "var(--font-body)",
+                                      }}
+                                    >
+                                      {log.co2_kg
+                                        ? log.co2_kg.toFixed(1)
+                                        : "0"}
+                                      <span className="text-xs text-zinc-500 ml-1">
+                                        kg CO₂
+                                      </span>
+                                    </p>
+                                  )}
                                 </div>
                               </div>
 
