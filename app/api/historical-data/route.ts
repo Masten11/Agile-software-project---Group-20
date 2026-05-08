@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabaseServer';
 
-// HÄR ÄR MAGIN SOM DÖDAR CACHEN:
 export const dynamic = 'force-dynamic';
 
 type RowData = {
@@ -31,10 +30,7 @@ export async function GET() {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      return NextResponse.json(
-        { error: 'you have not logged in' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'you have not logged in' }, { status: 401 });
     }
 
     const [todayRes, weeklyRes, monthlyRes] = await Promise.all([
@@ -49,7 +45,7 @@ export async function GET() {
 
     const daily_stats = { today_total: toNumber(todayRes.data?.total_co2) };
 
-    // --- VECKOGRAF ---
+    // --- CO2 VECKOGRAF ---
     const weeklyBucketMap = new Map<string, number>(WEEKDAY_LABELS.map((day) => [day, 0]));
     for (const row of weeklyRes.data ?? []) {
       const rowDateStr = row.date || row.activity_date;
@@ -70,7 +66,7 @@ export async function GET() {
     }
     const weekly_stats = WEEKDAY_LABELS.map((day) => ({ day, total: weeklyBucketMap.get(day) ?? 0 }));
 
-    // --- MÅNADSOGRAF ---
+    // --- CO2 MÅNADSOGRAF ---
     const monthStart = new Date();
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
@@ -92,32 +88,62 @@ export async function GET() {
     }
     const monthly_stats = MONTHLY_LABELS.map((week, index) => ({ week, total: monthlyTotals[index] }));
 
-    // --- ÅRSGRAF ---
+    // --- ÅRSGRAF (Både CO2 och VATTEN hämtas från rådata) ---
     const currentYear = new Date().getFullYear();
-    const { data: rawYearlyData } = await supabase
+    const nowMs = new Date().getTime();
+    const sevenDaysAgoMs = nowMs - (7 * 24 * 60 * 60 * 1000);
+
+    const { data: rawData } = await supabase
       .from('eco_activities')
-      .select('activity_date, co2_kg')
+      .select('activity_date, co2_kg, water_l') // <-- HÄR hämtar vi vattnet!
       .eq('user_id', user.id)
-      .gte('activity_date', `${currentYear}-01-01`)
-      .lte('activity_date', `${currentYear}-12-31`);
+      .gte('activity_date', `${currentYear - 1}-12-01`); // Hämtar från dec för att täcka hela året + lite till
 
     const yearlyTotals = new Array(12).fill(0);
+    
+    // Register för vatten
+    const waterWeeklyMap = new Map<string, number>(WEEKDAY_LABELS.map((day) => [day, 0]));
+    const waterMonthlyTotals = [0, 0, 0, 0, 0]; 
+    const waterYearlyTotals = new Array(12).fill(0);
 
-    for (const row of rawYearlyData ?? []) {
+    for (const row of rawData ?? []) {
       if (!row.activity_date) continue;
       
       const dateOnly = row.activity_date.split('T')[0];
       const dateObj = new Date(dateOnly);
-      if (Number.isNaN(dateObj.getTime())) continue;
+      const time = dateObj.getTime();
+      if (Number.isNaN(time)) continue;
 
-      const monthIndex = dateObj.getMonth(); // Ger 0 för Jan, 11 för Dec
-      yearlyTotals[monthIndex] += toNumber(row.co2_kg);
+      const water = toNumber(row.water_l);
+      const co2 = toNumber(row.co2_kg);
+
+      // Fyll på ÅR för CO2 & Vatten
+      if (dateObj.getFullYear() === currentYear) {
+        const monthIndex = dateObj.getMonth();
+        yearlyTotals[monthIndex] += co2;
+        waterYearlyTotals[monthIndex] += water;
+      }
+
+      // Fyll på MÅNAD för Vatten (CO2 sköts av vyn ovan)
+      if (time >= monthStartMs) {
+        const diff = time - monthStartMs;
+        const bucketIndex = Math.min(4, Math.max(0, Math.floor(diff / msPerWeek)));
+        waterMonthlyTotals[bucketIndex] += water;
+      }
+
+      // Fyll på VECKA för Vatten
+      if (time >= sevenDaysAgoMs) {
+        const jsDay = dateObj.getDay(); 
+        const labelIndex = jsDay === 0 ? 6 : jsDay - 1;
+        const normalizedDayLabel = WEEKDAY_LABELS[labelIndex];
+        waterWeeklyMap.set(normalizedDayLabel, (waterWeeklyMap.get(normalizedDayLabel) ?? 0) + water);
+      }
     }
 
-    const yearly_stats = YEARLY_LABELS.map((month, index) => ({
-      month,
-      total: yearlyTotals[index],
-    }));
+    const yearly_stats = YEARLY_LABELS.map((month, index) => ({ month, total: yearlyTotals[index] }));
+    const water_weekly_stats = WEEKDAY_LABELS.map((day) => ({ day, total: waterWeeklyMap.get(day) ?? 0 }));
+    const water_monthly_stats = MONTHLY_LABELS.map((week, index) => ({ week, total: waterMonthlyTotals[index] }));
+    const water_yearly_stats = YEARLY_LABELS.map((month, index) => ({ month, total: waterYearlyTotals[index] }));
 
     return NextResponse.json({
       unit: 'kg',
@@ -125,6 +151,10 @@ export async function GET() {
       weekly_stats,
       monthly_stats,
       yearly_stats,
+      // Nya fält för vatten:
+      water_weekly_stats,
+      water_monthly_stats,
+      water_yearly_stats
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'server error';
