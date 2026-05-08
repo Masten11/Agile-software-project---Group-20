@@ -18,6 +18,12 @@ type MonthlyRow = {
   user_id: string;
 };
 
+type YearlyrOW = {
+  month: number;
+  total_co2: number | string | null;
+  user_id: string;
+};
+
 function toNumber(value: number | string | null | undefined): number {
   if (typeof value === 'number') {
     return value;
@@ -45,7 +51,7 @@ export async function GET() {
       );
     }
 
-    const [todayRes, weeklyRes, monthlyRes] = await Promise.all([
+    const [todayRes, weeklyRes, monthlyRes, yearlyRes] = await Promise.all([
       supabase
         .from('view_today_total_co2')
         .select('total_co2,user_id')
@@ -61,11 +67,16 @@ export async function GET() {
         .select('week_start,total_co2,user_id')
         .eq('user_id', user.id)
         .returns<MonthlyRow[]>(),
+      supabase
+        .from('view_yearly_per_month_co2')
+        .select('month,total_co2,user_id')
+        .eq('user_id', user.id)
+        .returns<YearlyrOW[]>(),
     ]);
 
-    if (todayRes.error || weeklyRes.error || monthlyRes.error) {
-      throw todayRes.error || weeklyRes.error || monthlyRes.error;
-    }
+    if (todayRes.error || weeklyRes.error || monthlyRes.error || yearlyRes.error) {
+      throw todayRes.error || weeklyRes.error || monthlyRes.error || yearlyRes.error;
+}
 
     const daily_stats = {
       today_total: toNumber(todayRes.data?.total_co2),
@@ -128,12 +139,35 @@ export async function GET() {
       total: monthlyTotals[index],
     }));
 
+    const YEARLY_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'] as const;
+
+// Skapa en tom karta för alla 12 månader
+const yearlyBucketMap = new Map<string, number>(
+  YEARLY_LABELS.map((month) => [month, 0])
+);
+
+// Fyll i data från databasen (förutsatt att row.month är 1-12)
+for (const row of (yearlyRes.data as YearlyrOW[]) ?? []) {
+  const monthIndex = row.month - 1; // Konvertera 1-baserad månad till 0-baserat index
+  const label = YEARLY_LABELS[monthIndex];
+  
+  if (label) {
+    const current = yearlyBucketMap.get(label) ?? 0;
+    yearlyBucketMap.set(label, current + toNumber(row.total_co2));
+  }
+}
+
+const yearly_stats = YEARLY_LABELS.map((month) => ({
+  month,
+  total: yearlyBucketMap.get(month) ?? 0,
+}));
+
     return NextResponse.json({
       unit: 'kg',
       daily_stats,
       weekly_stats,
       monthly_stats,
-      yearly_stats: [],
+      yearly_stats,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'server error';
