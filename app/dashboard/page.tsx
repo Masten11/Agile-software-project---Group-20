@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,7 +8,7 @@ import { useState, useEffect, useRef } from "react";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/lib/supabase";
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell
+  ResponsiveContainer, BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, Cell
 } from "recharts";
 
 /* ── Circular Eco Score ── */
@@ -91,20 +92,10 @@ function CategoryCard({ icon: Icon, label, color, logged, href }: {
   );
 }
 
-/* ── Eco Score chart ── */
+/* ── Eco Score chart (Area Chart med Gradient) ── */
 function EcoScoreChart() {
   const [range, setRange] = useState("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [activeBarName, setActiveBarName] = useState<string | null>(null);
-  const [hoveredBarName, setHoveredBarName] = useState<string | null>(null);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
 
   const datasets = {
     week: [
@@ -143,7 +134,7 @@ function EcoScoreChart() {
             <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50"
               style={{ background: "#1e2128", border: "1px solid rgba(255,255,255,0.09)" }}>
               {["week", "month", "year"].map((opt) => (
-                <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); setActiveBarName(null); setHoveredBarName(null); }}
+                <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); }}
                   className="px-4 py-2 text-sm cursor-pointer hover:bg-white/5"
                   style={{ color: range === opt ? "#4ade80" : "#a1a1aa", fontFamily: "var(--font-body)" }}>
                   {opt}
@@ -155,30 +146,31 @@ function EcoScoreChart() {
       </div>
       <div style={{ width: "100%", height: 260 }}>
         <ResponsiveContainer>
-          <BarChart data={data}>
+          <AreaChart data={data}>
+            <defs>
+              <linearGradient id="ecoGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#4ade80" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="#4ade80" stopOpacity={0} />
+              </linearGradient>
+            </defs>
             <XAxis dataKey="name" stroke="#71717a" tick={{ fontSize: 12 }} />
             <YAxis stroke="#71717a" tick={{ fontSize: 12 }} />
             <Tooltip 
-              cursor={{ fill: "transparent" }}
+              cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 1, strokeDasharray: "3 3" }}
               contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }}
               itemStyle={{ color: "#ffffff" }}
               formatter={(value: unknown) => [`${value}`, "Eco Score"]}
             />
-            <Bar dataKey="value" radius={[6, 6, 0, 0]}
-              onMouseEnter={(entry) => { if (!isMobile && entry?.name) setHoveredBarName(entry.name); }}
-              onMouseLeave={() => { if (!isMobile) setHoveredBarName(null); }}
-              onClick={(entry) => { if (isMobile && entry?.name) setActiveBarName(entry.name); }}>
-              {data.map((entry) => {
-                const isActive = (isMobile && activeBarName === entry.name) || (!isMobile && hoveredBarName === entry.name);
-                return (
-                  <Cell key={`cell-${entry.name}`}
-                    fill="#4ade80"
-                    fillOpacity={isActive ? 1 : 0.7}
-                    className="transition-all duration-300" />
-                );
-              })}
-            </Bar>
-          </BarChart>
+            <Area 
+              type="monotone" 
+              dataKey="value" 
+              stroke="#4ade80" 
+              strokeWidth={3}
+              fillOpacity={1} 
+              fill="url(#ecoGradient)" 
+              activeDot={{ r: 6, fill: "#4ade80", stroke: "#18181b", strokeWidth: 2 }}
+            />
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </div>
@@ -252,8 +244,7 @@ function EnergyChart() {
           <BarChart data={data}>
             <XAxis dataKey="name" stroke="#71717a" tick={{ fontSize: 12 }} />
             <YAxis stroke="#71717a" tick={{ fontSize: 12 }} unit=" kWh" />
-            <Tooltip 
-              cursor={{ fill: "transparent" }}
+            <Tooltip cursor={{ fill: "transparent" }}
               contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }}
               itemStyle={{ color: "#ffffff" }}
               formatter={(value: unknown) => [`${value} kWh`, "Energy"]} />
@@ -816,21 +807,18 @@ export default function DashboardPage() {
             </div>
           </motion.div>
 
-          {/* Log banner */}
-          <LogBanner loggedCount={loggedToday.length} href="/dashboard/log" />
-
-          {/* Score + categories */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="rounded-2xl p-8 flex flex-col items-center justify-center"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
-            >
+          {/* Zon 1: Control Center (Eco Score + Habits) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="rounded-2xl p-6 sm:p-8 mb-8 flex flex-col lg:flex-row gap-8 lg:gap-12"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+          >
+            {/* Vänster: Eco Score Section */}
+            <div className="flex-1 flex flex-col items-center justify-center">
               <EcoScoreRing score={ecoScore} />
-              <div className="flex gap-6 mt-6 pt-6 w-full"
-                style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="flex gap-4 sm:gap-6 mt-6 pt-6 w-full max-w-sm" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                 {[{ label: "Yesterday", val: "—" }, { label: "Weekly avg", val: "—" }, { label: "Best day", val: "—" }].map((s) => (
                   <div key={s.label} className="flex-1 text-center">
                     <p className="text-white text-base font-semibold" style={{ fontFamily: "var(--font-display)" }}>{s.val}</p>
@@ -838,43 +826,55 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="flex flex-col gap-4"
-            >
-              <div className="flex items-center justify-between">
+            {/* Avdelare */}
+            <div className="hidden lg:block w-px bg-white/5" />
+            <div className="block lg:hidden h-px w-full bg-white/5" />
+
+            {/* Höger: Habits Section */}
+            <div className="flex-1 flex flex-col justify-center">
+              <div className="flex items-center justify-between mb-5">
                 <p className="text-zinc-400 text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-body)" }}>
                   Today&apos;s habits
                 </p>
-                <p className="text-zinc-400 text-sm" style={{ fontFamily: "var(--font-body)" }}>
-                  {loggedToday.length} / 3 logged
-                </p>
+                <div className="px-3 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <p className="text-zinc-300 text-xs font-medium" style={{ fontFamily: "var(--font-body)" }}>
+                    {loggedToday.length} / 3 logged
+                  </p>
+                </div>
               </div>
               <div className="grid grid-cols-1 gap-3">
                 <CategoryCard icon={Car} label="Transport" color="#fb923c" logged={loggedToday.includes("transport")} href="/dashboard/log" />
-                <CategoryCard icon={Droplet} label="Water Usage" color="#22d3ee" logged={loggedToday.includes("water")} href="/dashboard/log" />
+                <CategoryCard icon={Droplet} label="Water" color="#22d3ee" logged={loggedToday.includes("water")} href="/dashboard/log" />
                 <CategoryCard icon={Zap} label="Energy" color="#c084fc" logged={loggedToday.includes("energy")} href="/dashboard/log" />
               </div>
-            </motion.div>
-          </div>
+            </div>
+          </motion.div>
 
-          {/* Charts Grid (2x2) */}
+          {/* Zon 2: Huvud-KPI (Fullbredds-graf Eco Score) - SWAPPED */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mb-8"
+          >
+            <EcoScoreChart />
+          </motion.div>
+
+          {/* Zon 3: Support Data & Insights (Nedre Grid) - SWAPPED */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
             className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8"
           >
-            <EcoScoreChart />
             <CO2Chart userId={userId} />
             <WaterChart />
             <EnergyChart />
           </motion.div>
 
+          {/* Zon 4: Footer-tips */}
           <TipsCarousel />
         </div>
       </main>
