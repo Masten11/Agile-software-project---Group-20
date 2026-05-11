@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -604,7 +603,9 @@ function WaterChart() {
 
 /* ── Log banner ── */
 function LogBanner({ loggedCount, href }: { loggedCount: number; href: string }) {
-  if (loggedCount >= 3) return null;
+  // ÄNDRING: Dölj bannern så fort användaren loggat minst 1 sak idag.
+  if (loggedCount >= 1) return null;
+  
   return (
     <AnimatePresence>
       <motion.a
@@ -625,7 +626,7 @@ function LogBanner({ loggedCount, href }: { loggedCount: number; href: string })
           </div>
           <div>
             <p className="text-white text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>
-              {loggedCount === 0 ? "You haven't logged any habits today" : `${loggedCount}/3 habits logged — keep going!`}
+              You have not logged any habits today
             </p>
             <p className="hidden md:block text-zinc-400 text-sm mt-0.5" style={{ fontFamily: "var(--font-body)" }}>
               Log your habits to update your Eco Score
@@ -757,7 +758,57 @@ export default function DashboardPage() {
           setEcoScore(Math.max(0, Math.round(1000 - totalEmissions * 50)));
         }
 
-        setStreak(1);
+        // --- STREAK CALCULATION LOGIC ---
+        // Fetch all historical logs to calculate streak properly
+        if (user) {
+          const { data: history } = await supabase
+            .from("eco_activities")
+            .select("activity_date")
+            .eq("user_id", user.id)
+            .order("activity_date", { ascending: false });
+
+          if (history && history.length > 0) {
+            // Extrahera unika datum justerade för lokal tidszon
+            const uniqueDates = Array.from(
+              new Set(
+                history.map((row) => {
+                  const d = new Date(row.activity_date);
+                  // Kompensera för timezone offset så vi jämför datum från användarens lokala tid
+                  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+                  return d.toISOString().split("T")[0];
+                })
+              )
+            );
+
+            // Hjälpfunktion för att hämta "idag" eller "igår" säkert
+            const getOffsetDate = (offset: number) => {
+              const d = new Date();
+              d.setDate(d.getDate() - offset);
+              d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+              return d.toISOString().split("T")[0];
+            };
+
+            const today = getOffsetDate(0);
+            const yesterday = getOffsetDate(1);
+
+            let calculatedStreak = 0;
+            
+            // Streak räknas om användaren antingen har loggat idag ELLER loggat igår
+            if (uniqueDates.includes(today) || uniqueDates.includes(yesterday)) {
+              let offset = uniqueDates.includes(today) ? 0 : 1;
+              
+              // Backa bandet dag för dag för att se hur lång streaken är
+              while (uniqueDates.includes(getOffsetDate(offset))) {
+                calculatedStreak++;
+                offset++;
+              }
+            }
+            setStreak(calculatedStreak);
+          } else {
+             setStreak(0);
+          }
+        }
+
       } catch (error) {
         console.error("Error loading dashboard:", error);
       } finally {
@@ -807,6 +858,9 @@ export default function DashboardPage() {
             </div>
           </motion.div>
 
+          {/* LÄGG TILL BANNERN HÄR IGEN */}
+          <LogBanner loggedCount={loggedToday.length} href="/dashboard/log" />
+
           {/* Zon 1: Control Center (Eco Score + Habits) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -845,14 +899,14 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-3">
-                <CategoryCard icon={Car} label="Transport" color="#fb923c" logged={loggedToday.includes("transport")} href="/dashboard/log" />
-                <CategoryCard icon={Droplet} label="Water" color="#22d3ee" logged={loggedToday.includes("water")} href="/dashboard/log" />
-                <CategoryCard icon={Zap} label="Energy" color="#c084fc" logged={loggedToday.includes("energy")} href="/dashboard/log" />
+                <CategoryCard icon={Car} label="Transport" color="#fb923c" logged={loggedToday.includes("transport")} href="/dashboard/log?tab=transport" />
+                <CategoryCard icon={Droplet} label="Water" color="#22d3ee" logged={loggedToday.includes("water")} href="/dashboard/log?tab=water" />
+                <CategoryCard icon={Zap} label="Energy" color="#c084fc" logged={loggedToday.includes("energy")} href="/dashboard/log?tab=energy" />
               </div>
             </div>
           </motion.div>
 
-          {/* Zon 2: Huvud-KPI (Fullbredds-graf Eco Score) - SWAPPED */}
+          {/* Zon 2: Huvud-KPI (Fullbredds-graf Eco Score) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -862,7 +916,7 @@ export default function DashboardPage() {
             <EcoScoreChart />
           </motion.div>
 
-          {/* Zon 3: Support Data & Insights (Nedre Grid) - SWAPPED */}
+          {/* Zon 3: Support Data & Insights (Nedre Grid) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

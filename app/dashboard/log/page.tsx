@@ -457,7 +457,22 @@ export default function LogPage() {
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Förenklad UI-tab struktur - ändrat 'Water Usage' till 'Water'
+  // --- LÄS IN URL PARAMETER PÅ MOUNT ---
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam === "transport" || tabParam === "water" || tabParam === "energy") {
+        // setTimeout bryter den synkrona kedjan i Reacts render-cykel. 
+        // Detta löser ESLint-felet och skyddar mot "cascading renders".
+        setTimeout(() => {
+          setActiveCategory(tabParam as UiTab);
+        }, 0);
+      }
+    }
+  }, []);
+
+  // Förenklad UI-tab struktur
   const tabs: { id: UiTab; label: string; available: boolean }[] = [
     { id: "transport", label: "Transport", available: true },
     { id: "water", label: "Water", available: true },
