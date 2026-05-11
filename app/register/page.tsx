@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, ArrowRight, Sprout, Check, X, Lock } from "lucide-react";
+import { useTheme } from "@/lib/theme-context";
 
 /* ─────────── Floating label input ─────────── */
 function FloatingInput({
@@ -16,6 +17,7 @@ function FloatingInput({
 }) {
   const [focused, setFocused] = useState(false);
   const active = focused || value !== "";
+  
   return (
     <div className="relative">
       <input
@@ -27,12 +29,13 @@ function FloatingInput({
         onBlur={() => setFocused(false)}
         placeholder={label}
         required
-        className="w-full rounded-2xl px-[clamp(1rem,1.5vw,1.5rem)] pt-[clamp(1.5rem,2vw,2rem)] pb-[clamp(0.75rem,1vw,1rem)] text-[clamp(1rem,1.1vw,1.125rem)] text-white outline-none placeholder-transparent"
+        className="w-full rounded-2xl px-[clamp(1rem,1.5vw,1.5rem)] pt-[clamp(1.5rem,2vw,2rem)] pb-[clamp(0.75rem,1vw,1rem)] text-[clamp(1rem,1.1vw,1.125rem)] outline-none placeholder-transparent"
         style={{
-          background: "rgba(255,255,255,0.04)",
-          border: `1px solid ${focused ? "rgba(74,222,128,0.5)" : "rgba(255,255,255,0.07)"}`,
-          boxShadow: focused ? "0 0 24px rgba(74,222,128,0.1), inset 0 0 16px rgba(74,222,128,0.03)" : "none",
+          background: "var(--bg-card)",
+          border: `1px solid ${focused ? "var(--border-active)" : "var(--border-subtle)"}`,
+          boxShadow: focused ? "0 0 24px var(--accent-green-subtle), inset 0 0 16px var(--bg-card-deep)" : "none",
           transition: "border-color 0.25s, box-shadow 0.25s",
+          color: "var(--text-primary)",
           paddingRight: right ? "50px" : "24px",
           fontFamily: "var(--font-body)",
         }}
@@ -42,7 +45,7 @@ function FloatingInput({
         top: active ? "12px" : "50%",
         transform: active ? "none" : "translateY(-50%)",
         fontSize: active ? "11px" : "16px",
-        color: active ? (focused ? "#4ade80" : "#52525b") : "#52525b",
+        color: active ? (focused ? "var(--accent-green)" : "var(--text-secondary)") : "var(--text-faint)",
         letterSpacing: active ? "0.12em" : "0",
         textTransform: active ? "uppercase" : "none",
         pointerEvents: "none", transition: "all 0.2s ease",
@@ -65,13 +68,14 @@ function PasswordStrength({ password }: { password: string }) {
   ];
   const score = checks.filter(Boolean).length;
   const labels = ["", "Weak", "Fair", "Good", "Strong"];
-  const colors = ["", "#f87171", "#fb923c", "#facc15", "#4ade80"];
+  const colors = ["", "#ef4444", "#fb923c", "#facc15", "var(--accent-green)"];
+  
   if (!password) return null;
   return (
     <div className="space-y-2">
       <div className="flex gap-1.5">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-1 flex-1 rounded-full overflow-hidden bg-white/10">
+          <div key={i} className="h-1 flex-1 rounded-full overflow-hidden" style={{ background: "var(--border-strong)" }}>
             <motion.div
               className="h-full rounded-full"
               style={{ backgroundColor: i <= score ? colors[score] : "transparent" }}
@@ -82,7 +86,7 @@ function PasswordStrength({ password }: { password: string }) {
           </div>
         ))}
       </div>
-      <p className="text-sm" style={{ color: colors[score], fontFamily: "var(--font-body)" }}>
+      <p className="text-sm" style={{ color: colors[score] || "var(--text-muted)", fontFamily: "var(--font-body)" }}>
         {labels[score]}
       </p>
     </div>
@@ -93,6 +97,9 @@ function PasswordStrength({ password }: { password: string }) {
 /* ─────────── Main page ─────────── */
 export default function RegisterPage() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   const [step, setStep] = useState(0);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -176,7 +183,7 @@ export default function RegisterPage() {
   ];
 
   return (
-  <main className="min-h-screen flex flex-col items-center justify-center overflow-hidden relative bg-[#111318] px-4 py-16">
+  <main className="min-h-screen flex flex-col items-center justify-center overflow-hidden relative px-4 py-16" style={{ background: "var(--bg-primary)" }}>
 
     {/* Logo */}
     <motion.div
@@ -186,7 +193,7 @@ export default function RegisterPage() {
       className="flex items-center gap-3 mb-10"
     >
       <Link href="/" className="flex items-center gap-3 group">
-        <Sprout className="text-green-400 w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
+        <Sprout className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" style={{ color: "var(--accent-green)" }} />
         <span
           className="gradient-text"
           style={{ fontFamily: "var(--font-display)", fontSize: "24px", letterSpacing: "0.05em" }}
@@ -206,17 +213,17 @@ export default function RegisterPage() {
         <div
           className={`rounded-2xl p-[clamp(2rem,4vw,3.5rem)] w-full ${shaking ? "shake" : ""}`}
           style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.07)",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-subtle)",
           }}
         >
           {/* Progress bar */}
           <div className="flex gap-2 mb-10">
             {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-              <div key={i} className="h-1.5 flex-1 rounded-full overflow-hidden bg-white/10">
+              <div key={i} className="h-1.5 flex-1 rounded-full overflow-hidden" style={{ background: "var(--border-strong)" }}>
                 <motion.div
                   className="h-full"
-                  style={{ background: "#4ade80" }}
+                  style={{ background: "var(--accent-green)" }}
                   initial={{ width: "0%" }}
                   animate={{ width: step > i ? "100%" : step === i ? "100%" : "0%" }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
@@ -233,17 +240,17 @@ export default function RegisterPage() {
               exit={{ opacity: 0, x: -24 }}
               transition={{ duration: 0.28 }}
             >
-              <p className="text-zinc-400 tracking-[0.2em] uppercase mb-4 text-sm"
-                style={{ fontFamily: "var(--font-body)" }}>
+              <p className="tracking-[0.2em] uppercase mb-4 text-sm"
+                style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
                 Step {step + 1} of {TOTAL_STEPS}
               </p>
 
-              <h2 className="text-white mb-3 leading-none text-[clamp(2.2rem,3.5vw,3.5rem)]"
-                style={{ fontFamily: "var(--font-display)", letterSpacing: "0.05em" }}>
+              <h2 className="mb-3 leading-none text-[clamp(2.2rem,3.5vw,3.5rem)]"
+                style={{ color: "var(--text-primary)", fontFamily: "var(--font-display)", letterSpacing: "0.05em" }}>
                 {stepTitles[step]}
               </h2>
 
-              <p className="text-zinc-400 mb-8 text-sm">
+              <p className="mb-8 text-sm" style={{ color: "var(--text-secondary)" }}>
                 {stepSubs[step]}
               </p>
 
@@ -255,15 +262,15 @@ export default function RegisterPage() {
                     
                     {/* Psychological Safety Message */}
                     <div className="flex items-center gap-1.5 pl-2">
-                      <Lock size={12} className="text-zinc-500" />
-                      <p className="text-xs text-zinc-500" style={{ fontFamily: "var(--font-body)" }}>
+                      <Lock size={12} style={{ color: "var(--text-muted)" }} />
+                      <p className="text-xs" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
                         Your email is secure and will never be shared.
                       </p>
                     </div>
                   </div>
                   
                   <ErrorMsg error={error} />
-                  <SubmitButton label="Continue" />
+                  <SubmitButton label="Continue" isDark={isDark} />
                 </form>
               )}
 
@@ -277,7 +284,7 @@ export default function RegisterPage() {
                       autoFocus
                       right={
                         <button type="button" onClick={() => setShowPw(!showPw)}
-                          className="text-zinc-400 hover:text-green-400 transition-colors">
+                          className="transition-colors hover:scale-110" style={{ color: "var(--text-muted)" }}>
                           {showPw ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                       }
@@ -291,10 +298,10 @@ export default function RegisterPage() {
                     onChange={(v) => { setConfirmPassword(v); setError(""); }}
                     right={
                       <div className="flex items-center gap-2">
-                        {passwordsMatch && <Check size={16} className="text-green-400" />}
-                        {passwordsMismatch && <X size={16} className="text-red-400" />}
+                        {passwordsMatch && <Check size={16} style={{ color: "var(--accent-green)" }} />}
+                        {passwordsMismatch && <X size={16} style={{ color: "#ef4444" }} />}
                         <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-                          className="text-zinc-400 hover:text-green-400 transition-colors">
+                          className="transition-colors hover:scale-110" style={{ color: "var(--text-muted)" }}>
                           {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                       </div>
@@ -302,16 +309,16 @@ export default function RegisterPage() {
                   />
 
                   <ErrorMsg error={error} />
-                  <SubmitButton label="Create Account" />
+                  <SubmitButton label="Create Account" isDark={isDark} />
                   <BackButton onClick={goBack} />
                 </form>
               )}
             </motion.div>
           </AnimatePresence>
 
-          <p className="text-center text-zinc-400 mt-10 text-sm">
+          <p className="text-center mt-10 text-sm" style={{ color: "var(--text-muted)" }}>
             Already have an account?{" "}
-            <Link href="/login" className="text-green-400 hover:text-green-300 transition-colors">
+            <Link href="/login" className="transition-colors hover:underline" style={{ color: "var(--accent-green)" }}>
               Sign in
             </Link>
           </p>
@@ -326,7 +333,7 @@ function ErrorMsg({ error }: { error: string }) {
     <AnimatePresence>
       {error && (
         <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }} className="text-red-400 text-sm" style={{ fontFamily: "var(--font-body)" }}>
+          exit={{ opacity: 0 }} className="text-sm" style={{ color: "#ef4444", fontFamily: "var(--font-body)" }}>
           {error}
         </motion.p>
       )}
@@ -334,12 +341,12 @@ function ErrorMsg({ error }: { error: string }) {
   );
 }
 
-function SubmitButton({ label }: { label: string }) {
+function SubmitButton({ label, isDark }: { label: string, isDark: boolean }) {
   return (
     <motion.button
       type="submit"
-      className="w-full rounded-2xl font-semibold text-black flex items-center justify-center gap-3 py-[clamp(1rem,1.5vw,1.25rem)] text-[clamp(1rem,1.1vw,1.125rem)]"
-      style={{ background: "#4ade80", fontFamily: "var(--font-body)" }}
+      className="w-full rounded-2xl font-semibold flex items-center justify-center gap-3 py-[clamp(1rem,1.5vw,1.25rem)] text-[clamp(1rem,1.1vw,1.125rem)] transition-colors"
+      style={{ background: "var(--accent-green)", color: isDark ? "#000" : "#fff", fontFamily: "var(--font-body)" }}
       whileHover={{ scale: 1.015 }}
       whileTap={{ scale: 0.97 }}
     >
@@ -351,8 +358,8 @@ function SubmitButton({ label }: { label: string }) {
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
     <button type="button" onClick={onClick}
-      className="w-full text-center text-zinc-400 hover:text-zinc-200 transition-colors pt-1 text-sm"
-      style={{ fontFamily: "var(--font-body)" }}>
+      className="w-full text-center hover:opacity-80 transition-opacity pt-1 text-sm"
+      style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
       ← Go back
     </button>
   );

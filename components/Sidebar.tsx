@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/lib/theme-context";
 import {
   LayoutDashboard, Leaf, Trophy,
   Settings, Sprout, Users, PanelLeftClose,
@@ -25,13 +26,15 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const popoverRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const [firstName, setFirstName] = useState("User");
   const [username, setUsername] = useState("username");
   const [initial, setInitial] = useState("U");
   const [lastName, setLastName] = useState("");
   // Nytt state för färgen (med standardfärgen som fallback)
-  const [avatarGradient, setAvatarGradient] = useState("linear-gradient(135deg, #4ade80, #22d3ee)");
+  const [avatarGradient, setAvatarGradient] = useState("linear-gradient(135deg, var(--accent-green), #22d3ee)");
 
   useEffect(() => {
     async function fetchUserData() {
@@ -83,14 +86,15 @@ export default function Sidebar() {
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         className="hidden lg:flex shrink-0 flex-col h-screen sticky top-0 overflow-hidden z-40"
         style={{
-          background: "#1a1d23",
-          borderRight: "1px solid rgba(255,255,255,0.07)",
+          background: "var(--sidebar-bg)",
+          borderRight: "1px solid var(--border-subtle)",
         }}
       >
         {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-3 px-4 py-6 shrink-0 group">
           <Sprout
-            className="text-green-400 shrink-0 group-hover:scale-110 transition-transform duration-200"
+            className="shrink-0 group-hover:scale-110 transition-transform duration-200"
+            style={{ color: "var(--accent-green)" }}
             size={28}
           />
           <AnimatePresence>
@@ -100,8 +104,8 @@ export default function Sidebar() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -8 }}
                 transition={{ duration: 0.2 }}
-                className="font-bold tracking-widest text-green-400 whitespace-nowrap group-hover:text-green-300 transition-colors duration-200"
-                style={{ fontFamily: "var(--font-display)", fontSize: "18px" }}
+                className="font-bold tracking-widest whitespace-nowrap transition-colors duration-200 hover:opacity-80"
+                style={{ fontFamily: "var(--font-display)", fontSize: "18px", color: "var(--accent-green)" }}
               >
                 ECO TRACKER
               </motion.span>
@@ -118,14 +122,14 @@ export default function Sidebar() {
                 <div
                   className="flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 cursor-pointer group/item"
                   style={{
-                    background: active ? "rgba(74,222,128,0.1)" : "transparent",
-                    border: active ? "1px solid rgba(74,222,128,0.2)" : "1px solid transparent",
+                    background: active ? "var(--sidebar-active)" : "transparent",
+                    border: active ? "1px solid var(--accent-green-border)" : "1px solid transparent",
                   }}
                 >
                   <Icon
                     size={20}
                     className="shrink-0 transition-all duration-200 group-hover/item:scale-110"
-                    style={{ color: active ? "#4ade80" : "#52525b" }}
+                    style={{ color: active ? "var(--accent-green)" : "var(--text-secondary)" }}
                   />
                   <AnimatePresence>
                     {!collapsed && (
@@ -134,8 +138,11 @@ export default function Sidebar() {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -8 }}
                         transition={{ duration: 0.2 }}
-                        className="text-sm whitespace-nowrap transition-colors duration-200 group-hover/item:text-white"
-                        style={{ fontFamily: "var(--font-body)", color: active ? "#4ade80" : "#a1a1aa" }}
+                        className="text-sm whitespace-nowrap transition-colors duration-200"
+                        style={{ 
+                          fontFamily: "var(--font-body)", 
+                          color: active ? "var(--accent-green)" : "var(--text-secondary)" 
+                        }}
                       >
                         {label}
                       </motion.span>
@@ -161,20 +168,19 @@ export default function Sidebar() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.97 }}
                   transition={{ duration: 0.15, ease: "easeOut" }}
-                  className="absolute bottom-full mb-2 left-0 right-0 rounded-xl overflow-hidden z-50"
+                  className="absolute bottom-full mb-2 left-0 right-0 rounded-xl overflow-hidden z-50 shadow-xl"
                   style={{
-                    background: "#22262e",
-                    border: "1px solid rgba(255,255,255,0.09)",
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                    background: "var(--bg-elevated)",
+                    border: "1px solid var(--border-strong)",
                   }}
                 >
                   {/* Header */}
                   {!collapsed && (
-                    <div className="px-4 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                      <p className="text-white text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>
+                    <div className="px-4 py-3" style={{ borderBottom: "1px solid var(--border-faint)" }}>
+                      <p className="text-sm font-medium" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>
                         {firstName}{lastName ? ` ${lastName}` : ""}
                       </p>
-                      <p className="text-zinc-500 text-xs mt-0.5" style={{ fontFamily: "var(--font-body)" }}>
+                      <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
                         @{username}
                       </p>
                     </div>
@@ -185,9 +191,9 @@ export default function Sidebar() {
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-4 py-3 transition-colors duration-150 hover:bg-red-500/10 group/logout"
                   >
-                    <LogOut size={15} className="text-red-400 group-hover/logout:text-red-300 transition-colors" />
+                    <LogOut size={15} className="text-red-500 group-hover/logout:text-red-400 transition-colors" />
                     <span
-                      className="text-sm text-red-400 group-hover/logout:text-red-300 transition-colors"
+                      className="text-sm text-red-500 group-hover/logout:text-red-400 transition-colors"
                       style={{ fontFamily: "var(--font-body)" }}
                     >
                       Log out
@@ -201,23 +207,23 @@ export default function Sidebar() {
             <button
               onClick={() => setPopoverOpen(!popoverOpen)}
               onMouseEnter={e => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-                e.currentTarget.style.border = "1px solid rgba(255,255,255,0.12)";
+                e.currentTarget.style.background = "var(--bg-card-deep)";
+                e.currentTarget.style.border = "1px solid var(--border-strong)";
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.background = popoverOpen ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)";
-                e.currentTarget.style.border = popoverOpen ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,255,255,0.05)";
+                e.currentTarget.style.background = popoverOpen ? "var(--bg-card-deep)" : "transparent";
+                e.currentTarget.style.border = popoverOpen ? "1px solid var(--border-strong)" : "1px solid transparent";
               }}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group/profile"
               style={{
-                background: popoverOpen ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
-                border: popoverOpen ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,255,255,0.05)",
+                background: popoverOpen ? "var(--bg-card-deep)" : "transparent",
+                border: popoverOpen ? "1px solid var(--border-strong)" : "1px solid transparent",
               }}
             >
-            
+              
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold text-black"
-                style={{ background: avatarGradient }} // <-- Kopplad till statet
+                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
+                style={{ background: avatarGradient, color: isDark ? "#000" : "#fff" }} // <-- Kopplad till statet
               >
                 {initial}
               </div>
@@ -230,10 +236,10 @@ export default function Sidebar() {
                     transition={{ duration: 0.2 }}
                     className="flex-1 text-left"
                   >
-                    <p className="text-sm text-white whitespace-nowrap" style={{ fontFamily: "var(--font-body)" }}>
+                    <p className="text-sm whitespace-nowrap" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>
                       {firstName}{lastName ? ` ${lastName}` : ""}
                     </p>
-                    <p className="text-xs text-zinc-500 whitespace-nowrap" style={{ fontFamily: "var(--font-body)" }}>
+                    <p className="text-xs whitespace-nowrap" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
                       @{username}
                     </p>
                   </motion.div>
@@ -242,7 +248,8 @@ export default function Sidebar() {
               {!collapsed && (
                 <MoreHorizontal
                   size={15}
-                  className="text-zinc-600 group-hover/profile:text-zinc-400 transition-colors shrink-0"
+                  className="transition-colors shrink-0"
+                  style={{ color: "var(--text-muted)" }}
                 />
               )}
             </button>
@@ -251,17 +258,17 @@ export default function Sidebar() {
           {/* Collapse toggle */}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="flex items-center justify-center w-full py-2 rounded-xl transition-all duration-200 group/collapse hover:bg-white/5 gap-2"
-            style={{ border: "1px solid rgba(255,255,255,0.05)" }}
+            className="flex items-center justify-center w-full py-2 rounded-xl transition-all duration-200 group/collapse hover:bg-black/5 dark:hover:bg-white/5 gap-2"
+            style={{ border: "1px solid var(--border-faint)" }}
           >
             {collapsed
-              ? <PanelLeftOpen size={16} className="text-zinc-500 group-hover/collapse:text-zinc-300 transition-colors" />
+              ? <PanelLeftOpen size={16} className="transition-colors" style={{ color: "var(--text-muted)" }} />
               : (
                 <>
-                  <PanelLeftClose size={16} className="text-zinc-500 group-hover/collapse:text-zinc-300 transition-colors" />
+                  <PanelLeftClose size={16} className="transition-colors" style={{ color: "var(--text-muted)" }} />
                   <span
-                    className="text-xs text-zinc-500 group-hover/collapse:text-zinc-300 transition-colors"
-                    style={{ fontFamily: "var(--font-body)" }}
+                    className="text-xs transition-colors"
+                    style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}
                   >
                     Collapse
                   </span>

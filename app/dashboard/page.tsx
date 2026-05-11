@@ -16,17 +16,18 @@ function EcoScoreRing({ score }: { score: number }) {
   const radius = 80;
   const circumference = 2 * Math.PI * radius;
   const progress = (score / max) * circumference;
-  const color = score > 700 ? "#4ade80" : score > 400 ? "#facc15" : "#f87171";
+  // Dynamisk färg beroende på score
+  const scoreColor = score > 700 ? "var(--accent-green)" : score > 400 ? "#facc15" : "#f87171";
 
   return (
     <div className="flex flex-col items-center justify-center">
       <div className="relative w-52 h-52">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
           <circle cx="100" cy="100" r={radius}
-            fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
+            fill="none" style={{ stroke: "var(--border-strong)" }} strokeWidth="10" />
           <motion.circle
             cx="100" cy="100" r={radius}
-            fill="none" stroke={color} strokeWidth="10" strokeLinecap="round"
+            fill="none" stroke={scoreColor} strokeWidth="10" strokeLinecap="round"
             strokeDasharray={circumference}
             initial={{ strokeDashoffset: circumference }}
             animate={{ strokeDashoffset: circumference - progress }}
@@ -36,20 +37,20 @@ function EcoScoreRing({ score }: { score: number }) {
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <motion.span
             className="font-bold leading-none"
-            style={{ fontFamily: "var(--font-display)", fontSize: "52px", color }}
+            style={{ fontFamily: "var(--font-display)", fontSize: "52px", color: scoreColor }}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.5 }}
           >
             {score}
           </motion.span>
-          <span className="text-sm text-zinc-400 tracking-widest uppercase mt-1"
-            style={{ fontFamily: "var(--font-body)" }}>
+          <span className="text-sm tracking-widest uppercase mt-1"
+            style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
             Eco Score
           </span>
         </div>
       </div>
-      <p className="text-zinc-400 text-sm mt-3" style={{ fontFamily: "var(--font-body)" }}>
+      <p className="text-sm mt-3" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
         {score > 700 ? "🌿 Great day so far!" : score > 400 ? "⚡ Room to improve" : "🔴 High impact day"}
       </p>
     </div>
@@ -67,8 +68,8 @@ function CategoryCard({ icon: Icon, label, color, logged, href }: {
       whileTap={{ scale: 0.97 }}
       className="flex items-center gap-4 p-5 rounded-2xl cursor-pointer group"
       style={{
-        background: "rgba(255,255,255,0.04)",
-        border: logged ? `1px solid ${color}33` : "1px solid rgba(255,255,255,0.07)",
+        background: "var(--bg-card)",
+        border: logged ? `1px solid ${color}40` : "1px solid var(--border-subtle)",
       }}
     >
       <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
@@ -76,15 +77,15 @@ function CategoryCard({ icon: Icon, label, color, logged, href }: {
         <Icon size={20} style={{ color }} />
       </div>
       <div className="flex-1">
-        <p className="text-white text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>{label}</p>
-        <p className="text-sm mt-0.5" style={{ color: logged ? "#a1a1aa" : "#71717a", fontFamily: "var(--font-body)" }}>
+        <p className="text-sm font-medium" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>{label}</p>
+        <p className="text-sm mt-0.5" style={{ color: logged ? "var(--text-secondary)" : "var(--text-muted)", fontFamily: "var(--font-body)" }}>
           {logged ? "✓ Logged today" : "Not logged yet"}
         </p>
       </div>
       {!logged && (
-        <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:bg-white/10"
-          style={{ border: "1px solid rgba(255,255,255,0.15)" }}>
-          <Plus size={16} className="text-zinc-500 group-hover:text-white transition-colors duration-300" strokeWidth={2.5} />
+        <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:bg-black/5 dark:group-hover:bg-white/10"
+          style={{ border: "1px solid var(--border-strong)" }}>
+          <Plus size={16} className="transition-colors duration-300" style={{ color: "var(--text-muted)" }} strokeWidth={2.5} />
         </div>
       )}
     </motion.a>
@@ -95,6 +96,20 @@ function CategoryCard({ icon: Icon, label, color, logged, href }: {
 function EcoScoreChart() {
   const [range, setRange] = useState("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    // FIX: setTimeout för att undvika ESLint's cascading render error
+    setTimeout(() => {
+      setIsDark(document.documentElement.getAttribute("data-theme") !== "light");
+    }, 0);
+    
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.getAttribute("data-theme") !== "light");
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
+  }, []);
 
   const datasets = {
     week: [
@@ -114,28 +129,33 @@ function EcoScoreChart() {
   };
 
   const data = datasets[range as keyof typeof datasets];
+  const chartColor = isDark ? "#4ade80" : "#16a34a";
+  const axisColor = isDark ? "#71717a" : "#a1a1aa";
+  const tooltipBg = isDark ? "#18181b" : "#ffffff";
+  const tooltipBorder = isDark ? "#27272a" : "#e4e4e7";
+  const tooltipText = isDark ? "#ffffff" : "#09090b";
 
   return (
     <div className="rounded-2xl p-6 relative"
-      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+      style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
       <div className="flex justify-between items-center mb-6">
-        <p className="text-zinc-400 text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-body)" }}>
+        <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
           Eco Score – last 7 days
         </p>
         <div className="relative">
           <button onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "#a1a1aa" }}>
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)" }}>
             {range}
             <ChevronDown size={14} />
           </button>
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50"
-              style={{ background: "#1e2128", border: "1px solid rgba(255,255,255,0.09)" }}>
+            <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50 shadow-xl"
+              style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-strong)" }}>
               {["week", "month", "year"].map((opt) => (
                 <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); }}
-                  className="px-4 py-2 text-sm cursor-pointer hover:bg-white/5"
-                  style={{ color: range === opt ? "#4ade80" : "#a1a1aa", fontFamily: "var(--font-body)" }}>
+                  className="px-4 py-2 text-sm cursor-pointer hover:bg-black/5 dark:hover:bg-white/5"
+                  style={{ color: range === opt ? "var(--accent-green)" : "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
                   {opt}
                 </div>
               ))}
@@ -148,26 +168,26 @@ function EcoScoreChart() {
           <AreaChart data={data}>
             <defs>
               <linearGradient id="ecoGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#4ade80" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="#4ade80" stopOpacity={0} />
+                <stop offset="5%" stopColor={chartColor} stopOpacity={0.4} />
+                <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis dataKey="name" stroke="#71717a" tick={{ fontSize: 12 }} />
-            <YAxis stroke="#71717a" tick={{ fontSize: 12 }} />
+            <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 12 }} />
+            <YAxis stroke={axisColor} tick={{ fontSize: 12 }} />
             <Tooltip 
-              cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 1, strokeDasharray: "3 3" }}
-              contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }}
-              itemStyle={{ color: "#ffffff" }}
+              cursor={{ stroke: axisColor, strokeWidth: 1, strokeDasharray: "3 3" }}
+              contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "12px", color: tooltipText }}
+              itemStyle={{ color: tooltipText }}
               formatter={(value: unknown) => [`${value}`, "Eco Score"]}
             />
             <Area 
               type="monotone" 
               dataKey="value" 
-              stroke="#4ade80" 
+              stroke={chartColor} 
               strokeWidth={3}
               fillOpacity={1} 
               fill="url(#ecoGradient)" 
-              activeDot={{ r: 6, fill: "#4ade80", stroke: "#18181b", strokeWidth: 2 }}
+              activeDot={{ r: 6, fill: chartColor, stroke: tooltipBg, strokeWidth: 2 }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -183,12 +203,21 @@ function EnergyChart() {
   const [isMobile, setIsMobile] = useState(false);
   const [activeBarName, setActiveBarName] = useState<string | null>(null);
   const [hoveredBarName, setHoveredBarName] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
+    
+    // FIX: setTimeout för att undvika ESLint's cascading render error
+    setTimeout(() => {
+      setIsDark(document.documentElement.getAttribute("data-theme") !== "light");
+    }, 0);
+    
+    const observer = new MutationObserver(() => setIsDark(document.documentElement.getAttribute("data-theme") !== "light"));
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => { window.removeEventListener("resize", check); observer.disconnect(); };
   }, []);
 
   const datasets = {
@@ -209,28 +238,33 @@ function EnergyChart() {
   };
 
   const data = datasets[range as keyof typeof datasets];
+  const chartColor = "#c084fc";
+  const axisColor = isDark ? "#71717a" : "#a1a1aa";
+  const tooltipBg = isDark ? "#18181b" : "#ffffff";
+  const tooltipBorder = isDark ? "#27272a" : "#e4e4e7";
+  const tooltipText = isDark ? "#ffffff" : "#09090b";
 
   return (
     <div className="rounded-2xl p-6 relative"
-      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+      style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
       <div className="flex justify-between items-center mb-6">
-        <p className="text-zinc-400 text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-body)" }}>
+        <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
           Energy usage
         </p>
         <div className="relative">
           <button onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "#a1a1aa" }}>
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)" }}>
             {range}
             <ChevronDown size={14} />
           </button>
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50"
-              style={{ background: "#1e2128", border: "1px solid rgba(255,255,255,0.09)" }}>
+            <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50 shadow-xl"
+              style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-strong)" }}>
               {["week", "month", "year"].map((opt) => (
                 <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); setActiveBarName(null); setHoveredBarName(null); }}
-                  className="px-4 py-2 text-sm cursor-pointer hover:bg-white/5"
-                  style={{ color: range === opt ? "#c084fc" : "#a1a1aa", fontFamily: "var(--font-body)" }}>
+                  className="px-4 py-2 text-sm cursor-pointer hover:bg-black/5 dark:hover:bg-white/5"
+                  style={{ color: range === opt ? chartColor : "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
                   {opt}
                 </div>
               ))}
@@ -241,11 +275,11 @@ function EnergyChart() {
       <div style={{ width: "100%", height: 260 }}>
         <ResponsiveContainer>
           <BarChart data={data}>
-            <XAxis dataKey="name" stroke="#71717a" tick={{ fontSize: 12 }} />
-            <YAxis stroke="#71717a" tick={{ fontSize: 12 }} unit=" kWh" />
+            <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 12 }} />
+            <YAxis stroke={axisColor} tick={{ fontSize: 12 }} unit=" kWh" />
             <Tooltip cursor={{ fill: "transparent" }}
-              contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }}
-              itemStyle={{ color: "#ffffff" }}
+              contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "12px", color: tooltipText }}
+              itemStyle={{ color: tooltipText }}
               formatter={(value: unknown) => [`${value} kWh`, "Energy"]} />
             <Bar dataKey="value" radius={[6, 6, 0, 0]}
               onMouseEnter={(entry) => { if (!isMobile && entry?.name) setHoveredBarName(entry.name); }}
@@ -255,7 +289,7 @@ function EnergyChart() {
                 const isActive = (isMobile && activeBarName === entry.name) || (!isMobile && hoveredBarName === entry.name);
                 return (
                   <Cell key={`cell-${entry.name}`}
-                    fill="#c084fc"
+                    fill={chartColor}
                     fillOpacity={isActive ? 1 : 0.7}
                     className="transition-all duration-300" />
                 );
@@ -277,6 +311,7 @@ function CO2Chart({ userId }: { userId: string | null }) {
   const [isMobile, setIsMobile] = useState(false);
   const [activeBarName, setActiveBarName] = useState<string | null>(null);
   const [hoveredBarName, setHoveredBarName] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState(true);
 
   const [weeklyData, setWeeklyData] = useState<ChartPoint[]>([]);
   const [monthlyData, setMonthlyData] = useState<ChartPoint[]>([]);
@@ -292,7 +327,15 @@ function CO2Chart({ userId }: { userId: string | null }) {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
+    
+    // FIX: setTimeout för att undvika ESLint's cascading render error
+    setTimeout(() => {
+      setIsDark(document.documentElement.getAttribute("data-theme") !== "light");
+    }, 0);
+    
+    const observer = new MutationObserver(() => setIsDark(document.documentElement.getAttribute("data-theme") !== "light"));
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => { window.removeEventListener("resize", check); observer.disconnect(); };
   }, []);
 
   useEffect(() => {
@@ -367,13 +410,18 @@ function CO2Chart({ userId }: { userId: string | null }) {
   };
 
   const data = range === "week" ? weeklyData : range === "month" ? monthlyData : yearlyData;
+  const chartColor = "#fb923c";
+  const axisColor = isDark ? "#71717a" : "#a1a1aa";
+  const tooltipBg = isDark ? "#18181b" : "#ffffff";
+  const tooltipBorder = isDark ? "#27272a" : "#e4e4e7";
+  const tooltipText = isDark ? "#ffffff" : "#09090b";
 
   return (
     <div className="rounded-2xl p-6 relative"
-      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+      style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-2">
-          <p className="text-zinc-400 text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-body)" }}>
+          <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
             CO₂ usage
           </p>
 
@@ -382,11 +430,11 @@ function CO2Chart({ userId }: { userId: string | null }) {
               onClick={handleInfoClick}
               className="w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200"
               style={{
-                background: popoverOpen ? "rgba(251,146,60,0.15)" : "rgba(255,255,255,0.05)",
-                border: `1px solid ${popoverOpen ? "rgba(251,146,60,0.3)" : "rgba(255,255,255,0.08)"}`,
+                background: popoverOpen ? "rgba(251,146,60,0.15)" : "var(--bg-card-deep)",
+                border: `1px solid ${popoverOpen ? "rgba(251,146,60,0.3)" : "var(--border-strong)"}`,
               }}
             >
-              {popoverOpen ? <X size={11} className="text-orange-400" /> : <Info size={11} className="text-zinc-500" />}
+              {popoverOpen ? <X size={11} className="text-orange-400" /> : <Info size={11} style={{ color: "var(--text-muted)" }} />}
             </button>
 
             <AnimatePresence>
@@ -396,10 +444,10 @@ function CO2Chart({ userId }: { userId: string | null }) {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 6, scale: 0.97 }}
                   transition={{ duration: 0.18 }}
-                  className="absolute -left-20 md:left-0 top-full mt-2 z-50 rounded-2xl p-4 w-[85vw] sm:w-65"
+                  className="absolute -left-20 md:left-0 top-full mt-2 z-50 rounded-2xl p-4 w-[85vw] sm:w-65 shadow-2xl"
                   style={{
-                    background: "#1e2128", border: "1px solid rgba(251,146,60,0.15)",
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.4)", maxWidth: "280px"
+                    background: "var(--bg-elevated)", border: "1px solid rgba(251,146,60,0.2)",
+                    maxWidth: "280px"
                   }}
                 >
                   <div className="flex items-center gap-2 mb-2">
@@ -410,9 +458,9 @@ function CO2Chart({ userId }: { userId: string | null }) {
                     </p>
                   </div>
                   {engagingLoading ? (
-                    <p className="text-zinc-500 text-xs animate-pulse" style={{ fontFamily: "var(--font-body)" }}>Calculating your impact...</p>
+                    <p className="text-xs animate-pulse" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Calculating your impact...</p>
                   ) : (
-                    <p className="text-zinc-300 text-sm leading-relaxed" style={{ fontFamily: "var(--font-body)" }}>{engagingText}</p>
+                    <p className="text-sm leading-relaxed" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>{engagingText}</p>
                   )}
                 </motion.div>
               )}
@@ -423,16 +471,16 @@ function CO2Chart({ userId }: { userId: string | null }) {
         <div className="relative">
           <button onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "#a1a1aa" }}>
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)" }}>
             {range} <ChevronDown size={14} />
           </button>
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50"
-              style={{ background: "#1e2128", border: "1px solid rgba(255,255,255,0.09)" }}>
+            <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50 shadow-xl"
+              style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-strong)" }}>
               {(["week", "month", "year"] as const).map((opt) => (
                 <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); setActiveBarName(null); setHoveredBarName(null); }}
-                  className="px-4 py-2 text-sm cursor-pointer hover:bg-white/5"
-                  style={{ color: range === opt ? "#fb923c" : "#a1a1aa", fontFamily: "var(--font-body)" }}>
+                  className="px-4 py-2 text-sm cursor-pointer hover:bg-black/5 dark:hover:bg-white/5"
+                  style={{ color: range === opt ? chartColor : "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
                   {opt}
                 </div>
               ))}
@@ -443,18 +491,18 @@ function CO2Chart({ userId }: { userId: string | null }) {
 
       {chartLoading ? (
         <div className="h-64 flex items-center justify-center">
-          <p className="text-zinc-600 text-sm animate-pulse" style={{ fontFamily: "var(--font-body)" }}>Loading data...</p>
+          <p className="text-sm animate-pulse" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Loading data...</p>
         </div>
       ) : (
         <div style={{ width: "100%", height: 260 }}>
           <ResponsiveContainer>
             <BarChart data={data}>
-              <XAxis dataKey="name" stroke="#71717a" tick={{ fontSize: 12 }} />
-              <YAxis stroke="#71717a" tick={{ fontSize: 12 }} unit=" kg" />
+              <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 12 }} />
+              <YAxis stroke={axisColor} tick={{ fontSize: 12 }} unit=" kg" />
               <Tooltip
                 cursor={{ fill: "transparent" }}
-                contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }}
-                itemStyle={{ color: "#ffffff" }}
+                contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "12px", color: tooltipText }}
+                itemStyle={{ color: tooltipText }}
                 formatter={(value: unknown) => [`${value} kg`, "CO₂"]}
               />
               <Bar dataKey="value" radius={[6, 6, 0, 0]}
@@ -465,7 +513,7 @@ function CO2Chart({ userId }: { userId: string | null }) {
                   const isActive = (isMobile && activeBarName === entry.name) || (!isMobile && hoveredBarName === entry.name);
                   return (
                     <Cell key={`cell-${entry.name}`}
-                      fill="#fb923c"
+                      fill={chartColor}
                       fillOpacity={isActive ? 1 : 0.7}
                       className="transition-all duration-300" />
                   );
@@ -486,6 +534,7 @@ function WaterChart() {
   const [isMobile, setIsMobile] = useState(false);
   const [activeBarName, setActiveBarName] = useState<string | null>(null);
   const [hoveredBarName, setHoveredBarName] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState(true);
 
   const [weeklyData, setWeeklyData] = useState<ChartPoint[]>([]);
   const [monthlyData, setMonthlyData] = useState<ChartPoint[]>([]);
@@ -496,7 +545,15 @@ function WaterChart() {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
+    
+    // FIX: setTimeout för att undvika ESLint's cascading render error
+    setTimeout(() => {
+      setIsDark(document.documentElement.getAttribute("data-theme") !== "light");
+    }, 0);
+    
+    const observer = new MutationObserver(() => setIsDark(document.documentElement.getAttribute("data-theme") !== "light"));
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => { window.removeEventListener("resize", check); observer.disconnect(); };
   }, []);
 
   useEffect(() => {
@@ -532,29 +589,34 @@ function WaterChart() {
   }, []);
 
   const data = range === "week" ? weeklyData : range === "month" ? monthlyData : yearlyData;
+  const chartColor = "#22d3ee";
+  const axisColor = isDark ? "#71717a" : "#a1a1aa";
+  const tooltipBg = isDark ? "#18181b" : "#ffffff";
+  const tooltipBorder = isDark ? "#27272a" : "#e4e4e7";
+  const tooltipText = isDark ? "#ffffff" : "#09090b";
 
   return (
     <div className="rounded-2xl p-6 relative"
-      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+      style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-2">
-          <p className="text-zinc-400 text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-body)" }}>
+          <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
             Water usage
           </p>
         </div>
         <div className="relative">
           <button onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", color: "#a1a1aa" }}>
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)" }}>
             {range} <ChevronDown size={14} />
           </button>
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50"
-              style={{ background: "#1e2128", border: "1px solid rgba(255,255,255,0.09)" }}>
+            <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50 shadow-xl"
+              style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-strong)" }}>
               {(["week", "month", "year"] as const).map((opt) => (
                 <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); setActiveBarName(null); setHoveredBarName(null); }}
-                  className="px-4 py-2 text-sm cursor-pointer hover:bg-white/5"
-                  style={{ color: range === opt ? "#22d3ee" : "#a1a1aa", fontFamily: "var(--font-body)" }}>
+                  className="px-4 py-2 text-sm cursor-pointer hover:bg-black/5 dark:hover:bg-white/5"
+                  style={{ color: range === opt ? chartColor : "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
                   {opt}
                 </div>
               ))}
@@ -565,18 +627,18 @@ function WaterChart() {
 
       {chartLoading ? (
         <div className="h-64 flex items-center justify-center">
-          <p className="text-zinc-600 text-sm animate-pulse" style={{ fontFamily: "var(--font-body)" }}>Loading data...</p>
+          <p className="text-sm animate-pulse" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Loading data...</p>
         </div>
       ) : (
         <div style={{ width: "100%", height: 260 }}>
           <ResponsiveContainer>
             <BarChart data={data}>
-              <XAxis dataKey="name" stroke="#71717a" tick={{ fontSize: 12 }} />
-              <YAxis stroke="#71717a" tick={{ fontSize: 12 }} unit=" L" />
+              <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 12 }} />
+              <YAxis stroke={axisColor} tick={{ fontSize: 12 }} unit=" L" />
               <Tooltip
                 cursor={{ fill: "transparent" }}
-                contentStyle={{ background: "#18181b", border: "1px solid #27272a", borderRadius: "12px", color: "#ffffff" }}
-                itemStyle={{ color: "#ffffff" }}
+                contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "12px", color: tooltipText }}
+                itemStyle={{ color: tooltipText }}
                 formatter={(value: unknown) => [`${value} L`, "Water"]}
               />
               <Bar dataKey="value" radius={[6, 6, 0, 0]}
@@ -587,7 +649,7 @@ function WaterChart() {
                   const isActive = (isMobile && activeBarName === entry.name) || (!isMobile && hoveredBarName === entry.name);
                   return (
                     <Cell key={`cell-${entry.name}`}
-                      fill="#22d3ee"
+                      fill={chartColor}
                       fillOpacity={isActive ? 1 : 0.7}
                       className="transition-all duration-300" />
                   );
@@ -603,7 +665,6 @@ function WaterChart() {
 
 /* ── Log banner ── */
 function LogBanner({ loggedCount, href }: { loggedCount: number; href: string }) {
-  // ÄNDRING: Dölj bannern så fort användaren loggat minst 1 sak idag.
   if (loggedCount >= 1) return null;
   
   return (
@@ -617,24 +678,24 @@ function LogBanner({ loggedCount, href }: { loggedCount: number; href: string })
         whileHover={{ scale: 1.01 }}
         whileTap={{ scale: 0.99 }}
         className="flex items-center justify-between gap-4 px-6 py-4 rounded-2xl cursor-pointer mb-8"
-        style={{ background: "rgba(74,222,128,0.06)", border: "1px solid rgba(74,222,128,0.18)" }}
+        style={{ background: "var(--accent-green-subtle)", border: "1px solid var(--accent-green-badge-border)" }}
       >
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
-            <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-            <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-green-400 animate-ping opacity-50" />
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--accent-green)" }} />
+            <div className="absolute inset-0 w-2.5 h-2.5 rounded-full animate-ping opacity-50" style={{ background: "var(--accent-green)" }} />
           </div>
           <div>
-            <p className="text-white text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>
-              You have not logged any habits today
+            <p className="text-sm font-medium" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>
+              You haven&apos;t logged any habits today
             </p>
-            <p className="hidden md:block text-zinc-400 text-sm mt-0.5" style={{ fontFamily: "var(--font-body)" }}>
+            <p className="hidden md:block text-sm mt-0.5" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
               Log your habits to update your Eco Score
             </p>
           </div>
         </div>
         <div className="shrink-0 px-4 py-2 rounded-xl text-sm font-semibold text-black"
-          style={{ background: "#4ade80" }}>
+          style={{ background: "var(--accent-green)" }}>
           Log now
         </div>
       </motion.a>
@@ -666,13 +727,13 @@ function TipsCarousel() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.4 }}
       className="rounded-2xl overflow-hidden mb-8"
-      style={{ border: "1px solid rgba(255,255,255,0.07)" }}
+      style={{ border: "1px solid var(--border-subtle)" }}
     >
       <div className="px-5 py-3 flex items-center justify-between"
-        style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+        style={{ background: "var(--bg-card-nested)", borderBottom: "1px solid var(--border-subtle)" }}>
         <div className="flex items-center gap-2">
-          <TrendingUp size={15} className="text-green-400" />
-          <p className="text-zinc-300 text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-body)" }}>
+          <TrendingUp size={15} style={{ color: "var(--accent-green)" }} />
+          <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
             Daily Tip
           </p>
         </div>
@@ -681,21 +742,21 @@ function TipsCarousel() {
             {TIPS.map((_, i) => (
               <button key={i} onClick={() => { setDirection(i > index ? 1 : -1); setIndex(i); }}
                 className="rounded-full transition-all duration-300"
-                style={{ width: i === index ? "16px" : "6px", height: "6px", background: i === index ? "#4ade80" : "rgba(255,255,255,0.15)" }} />
+                style={{ width: i === index ? "16px" : "6px", height: "6px", background: i === index ? "var(--accent-green)" : "var(--border-strong)" }} />
             ))}
           </div>
           <div className="flex gap-1">
             {(["←", "→"] as const).map((arrow, i) => (
               <button key={arrow} onClick={() => go(i === 0 ? -1 : 1)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all duration-200 hover:text-green-400"
-                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#71717a", fontFamily: "var(--font-body)" }}>
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all duration-200 hover:bg-black/5 dark:hover:bg-white/5"
+                style={{ background: "var(--bg-card-deep)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
                 {arrow}
               </button>
             ))}
           </div>
         </div>
       </div>
-      <div className="relative overflow-hidden" style={{ height: "100px" }}>
+      <div className="relative overflow-hidden" style={{ height: "100px", background: "var(--bg-card)" }}>
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={index} custom={direction}
@@ -707,12 +768,11 @@ function TipsCarousel() {
             initial="enter" animate="center" exit="exit"
             transition={{ duration: 0.25, ease: "easeOut" }}
             className="absolute inset-0 flex items-center gap-4 px-5"
-            style={{ background: "rgba(255,255,255,0.02)" }}
           >
             <span className="text-3xl shrink-0">{TIPS[index].icon}</span>
             <div>
-              <p className="text-white text-sm font-medium mb-1" style={{ fontFamily: "var(--font-body)" }}>{TIPS[index].title}</p>
-              <p className="text-zinc-400 text-sm leading-relaxed" style={{ fontFamily: "var(--font-body)" }}>{TIPS[index].tip}</p>
+              <p className="text-sm font-medium mb-1" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>{TIPS[index].title}</p>
+              <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>{TIPS[index].tip}</p>
             </div>
           </motion.div>
         </AnimatePresence>
@@ -759,7 +819,6 @@ export default function DashboardPage() {
         }
 
         // --- STREAK CALCULATION LOGIC ---
-        // Fetch all historical logs to calculate streak properly
         if (user) {
           const { data: history } = await supabase
             .from("eco_activities")
@@ -768,19 +827,16 @@ export default function DashboardPage() {
             .order("activity_date", { ascending: false });
 
           if (history && history.length > 0) {
-            // Extrahera unika datum justerade för lokal tidszon
             const uniqueDates = Array.from(
               new Set(
                 history.map((row) => {
                   const d = new Date(row.activity_date);
-                  // Kompensera för timezone offset så vi jämför datum från användarens lokala tid
                   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
                   return d.toISOString().split("T")[0];
                 })
               )
             );
 
-            // Hjälpfunktion för att hämta "idag" eller "igår" säkert
             const getOffsetDate = (offset: number) => {
               const d = new Date();
               d.setDate(d.getDate() - offset);
@@ -793,11 +849,9 @@ export default function DashboardPage() {
 
             let calculatedStreak = 0;
             
-            // Streak räknas om användaren antingen har loggat idag ELLER loggat igår
             if (uniqueDates.includes(today) || uniqueDates.includes(yesterday)) {
               let offset = uniqueDates.includes(today) ? 0 : 1;
               
-              // Backa bandet dag för dag för att se hur lång streaken är
               while (uniqueDates.includes(getOffsetDate(offset))) {
                 calculatedStreak++;
                 offset++;
@@ -820,14 +874,14 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-[#111318] items-center justify-center">
-        <p className="text-green-400 font-mono animate-pulse">Loading...</p>
+      <div className="flex h-screen items-center justify-center" style={{ background: "var(--bg-primary)" }}>
+        <p className="font-mono animate-pulse" style={{ color: "var(--accent-green)" }}>Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-[#111318] overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg-primary)" }}>
       <Sidebar />
       <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
         <div className="max-w-5xl mx-auto px-6 py-10">
@@ -840,25 +894,24 @@ export default function DashboardPage() {
             className="flex items-center justify-between mb-8"
           >
             <div>
-              <h1 className="text-white leading-none mb-1 uppercase"
-                style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px,3vw,40px)" }}>
+              <h1 className="leading-none mb-1 uppercase"
+                style={{ color: "var(--text-primary)", fontFamily: "var(--font-display)", fontSize: "clamp(28px,3vw,40px)" }}>
                 GOOD MORNING, {firstName}
               </h1>
-              <p className="text-zinc-400 text-sm flex items-center gap-2" style={{ fontFamily: "var(--font-body)" }}>
+              <p className="text-sm flex items-center gap-2" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
                 <Calendar size={13} />
                 {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
               </p>
             </div>
             <div className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-full"
-              style={{ background: "rgba(74,222,128,0.07)", border: "1px solid rgba(74,222,128,0.18)" }}>
-              <Flame size={14} className="text-green-400" />
-              <span className="text-green-400 text-sm font-medium" style={{ fontFamily: "var(--font-body)" }}>
+              style={{ background: "var(--accent-green-badge)", border: "1px solid var(--accent-green-badge-border)" }}>
+              <Flame size={14} style={{ color: "var(--accent-green)" }} />
+              <span className="text-sm font-medium" style={{ color: "var(--accent-green)", fontFamily: "var(--font-body)" }}>
                 {streak} day<span className="hidden md:inline"> streak</span>
               </span>
             </div>
           </motion.div>
 
-          {/* LÄGG TILL BANNERN HÄR IGEN */}
           <LogBanner loggedCount={loggedToday.length} href="/dashboard/log" />
 
           {/* Zon 1: Control Center (Eco Score + Habits) */}
@@ -866,34 +919,34 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="rounded-2xl p-6 sm:p-8 mb-8 flex flex-col lg:flex-row gap-8 lg:gap-12"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+            className="rounded-2xl p-6 sm:p-8 mb-8 flex flex-col lg:flex-row gap-8 lg:gap-12 shadow-sm"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}
           >
             {/* Vänster: Eco Score Section */}
             <div className="flex-1 flex flex-col items-center justify-center">
               <EcoScoreRing score={ecoScore} />
-              <div className="flex gap-4 sm:gap-6 mt-6 pt-6 w-full max-w-sm" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="flex gap-4 sm:gap-6 mt-6 pt-6 w-full max-w-sm" style={{ borderTop: "1px solid var(--border-faint)" }}>
                 {[{ label: "Yesterday", val: "—" }, { label: "Weekly avg", val: "—" }, { label: "Best day", val: "—" }].map((s) => (
                   <div key={s.label} className="flex-1 text-center">
-                    <p className="text-white text-base font-semibold" style={{ fontFamily: "var(--font-display)" }}>{s.val}</p>
-                    <p className="text-zinc-400 text-sm mt-0.5" style={{ fontFamily: "var(--font-body)" }}>{s.label}</p>
+                    <p className="text-base font-semibold" style={{ color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>{s.val}</p>
+                    <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>{s.label}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Avdelare */}
-            <div className="hidden lg:block w-px bg-white/5" />
-            <div className="block lg:hidden h-px w-full bg-white/5" />
+            <div className="hidden lg:block w-px" style={{ background: "var(--border-faint)" }} />
+            <div className="block lg:hidden h-px w-full" style={{ background: "var(--border-faint)" }} />
 
             {/* Höger: Habits Section */}
             <div className="flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between mb-5">
-                <p className="text-zinc-400 text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-body)" }}>
+                <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
                   Today&apos;s habits
                 </p>
-                <div className="px-3 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                  <p className="text-zinc-300 text-xs font-medium" style={{ fontFamily: "var(--font-body)" }}>
+                <div className="px-3 py-1 rounded-full" style={{ background: "var(--bg-card-deep)", border: "1px solid var(--border-subtle)" }}>
+                  <p className="text-xs font-medium" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
                     {loggedToday.length} / 3 logged
                   </p>
                 </div>

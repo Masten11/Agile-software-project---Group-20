@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, ArrowRight, Sprout } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/lib/theme-context";
 
 /* ─────────── Floating label input ─────────── */
 function FloatingInput({
@@ -29,12 +30,13 @@ function FloatingInput({
         onBlur={() => setFocused(false)}
         placeholder={label}
         required
-        className="w-full rounded-2xl px-[clamp(1rem,1.5vw,1.5rem)] pt-[clamp(1.5rem,2vw,2rem)] pb-[clamp(0.75rem,1vw,1rem)] text-[clamp(1rem,1.1vw,1.125rem)] text-white outline-none placeholder-transparent"
+        className="w-full rounded-2xl px-[clamp(1rem,1.5vw,1.5rem)] pt-[clamp(1.5rem,2vw,2rem)] pb-[clamp(0.75rem,1vw,1rem)] text-[clamp(1rem,1.1vw,1.125rem)] outline-none placeholder-transparent"
         style={{
-          background: "rgba(255,255,255,0.04)",
-          border: `1px solid ${focused ? "rgba(74,222,128,0.5)" : "rgba(255,255,255,0.07)"}`,
-          boxShadow: focused ? "0 0 24px rgba(74,222,128,0.1), inset 0 0 16px rgba(74,222,128,0.03)" : "none",
+          background: "var(--bg-card)",
+          border: `1px solid ${focused ? "var(--border-active)" : "var(--border-subtle)"}`,
+          boxShadow: focused ? "0 0 24px var(--accent-green-subtle), inset 0 0 16px var(--bg-card-deep)" : "none",
           transition: "border-color 0.25s, box-shadow 0.25s",
+          color: "var(--text-primary)",
           paddingRight: right ? "50px" : "24px",
           fontFamily: "var(--font-body)",
         }}
@@ -44,7 +46,7 @@ function FloatingInput({
         top: active ? "12px" : "50%",
         transform: active ? "none" : "translateY(-50%)",
         fontSize: active ? "11px" : "16px",
-        color: active ? (focused ? "#4ade80" : "#52525b") : "#52525b",
+        color: active ? (focused ? "var(--accent-green)" : "var(--text-secondary)") : "var(--text-faint)",
         letterSpacing: active ? "0.12em" : "0",
         textTransform: active ? "uppercase" : "none",
         pointerEvents: "none", transition: "all 0.2s ease",
@@ -59,6 +61,9 @@ function FloatingInput({
 
 export default function LoginPage() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -118,10 +123,10 @@ export default function LoginPage() {
   };
 
   // Förhindrar UI-blixt av formuläret innan redirecten hinner ske
-  if (isChecking) return <div className="min-h-screen bg-[#111318]" />;
+  if (isChecking) return <div className="min-h-screen" style={{ background: "var(--bg-primary)" }} />;
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-[#111318] px-4 py-16">
+    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-16" style={{ background: "var(--bg-primary)" }}>
       {/* Logo */}
       <motion.div
         initial={{ opacity: 0, y: -16 }}
@@ -130,7 +135,7 @@ export default function LoginPage() {
         className="flex items-center gap-3 mb-10"
       >
         <Link href="/" className="flex items-center gap-3 group">
-          <Sprout className="text-green-400 w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
+          <Sprout className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" style={{ color: "var(--accent-green)" }} />
           <span
             className="gradient-text"
             style={{ fontFamily: "var(--font-display)", fontSize: "24px", letterSpacing: "0.05em" }}
@@ -151,8 +156,8 @@ export default function LoginPage() {
         <div
           className={`rounded-2xl p-[clamp(2rem,4vw,3.5rem)] w-full ${shaking ? "shake" : ""}`}
           style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.07)",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-subtle)",
           }}
         >
           <motion.div
@@ -160,11 +165,11 @@ export default function LoginPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.28 }}
           >
-            <h2 className="text-white mb-3 leading-none text-[clamp(2.5rem,4vw,4rem)]"
-              style={{ fontFamily: "var(--font-display)", letterSpacing: "0.05em" }}>
+            <h2 className="mb-3 leading-none text-[clamp(2.5rem,4vw,4rem)]"
+              style={{ color: "var(--text-primary)", fontFamily: "var(--font-display)", letterSpacing: "0.05em" }}>
               WELCOME BACK
             </h2>
-            <p className="text-zinc-400 mb-8 text-sm">Enter your details to continue</p>
+            <p className="mb-8 text-sm" style={{ color: "var(--text-secondary)" }}>Enter your details to continue</p>
 
             <form onSubmit={onLoginSubmit} className="space-y-6">
               <FloatingInput label="Email address" type="email" value={email}
@@ -176,7 +181,7 @@ export default function LoginPage() {
                 onChange={(v) => { setPassword(v); setError(""); }}
                 right={
                   <button type="button" onClick={() => setShowPw(!showPw)}
-                    className="text-zinc-400 hover:text-green-400 transition-colors">
+                    className="transition-colors hover:scale-110" style={{ color: "var(--text-muted)" }}>
                     {showPw ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 }
@@ -185,7 +190,7 @@ export default function LoginPage() {
               <AnimatePresence>
                 {error && (
                   <motion.p key="err" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }} className="text-red-400 text-sm">
+                    exit={{ opacity: 0 }} className="text-sm" style={{ color: "#ef4444" }}>
                     {error}
                   </motion.p>
                 )}
@@ -193,8 +198,8 @@ export default function LoginPage() {
               
               <motion.button
                 type="submit"
-                className="w-full rounded-2xl font-semibold text-black flex items-center justify-center gap-3 py-[clamp(1rem,1.5vw,1.25rem)] text-[clamp(1rem,1.1vw,1.125rem)]"
-                style={{ background: "#4ade80", fontFamily: "var(--font-body)" }}
+                className="w-full rounded-2xl font-semibold flex items-center justify-center gap-3 py-[clamp(1rem,1.5vw,1.25rem)] text-[clamp(1rem,1.1vw,1.125rem)] transition-colors"
+                style={{ background: "var(--accent-green)", color: isDark ? "#000" : "#fff", fontFamily: "var(--font-body)" }}
                 whileHover={{ scale: 1.015 }}
                 whileTap={{ scale: 0.97 }}
               >
@@ -203,9 +208,9 @@ export default function LoginPage() {
             </form>
           </motion.div>
 
-          <p className="text-center text-zinc-400 mt-10 text-sm">
+          <p className="text-center mt-10 text-sm" style={{ color: "var(--text-muted)" }}>
             No account?{" "}
-            <Link href="/register" className="text-green-400 hover:text-green-300 transition-colors">
+            <Link href="/register" className="transition-colors hover:underline" style={{ color: "var(--accent-green)" }}>
               Create one free
             </Link>
           </p>

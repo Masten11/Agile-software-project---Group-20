@@ -7,6 +7,7 @@ import Sidebar from "@/components/Sidebar";
 import BottomNav from "@/components/BottomNav";
 import { Shield, Moon, Sun, AlertTriangle, Check, Loader2, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/lib/theme-context";
 
 /* ─── FloatingInput ─── */
 function FloatingInput({
@@ -32,10 +33,10 @@ function FloatingInput({
         disabled={disabled}
         className="w-full rounded-2xl px-6 pt-7 pb-3 text-sm outline-none placeholder-transparent transition-colors"
         style={{
-          background: disabled ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.04)",
-          border: `1px solid ${focused ? "rgba(74,222,128,0.5)" : "rgba(255,255,255,0.07)"}`,
-          boxShadow: focused ? "0 0 24px rgba(74,222,128,0.08), inset 0 0 12px rgba(74,222,128,0.02)" : "none",
-          color: disabled ? "#71717a" : "#ffffff",
+          background: disabled ? "var(--bg-card-deep)" : "var(--bg-card)",
+          border: `1px solid ${focused ? "var(--border-active)" : "var(--border-subtle)"}`,
+          boxShadow: focused ? "0 0 24px var(--accent-green-subtle), inset 0 0 12px var(--bg-card-deep)" : "none",
+          color: disabled ? "var(--text-muted)" : "var(--text-primary)",
           cursor: disabled ? "not-allowed" : "text",
           fontFamily: "var(--font-body)",
           paddingRight: right ? "50px" : "24px",
@@ -46,7 +47,7 @@ function FloatingInput({
         top: active ? "10px" : "50%",
         transform: active ? "none" : "translateY(-50%)",
         fontSize: active ? "10px" : "14px",
-        color: disabled ? "#52525b" : active ? (focused ? "#4ade80" : "#a1a1aa") : "#52525b",
+        color: disabled ? "var(--text-faint)" : active ? (focused ? "var(--accent-green)" : "var(--text-secondary)") : "var(--text-faint)",
         letterSpacing: active ? "0.1em" : "0",
         textTransform: active ? "uppercase" : "none",
         pointerEvents: "none",
@@ -69,12 +70,13 @@ function PasswordStrength({ password }: { password: string }) {
     /[^A-Za-z0-9]/.test(password),
   ];
   const score = checks.filter(Boolean).length;
-  const colors = ["", "#f87171", "#fb923c", "#facc15", "#4ade80"];
+  // Uppdaterade den gröna till CSS-variabel för konsekvens
+  const colors = ["", "#f87171", "#fb923c", "#facc15", "var(--accent-green)"];
   if (!password) return null;
   return (
     <div className="flex gap-1 mt-2">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="h-1 flex-1 rounded-full bg-white/10 overflow-hidden">
+        <div key={i} className="h-1 flex-1 rounded-full overflow-hidden" style={{ background: "var(--bg-card-deep)" }}>
           <motion.div
             className="h-full"
             style={{ backgroundColor: i <= score ? colors[score] : "transparent" }}
@@ -93,12 +95,12 @@ function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => vo
     <button
       onClick={onToggle}
       className={`w-14 h-8 rounded-full p-1 flex items-center transition-colors duration-300 ${isDark ? "justify-end" : "justify-start"}`}
-      style={{ background: isDark ? "rgba(74,222,128,0.2)" : "rgba(255,255,255,0.1)" }}
+      style={{ background: isDark ? "var(--accent-green-border)" : "var(--border-strong)" }}
     >
       <motion.div
         layout
         className="w-6 h-6 rounded-full flex items-center justify-center shadow-sm"
-        style={{ background: isDark ? "#4ade80" : "#ffffff" }}
+        style={{ background: isDark ? "var(--accent-green)" : "#ffffff" }}
         transition={{ type: "spring", stiffness: 500, damping: 30 }}
       >
         {isDark ? <Moon size={12} color="#000" /> : <Sun size={12} color="#000" />}
@@ -108,7 +110,7 @@ function ThemeToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => vo
 }
 
 const AVATAR_GRADIENTS = [
-  { id: "green", background: "linear-gradient(135deg, #4ade80, #22d3ee)" },
+  { id: "green", background: "linear-gradient(135deg, var(--accent-green), #22d3ee)" }, // Dynamisk grön färg
   { id: "purple", background: "linear-gradient(135deg, #c084fc, #ec4899)" },
   { id: "orange", background: "linear-gradient(135deg, #fb923c, #facc15)" },
   { id: "blue", background: "linear-gradient(135deg, #60a5fa, #818cf8)" },
@@ -116,6 +118,9 @@ const AVATAR_GRADIENTS = [
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme(); // Hämta theme och toggle-funktion från Context
+  const isDark = theme === "dark";
+
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -141,9 +146,6 @@ export default function SettingsPage() {
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [isSavingSecurity, setIsSavingSecurity] = useState(false);
-
-  // Preferences
-  const [isDark, setIsDark] = useState(true);
 
   // Avgör om profilen har ändrats
   const isDirty = 
@@ -300,28 +302,28 @@ export default function SettingsPage() {
   const avatarLetter = firstName ? firstName.charAt(0).toUpperCase() : email.charAt(0).toUpperCase();
   const isProfileBtnDisabled = isSavingProfile || !isDirty;
 
-  if (loading) return <div className="flex h-screen bg-[#111318] items-center justify-center"><Loader2 className="animate-spin text-green-400" size={32} /></div>;
+  if (loading) return <div className="flex h-screen items-center justify-center" style={{ background: "var(--bg-primary)" }}><Loader2 className="animate-spin" style={{ color: "var(--accent-green)" }} size={32} /></div>;
 
   return (
-    <div className="flex h-screen bg-[#111318] overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg-primary)" }}>
       <Sidebar />
       <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
         <div className="max-w-5xl mx-auto px-6 py-10">
           <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-            <h1 className="text-white leading-none mb-1 uppercase" style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px,3vw,40px)" }}>SETTINGS</h1>
-            <p className="text-zinc-400 text-sm" style={{ fontFamily: "var(--font-body)" }}>Manage your account and preferences</p>
+            <h1 className="leading-none mb-1 uppercase" style={{ color: "var(--text-primary)", fontFamily: "var(--font-display)", fontSize: "clamp(28px,3vw,40px)" }}>SETTINGS</h1>
+            <p className="text-sm" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>Manage your account and preferences</p>
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             {/* LEFT COLUMN */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-3 space-y-6">
-              <div className="rounded-2xl p-6 md:p-8 flex flex-col justify-between h-full" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
+              <div className="rounded-2xl p-6 md:p-8 flex flex-col justify-between h-full" style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
                 <div>
                   <div className="flex items-center gap-4 mb-8">
-                    <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-black" style={{ background: activeGradient }}>{avatarLetter}</div>
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white shadow-md" style={{ background: activeGradient }}>{avatarLetter}</div>
                     <div>
-                      <h2 className="text-white font-medium" style={{ fontFamily: "var(--font-body)" }}>Profile Picture</h2>
-                      <p className="text-zinc-500 text-xs mt-1">Visible on leaderboard and socials</p>
+                      <h2 className="font-medium" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>Profile Picture</h2>
+                      <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Visible on leaderboard and socials</p>
                     </div>
                   </div>
                   <form id="profile-form" onSubmit={handleSaveProfile} className="space-y-5">
@@ -332,7 +334,7 @@ export default function SettingsPage() {
                     </div>
                     <FloatingInput label="Username" value={username} onChange={setUsername} />
                     <div className="pt-2">
-                      <p className="text-xs text-zinc-500 tracking-widest uppercase mb-3">Choose accent color</p>
+                      <p className="text-xs tracking-widest uppercase mb-3" style={{ color: "var(--text-muted)" }}>Choose accent color</p>
                       <div className="flex gap-3">
                         {AVATAR_GRADIENTS.map((g) => (
                           <button 
@@ -342,7 +344,7 @@ export default function SettingsPage() {
                             className="w-8 h-8 rounded-full transition-transform duration-200" 
                             style={{ 
                               background: g.background, 
-                              border: activeGradient === g.background ? "2px solid white" : "2px solid transparent", 
+                              border: activeGradient === g.background ? "2px solid var(--text-primary)" : "2px solid transparent", 
                               transform: activeGradient === g.background ? "scale(1.15)" : "scale(1)" 
                             }} 
                           />
@@ -360,8 +362,8 @@ export default function SettingsPage() {
                         initial={{ opacity: 0, x: 10 }} 
                         animate={{ opacity: 1, x: 0 }} 
                         exit={{ opacity: 0 }}
-                        className="text-sm flex items-center gap-1.5 text-green-400"
-                        style={{ fontFamily: "var(--font-body)" }}
+                        className="text-sm flex items-center gap-1.5"
+                        style={{ color: "var(--accent-green)", fontFamily: "var(--font-body)" }}
                       >
                         <Check size={14} />
                         {profileMessage.text}
@@ -375,8 +377,9 @@ export default function SettingsPage() {
                     disabled={isProfileBtnDisabled} 
                     className="w-40 rounded-xl font-semibold px-6 py-2.5 text-sm transition-all duration-200 flex items-center justify-center gap-2 hover:scale-105 active:scale-95 disabled:hover:scale-100 disabled:active:scale-100"
                     style={{ 
-                      background: isProfileBtnDisabled ? "#27272a" : "#4ade80",
-                      color: isProfileBtnDisabled ? "#a1a1aa" : "#000000",
+                      background: isProfileBtnDisabled ? "var(--bg-elevated)" : "var(--accent-green)",
+                      border: isProfileBtnDisabled ? "1px solid var(--border-subtle)" : "1px solid transparent",
+                      color: isProfileBtnDisabled ? "var(--text-muted)" : (isDark ? "#000000" : "#ffffff"),
                       fontFamily: "var(--font-body)",
                     }}
                   >
@@ -390,24 +393,32 @@ export default function SettingsPage() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-2 space-y-6">
               
               {/* Appearance */}
-              <div className="rounded-2xl p-6" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                <h3 className="text-white font-medium mb-4 flex items-center gap-2"><Sun size={16} className="text-zinc-400" /> Appearance</h3>
-                <div className="flex items-center justify-between p-4 rounded-xl" style={{ background: "rgba(255,255,255,0.02)" }}>
-                  <p className="text-sm text-white">Dark Mode</p>
-                  <ThemeToggle isDark={isDark} onToggle={() => setIsDark(!isDark)} />
+              <div className="rounded-2xl p-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
+                <h3 className="font-medium mb-4 flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
+                  <Sun size={16} style={{ color: "var(--text-muted)" }} /> Appearance
+                </h3>
+                <div className="flex items-center justify-between p-4 rounded-xl" style={{ background: "var(--bg-card-deep)" }}>
+                  <p className="text-sm" style={{ color: "var(--text-primary)" }}>Dark Mode</p>
+                  <ThemeToggle isDark={isDark} onToggle={toggleTheme} />
                 </div>
               </div>
 
               {/* Security */}
-              <div className="rounded-2xl p-6" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                <h3 className="text-white font-medium mb-4 flex items-center gap-2"><Shield size={16} className="text-zinc-400" /> Security</h3>
+              <div className="rounded-2xl p-6" style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
+                <h3 className="font-medium mb-4 flex items-center gap-2" style={{ color: "var(--text-primary)" }}>
+                  <Shield size={16} style={{ color: "var(--text-muted)" }} /> Security
+                </h3>
                 <form onSubmit={handleSavePassword} className="space-y-4">
                   <FloatingInput 
                     label="Current Password" 
                     type={showCurrentPw ? "text" : "password"} 
                     value={currentPassword} 
                     onChange={setCurrentPassword} 
-                    right={<button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} className="text-zinc-500 hover:text-green-400 transition-colors">{showCurrentPw ? <EyeOff size={18} /> : <Eye size={18} />}</button>}
+                    right={
+                      <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} className="transition-colors" style={{ color: "var(--text-muted)" }}>
+                        {showCurrentPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    }
                   />
                   <div className="space-y-2">
                     <FloatingInput 
@@ -415,14 +426,23 @@ export default function SettingsPage() {
                       type={showNewPw ? "text" : "password"} 
                       value={newPassword} 
                       onChange={setNewPassword} 
-                      right={<button type="button" onClick={() => setShowNewPw(!showNewPw)} className="text-zinc-500 hover:text-green-400 transition-colors">{showNewPw ? <EyeOff size={18} /> : <Eye size={18} />}</button>}
+                      right={
+                        <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="transition-colors" style={{ color: "var(--text-muted)" }}>
+                          {showNewPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      }
                     />
                     <PasswordStrength password={newPassword} />
                   </div>
                   <button 
                     type="submit" 
                     disabled={isSavingSecurity || newPassword.length < 8 || !currentPassword} 
-                    className="w-full rounded-xl text-white px-4 py-3 text-sm transition-all hover:bg-white/10 border border-white/10 bg-white/5 disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full rounded-xl px-4 py-3 text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{ 
+                      background: "var(--bg-card-deep)", 
+                      border: "1px solid var(--border-faint)",
+                      color: "var(--text-primary)" 
+                    }}
                   >
                     {isSavingSecurity ? <Loader2 size={16} className="animate-spin" /> : "Update Password"}
                   </button>
@@ -431,14 +451,15 @@ export default function SettingsPage() {
 
               {/* Danger Zone */}
               <div className="rounded-2xl p-6 mt-auto" style={{ background: "rgba(248,113,113,0.03)", border: "1px solid rgba(248,113,113,0.15)" }}>
-                <h3 className="text-red-400 font-medium mb-2 flex items-center gap-2"><AlertTriangle size={16} /> Danger Zone</h3>
-                <p className="text-xs text-zinc-500 mb-5 leading-relaxed">
+                <h3 className="text-red-500 font-medium mb-2 flex items-center gap-2"><AlertTriangle size={16} /> Danger Zone</h3>
+                <p className="text-xs mb-5 leading-relaxed" style={{ color: "var(--text-muted)" }}>
                   Deleting your account permanently removes all your data, Eco Score, and history. There is no going back.
                 </p>
                 <button
                   type="button"
                   onClick={() => setShowDeleteModal(true)}
-                  className="w-full rounded-xl text-red-400 px-4 py-3 text-sm transition-all hover:bg-red-500/10 border border-red-400/20"
+                  className="w-full rounded-xl px-4 py-3 text-sm transition-all hover:bg-red-500/10 border"
+                  style={{ color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.2)" }}
                 >
                   Delete Account
                 </button>
@@ -447,6 +468,7 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
+      
       <AnimatePresence>
         {showDeleteModal && (
           <>
@@ -456,7 +478,8 @@ export default function SettingsPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowDeleteModal(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+              className="fixed inset-0 backdrop-blur-sm z-50"
+              style={{ background: isDark ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.6)" }}
             />
 
             {/* Modal */}
@@ -468,24 +491,25 @@ export default function SettingsPage() {
               className="fixed inset-0 z-50 flex items-center justify-center px-6"
             >
               <div
-                className="w-full max-w-md rounded-2xl p-6"
+                className="w-full max-w-md rounded-2xl p-6 shadow-xl"
                 style={{
-                  background: "#18181b",
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "var(--bg-elevated)",
+                  border: "1px solid var(--border-subtle)",
                 }}
               >
-                <h3 className="text-white text-lg font-semibold mb-2">
+                <h3 className="text-lg font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
                   Delete Account?
                 </h3>
 
-                <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+                <p className="text-sm leading-relaxed mb-6" style={{ color: "var(--text-secondary)" }}>
                   Are you sure you want to delete your account? All your data, including your logs, Eco Score, and settings, will be permanently removed. This action cannot be undone.
                 </p>
 
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowDeleteModal(false)}
-                    className="flex-1 rounded-xl py-3 text-sm text-zinc-300 border border-white/10 hover:bg-white/5 transition-all"
+                    className="flex-1 rounded-xl py-3 text-sm transition-all border"
+                    style={{ color: "var(--text-primary)", borderColor: "var(--border-subtle)", background: "var(--bg-card)" }}
                   >
                     Cancel
                   </button>
@@ -493,7 +517,8 @@ export default function SettingsPage() {
                   <button
                     onClick={handleDeleteAccount}
                     disabled={isDeleting}
-                    className="flex-1 rounded-xl py-3 text-sm text-red-400 border border-red-400/20 hover:bg-red-500/10 transition-all disabled:opacity-50"
+                    className="flex-1 rounded-xl py-3 text-sm transition-all disabled:opacity-50 border hover:bg-red-500/10"
+                    style={{ color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.2)" }}
                   >
                     {isDeleting ? "Deleting..." : "Delete"}
                   </button>
