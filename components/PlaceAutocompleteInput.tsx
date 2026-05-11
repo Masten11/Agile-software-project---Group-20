@@ -56,14 +56,17 @@ export default function PlaceAutocompleteInput({
   }
 
   if (!isLoaded) {
-    return <p className="text-sm text-gray-500">Loading location search...</p>;
+    return <p className="text-sm text-zinc-500">Loading location search...</p>;
   }
 
   return (
-    <div className="space-y-3"> {/* Ökade avståndet något för att matcha designen */}
+    <div className="space-y-3">
       <p 
-        className="text-xs text-zinc-500 tracking-widest uppercase"
-        style={{ fontFamily: "var(--font-body)" }}
+        className="text-xs tracking-widest uppercase"
+        style={{ 
+          color: "var(--text-muted)", 
+          fontFamily: "var(--font-body)" 
+        }}
       >
         {label}
       </p>
@@ -83,13 +86,15 @@ export default function PlaceAutocompleteInput({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          className="w-full flex items-center justify-between px-5 py-4 rounded-2xl text-sm outline-none focus:ring-1 focus:ring-[#4ade80]/50 transition-all duration-200"
+          className="w-full flex items-center justify-between px-5 py-4 rounded-2xl text-sm outline-none transition-all duration-200"
           style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            color: "#ffffff",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-subtle)",
+            color: "var(--text-primary)",
             fontFamily: "var(--font-body)",
           }}
+          onFocus={(e) => (e.target.style.borderColor = "var(--border-active)")}
+          onBlur={(e) => (e.target.style.borderColor = "var(--border-subtle)")}
         />
       </Autocomplete>
     </div>

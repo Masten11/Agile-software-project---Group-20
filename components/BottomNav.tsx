@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Leaf, Trophy, Settings, Users } from "lucide-react";
+import { useTheme } from "@/lib/theme-context";
 
 const leftItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Home" },
-  { href: "/dashboard/socials", icon: Users, label: "Socials" }, // <-- Ändrad till Socials
+  { href: "/dashboard/socials", icon: Users, label: "Socials" },
 ];
 
 const rightItems = [
@@ -16,6 +17,8 @@ const rightItems = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const NavItem = ({ href, icon: Icon, label }: { href: string; icon: React.ElementType; label: string }) => {
     const active = pathname === href;
@@ -24,10 +27,10 @@ export default function BottomNav() {
         href={href}
         className="flex flex-col items-center justify-center gap-1 flex-1 py-2 transition-all duration-200"
       >
-        <Icon size={20} style={{ color: active ? "#4ade80" : "#52525b" }} className="transition-colors duration-200" />
+        <Icon size={20} style={{ color: active ? "var(--accent-green)" : "var(--text-muted)" }} className="transition-colors duration-200" />
         <span
           className="text-xs transition-colors duration-200"
-          style={{ fontFamily: "var(--font-body)", color: active ? "#4ade80" : "#52525b" }}
+          style={{ fontFamily: "var(--font-body)", color: active ? "var(--accent-green)" : "var(--text-muted)" }}
         >
           {label}
         </span>
@@ -41,10 +44,10 @@ export default function BottomNav() {
     <nav
       className="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between px-2"
       style={{
-        background: "rgba(17, 19, 24, 0.95)",
+        background: isDark ? "rgba(17, 19, 24, 0.95)" : "rgba(244, 244, 245, 0.95)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
-        borderTop: "1px solid rgba(255,255,255,0.07)",
+        borderTop: "1px solid var(--border-subtle)",
         height: "64px",
       }}
     >
@@ -64,19 +67,19 @@ export default function BottomNav() {
             width: "48px",
             height: "36px",
             background: logActive
-              ? "linear-gradient(135deg, #4ade80, #22d3ee)"
-              : "linear-gradient(135deg, rgba(74,222,128,0.2), rgba(34,211,238,0.2))",
-            border: `1px solid ${logActive ? "transparent" : "rgba(74,222,128,0.3)"}`,
-            boxShadow: logActive ? "0 0 16px rgba(74,222,128,0.4)" : "0 0 8px rgba(74,222,128,0.15)",
+              ? "linear-gradient(135deg, var(--accent-green), #22d3ee)"
+              : "var(--accent-green-dim)",
+            border: `1px solid ${logActive ? "transparent" : "var(--accent-green-border)"}`,
+            boxShadow: logActive ? "0 0 16px var(--accent-green-glow)" : "0 0 8px var(--accent-green-subtle)",
           }}
         >
-          <Leaf size={20} style={{ color: logActive ? "#000" : "#ffffff" }} />
+          <Leaf size={20} style={{ color: logActive ? (isDark ? "#000" : "#fff") : "var(--text-primary)" }} />
         </div>
         <span
           className="text-xs"
           style={{
             fontFamily: "var(--font-body)",
-            color: logActive ? "#4ade80" : "#a1a1aa",
+            color: logActive ? "var(--accent-green)" : "var(--text-secondary)",
             opacity: 1,
           }}
         >
