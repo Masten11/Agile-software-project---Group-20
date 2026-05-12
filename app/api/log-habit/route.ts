@@ -10,13 +10,13 @@ export async function POST(request: NextRequest) {
     // Skapa Supabase-klienten och validera att användaren är inloggad
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
     if (authError || !user) {
       return NextResponse.json(
         { error: 'you have not logged in' },
         { status: 401 } // 401 Unauthorized
       );
     }
+
 
     const rawBody = await request.json();
 
