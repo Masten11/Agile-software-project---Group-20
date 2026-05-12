@@ -3,7 +3,8 @@ import { SupabaseClient } from '@supabase/supabase-js/dist/index.mjs';
 export enum Category {
   Transportation = 'transport', //Add more categories here
   Shower = 'shower',
-  Dishwasher = 'dishwasher'
+  Dishwasher = 'dishwasher',
+  WashingMachine = 'washing_machine',
 }
 
 export type LogHabitRequest = {
