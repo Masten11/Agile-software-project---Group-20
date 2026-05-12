@@ -822,15 +822,15 @@ export default function DashboardPage() {
         if (user) {
           const { data: history } = await supabase
             .from("eco_activities")
-            .select("activity_date")
+            .select("day")
             .eq("user_id", user.id)
-            .order("activity_date", { ascending: false });
+            .order("day", { ascending: false });
 
           if (history && history.length > 0) {
             const uniqueDates = Array.from(
               new Set(
                 history.map((row) => {
-                  const d = new Date(row.activity_date);
+                  const d = new Date(row.day);
                   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
                   return d.toISOString().split("T")[0];
                 })

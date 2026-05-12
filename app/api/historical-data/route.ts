@@ -71,9 +71,9 @@ export async function GET() {
 
     const { data: rawData, error: rawError } = await supabase
       .from('eco_activities')
-      .select('activity_date, co2_kg, water_l')
+      .select('day, co2_kg, water_l')
       .eq('user_id', user.id)
-      .gte('activity_date', fromDate);
+      .gte('day', fromDate);
 
     if (rawError) throw rawError;
 
@@ -84,7 +84,7 @@ export async function GET() {
     const weeklyMap = new Map<string, number>(last7Days.map(d => [d.dateStr, 0]));
 
     for (const row of rows) {
-      const dateStr = row.activity_date?.split('T')[0];
+      const dateStr = row.day?.split('T')[0];
       if (!dateStr || !weeklyMap.has(dateStr)) continue;
       weeklyMap.set(dateStr, (weeklyMap.get(dateStr) ?? 0) + toNumber(row.co2_kg));
     }
@@ -98,7 +98,7 @@ export async function GET() {
     const monthlyTotals = new Array(5).fill(0);
 
     for (const row of rows) {
-      const dateStr = row.activity_date?.split('T')[0];
+      const dateStr = row.day?.split('T')[0];
       if (!dateStr) continue;
       for (let i = 0; i < last5Weeks.length; i++) {
         if (dateStr >= last5Weeks[i].weekStart && dateStr <= last5Weeks[i].weekEnd) {
@@ -117,7 +117,7 @@ export async function GET() {
     const yearlyTotals = new Array(12).fill(0);
 
     for (const row of rows) {
-      const dateStr = row.activity_date?.split('T')[0];
+      const dateStr = row.day?.split('T')[0];
       if (!dateStr) continue;
       const d = new Date(dateStr);
       for (let i = 0; i < last12Months.length; i++) {
@@ -138,7 +138,7 @@ export async function GET() {
     const waterYearlyTotals = new Array(12).fill(0);
 
     for (const row of rows) {
-      const dateStr = row.activity_date?.split('T')[0];
+      const dateStr = row.day?.split('T')[0];
       if (!dateStr) continue;
       const water = toNumber(row.water_l);
 
@@ -181,7 +181,7 @@ export async function GET() {
     /* ── Today total ── */
     const todayStr = new Date().toISOString().split('T')[0];
     const todayTotal = rows
-      .filter(r => r.activity_date?.split('T')[0] === todayStr)
+      .filter(r => r.day?.split('T')[0] === todayStr)
       .reduce((sum, r) => sum + toNumber(r.co2_kg), 0);
 
     return NextResponse.json({

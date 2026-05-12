@@ -26,12 +26,21 @@ export async function GET() {
       .from("eco_activities")
       .select("category, co2_kg")
       .eq("user_id", user.id)
-      .gte("activity_date", today);
+      .eq("day", today);
+
+    const { data: latestScore } = await supabase
+    .from("eco_score_log")
+    .select("score")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false }) // Get the absolute newest entry
+    .limit(1)
+    .maybeSingle();
 
     // Send all the data back as one neat package
     return NextResponse.json({
       firstName: profile?.first_name || "USER",
-      activities: activities || []
+      activities: activities || [],
+      ecoScore: latestScore?.score ?? 500 // Return the score
     }, { status: 200 });
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
