@@ -16,7 +16,7 @@ export async function GET() {
     //  Fetch the user's profile
     const { data: profile } = await supabase
       .from("profiles")
-      .select("first_name")
+      .select("first_name, eco_score")
       .eq("id", user.id)
       .single();
 
@@ -27,20 +27,13 @@ export async function GET() {
       .select("category, co2_kg")
       .eq("user_id", user.id)
       .eq("day", today);
-
-    const { data: latestScore } = await supabase
-    .from("eco_score_log")
-    .select("score")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false }) // Get the absolute newest entry
-    .limit(1)
-    .maybeSingle();
+   
 
     // Send all the data back as one neat package
     return NextResponse.json({
       firstName: profile?.first_name || "USER",
       activities: activities || [],
-      ecoScore: latestScore?.score ?? 500 // Return the score
+      ecoScore: profile?.eco_score ?? 500 // Return the score
     }, { status: 200 });
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
