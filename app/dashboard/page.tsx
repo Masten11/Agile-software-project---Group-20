@@ -802,6 +802,10 @@ export default function DashboardPage() {
 
         if (data.firstName) setFirstName(data.firstName.toUpperCase());
 
+        if (data.ecoScore !== undefined) {
+          setEcoScore(data.ecoScore);
+        }
+        
         if (data.activities && data.activities.length > 0) {
           const uniqueCategories = Array.from(
             new Set(data.activities.map((a: { category: string }) => {
@@ -812,10 +816,6 @@ export default function DashboardPage() {
           );
           setLoggedToday(uniqueCategories as string[]);
           
-          const totalEmissions = data.activities.reduce(
-            (sum: number, act: { co2_emissions_kg?: number | string }) => sum + Number(act.co2_emissions_kg || 0), 0
-          );
-          setEcoScore(Math.max(0, Math.round(1000 - totalEmissions * 50)));
         }
 
         // --- STREAK CALCULATION LOGIC ---
