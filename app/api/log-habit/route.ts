@@ -3,6 +3,7 @@ import { createClient } from '../../../lib/supabaseServer';
 import { parseLogHabitRequest } from '../../../utils/payload_parsing';
 import { InvalidPayloadError, UnsupportedCategoryError } from '../../../utils/custom-errors';
 import { getHabitHandler } from '../../../utils/habit-handlers';
+import { resolveDayFromOffset } from '../../../utils/log-habit-day';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,12 +18,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Plocka ut hela body (inklusive datumet som frontenden nu skickar med)
     const rawBody = await request.json();
-    const date = rawBody.date; // <--- Hämta ut datumet!
 
-    // Confirms data is of type {category: Category, body: unknown}
+    // Confirms data is of type { category: Category, dayOffset: 0 | 1, body: unknown }
     const payload = parseLogHabitRequest(rawBody);
+    const day = resolveDayFromOffset(payload.dayOffset);
 
     const handler = getHabitHandler(payload.category);
     const parsed = handler.parse(payload.body); // Assures that the body is of the correct type for the category
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       userId: user.id, 
       supabase, 
       category: payload.category,
-      date, // <--- Skicka med datumet in till store-funktionen!
+      day,
     }); 
 
     // Return the saved row from the database

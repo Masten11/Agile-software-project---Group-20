@@ -16,6 +16,7 @@ type BackendCategory = "transport" | "shower" | "dishwasher" | "energy";
 
 // UI:t visar dessa flikar:
 type UiTab = "transport" | "water" | "energy";
+type DateOffset = 0 | 1;
 
 type Log = {
   id: string;
@@ -24,20 +25,15 @@ type Log = {
   co2_kg: number;
   water_l?: number;
   energy_kwh?: number;
-  activity_date: string;
+  day: string;
+  created_at: string;
 };
 
 /* ─── Date options ─── */
-const DATE_OPTIONS = [
+const DATE_OPTIONS: { label: string; offset: DateOffset }[] = [
   { label: "Today", offset: 0 },
   { label: "Yesterday", offset: 1 },
 ];
-
-function getDateWithOffset(offset: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - offset);
-  return d.toISOString().split("T")[0];
-}
 
 const TIPS: Record<UiTab, string> = {
   transport: "Taking the train instead of driving saves ~5× more CO₂ per trip.",
@@ -116,11 +112,9 @@ function CategoryIcon({
 }
 
 /* ─── Transport form ─── */
-function TransportForm({ selectedDate, onSuccess }: { selectedDate: string, onSuccess: () => void }) {
+function TransportForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSuccess: () => void }) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [fromPlace, setFromPlace] = useState<any>({});
-  const [toPlace, setToPlace] = useState<any>({});
   const [mode, setMode] = useState("");
   const [modeOpen, setModeOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -142,25 +136,17 @@ function TransportForm({ selectedDate, onSuccess }: { selectedDate: string, onSu
     setSubmitting(true);
     setError(null);
 
-    const fullTimestamp = `${selectedDate}T${new Date().toISOString().split('T')[1]}`;
-
     try {
       const response = await fetch("/api/log-habit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category: "transport",
-          date: fullTimestamp, 
+          dayOffset,
           body: {
             start: from,
             destination: to,
             transportMode: mode.toLowerCase(),
-            startPlaceId: fromPlace.placeId,
-            startLat: fromPlace.lat,
-            startLng: fromPlace.lng,
-            destinationPlaceId: toPlace.placeId,
-            destinationLat: toPlace.lat,
-            destinationLng: toPlace.lng,
           },
         }),
       });
@@ -174,14 +160,12 @@ function TransportForm({ selectedDate, onSuccess }: { selectedDate: string, onSu
 
       setFrom("");
       setTo("");
-      setFromPlace({});
-      setToPlace({});
       setMode("");
       onSuccess();
     } catch {
-      setError("Failed to log habit. Please try again.");
+        setError("Failed to log habit. Please try again.");
     } finally {
-      setSubmitting(false);
+        setSubmitting(false);
     }
   };
 
@@ -192,7 +176,7 @@ function TransportForm({ selectedDate, onSuccess }: { selectedDate: string, onSu
         value={from}
         placeholder="Search start location, e.g. Borås"
         onChange={(value) => { setFrom(value); setError(null); }}
-        onPlaceSelected={(place) => { setFrom(place.address); setFromPlace(place); setError(null); }}
+        onPlaceSelected={(place) => { setFrom(place.address); setError(null); }}
       />
 
       <PlaceAutocompleteInput
@@ -200,7 +184,7 @@ function TransportForm({ selectedDate, onSuccess }: { selectedDate: string, onSu
         value={to}
         placeholder="Search destination"
         onChange={(value) => { setTo(value); setError(null); }}
-        onPlaceSelected={(place) => { setTo(place.address); setToPlace(place); setError(null); }}
+        onPlaceSelected={(place) => { setTo(place.address); setError(null); }}
       />
 
       <div>
@@ -272,7 +256,7 @@ function TransportForm({ selectedDate, onSuccess }: { selectedDate: string, onSu
 }
 
 /* ─── Water form ─── */
-function WaterForm({ selectedDate, onSuccess }: { selectedDate: string; onSuccess: () => void }) {
+function WaterForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSuccess: () => void }) {
   const [type, setType] = useState<"shower" | "dishwasher" | "">("");
   const [minutes, setMinutes] = useState("");
   const [usesEcoMode, setUsesEcoMode] = useState(false);
@@ -292,8 +276,6 @@ function WaterForm({ selectedDate, onSuccess }: { selectedDate: string; onSucces
     setSubmitting(true);
     setError(null);
 
-    const fullTimestamp = `${selectedDate}T${new Date().toISOString().split('T')[1]}`;
-
     try {
       const payloadBody = type === "shower" 
         ? { minutes: Number(minutes) }
@@ -304,7 +286,7 @@ function WaterForm({ selectedDate, onSuccess }: { selectedDate: string; onSucces
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category: type,
-          date: fullTimestamp,
+          dayOffset,
           body: payloadBody,
         }),
       });
@@ -454,7 +436,7 @@ export default function LogPage() {
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [dateOffset, setDateOffset] = useState(0);
+  const [dateOffset, setDateOffset] = useState<DateOffset>(0);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -478,8 +460,6 @@ export default function LogPage() {
     { id: "energy", label: "Energy", available: true },
   ];
 
-  const selectedDate = getDateWithOffset(dateOffset);
-
   // Mappa loggarnas backend-kategori till UI-kategori för indikatorerna
   const loggedUiTabs = [...new Set(logs.map((l) => {
     if (l.category === "shower" || l.category === "dishwasher") return "water";
@@ -494,16 +474,12 @@ export default function LogPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const startOfDay = `${selectedDate}T00:00:00.000Z`;
-        const endOfDay = `${selectedDate}T23:59:59.999Z`;
-
+        const habitsView = dateOffset === 0 ? "view_today_habits" : "view_yesterday_habits";
         const { data } = await supabase
-          .from("eco_activities")
-          .select("id, category, details, co2_kg, water_l, energy_kwh, activity_date") 
+          .from(habitsView)
+          .select("id, category, details, co2_kg, water_l, energy_kwh, day, created_at")
           .eq("user_id", user.id)
-          .gte("activity_date", startOfDay)
-          .lte("activity_date", endOfDay)
-          .order("activity_date", { ascending: false });
+          .order("created_at", { ascending: false });
 
         const mapped: Log[] = (data || []).map((row: any) => ({
           id: row.id,
@@ -512,7 +488,8 @@ export default function LogPage() {
           co2_kg: row.co2_kg,
           water_l: row.water_l,
           energy_kwh: row.energy_kwh,
-          activity_date: row.activity_date,
+          day: row.day,
+          created_at: row.created_at,
         }));
 
         setLogs(mapped);
@@ -524,7 +501,7 @@ export default function LogPage() {
     };
 
     loadLogs();
-  }, [selectedDate, refreshTrigger]);
+  }, [dateOffset, refreshTrigger]);
 
   const handleDelete = async (id: string) => {
     setDeleting(id);
@@ -567,8 +544,8 @@ export default function LogPage() {
               <AnimatePresence>
                 {dateDropdownOpen && (
                   <motion.div initial={{ opacity: 0, y: 6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6, scale: 0.97 }} transition={{ duration: 0.15 }} className="absolute right-0 top-full mt-2 rounded-xl overflow-hidden z-50 shadow-xl" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-strong)", minWidth: "140px" }}>
-                    {DATE_OPTIONS.map((opt, i) => (
-                      <button key={opt.label} onClick={() => { setLoading(true); setDateOffset(i); setDateDropdownOpen(false); }} className="w-full px-4 py-2.5 text-sm text-left transition-colors duration-150 hover:bg-black/5 dark:hover:bg-white/5" style={{ color: dateOffset === i ? "var(--accent-green)" : "var(--text-secondary)", background: dateOffset === i ? "var(--accent-green-subtle)" : "transparent", fontFamily: "var(--font-body)" }}>
+                    {DATE_OPTIONS.map((opt) => (
+                      <button key={opt.label} onClick={() => { setLoading(true); setDateOffset(opt.offset); setDateDropdownOpen(false); }} className="w-full px-4 py-2.5 text-sm text-left transition-colors duration-150 hover:bg-black/5 dark:hover:bg-white/5" style={{ color: dateOffset === opt.offset ? "var(--accent-green)" : "var(--text-secondary)", background: dateOffset === opt.offset ? "var(--accent-green-subtle)" : "transparent", fontFamily: "var(--font-body)" }}>
                         {opt.label}
                       </button>
                     ))}
@@ -621,8 +598,8 @@ export default function LogPage() {
 
                 <AnimatePresence mode="wait">
                   <motion.div key={activeCategory} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.22 }}>
-                    {activeCategory === "transport" && <TransportForm selectedDate={selectedDate} onSuccess={() => setRefreshTrigger((p) => p + 1)} />}
-                    {activeCategory === "water" && <WaterForm selectedDate={selectedDate} onSuccess={() => setRefreshTrigger((p) => p + 1)} />}
+                    {activeCategory === "transport" && <TransportForm dayOffset={dateOffset} onSuccess={() => setRefreshTrigger((p) => p + 1)} />}
+                    {activeCategory === "water" && <WaterForm dayOffset={dateOffset} onSuccess={() => setRefreshTrigger((p) => p + 1)} />}
                     {activeCategory === "energy" && <ComingSoon category="energy" />}
                   </motion.div>
                 </AnimatePresence>
