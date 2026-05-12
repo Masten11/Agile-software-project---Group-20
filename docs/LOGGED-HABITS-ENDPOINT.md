@@ -1,25 +1,23 @@
 # Logged Habits Endpoint
 
-`GET /api/logged-habits` returns the authenticated user's emission entries logged during the current date, grouped by category.
+`GET /api/logged-habits` returns the authenticated user's logged habits for today, grouped by known category.
 
 Main entrypoint: `app/api/logged-habits/route.ts`
 
 ## Request Lifecycle
 
 1. **Auth**  
-   Validate authenticated user with `supabase.auth.getUser()`.
+   Validate the authenticated user with `supabase.auth.getUser()`.
 2. **Fetch**  
-   Read rows from `view_today_details` filtered by `user_id`.
+   Read rows from `view_today_habits` filtered by `user_id`.
 3. **Validate + Group**  
-   Validate every row category against known API categories, then group rows by category key.
+   Validate each row category against the API contract, then group the rows by category.
 4. **Respond**  
-   Return grouped object with all known categories present.
+   Return an object with all known categories present.
 
 ## Data Source
 
-Uses view `view_today_details` described in `database.md`.
-
-Selected columns:
+The endpoint reads from `view_today_habits`, which exposes:
 
 - `id`
 - `user_id`
@@ -28,15 +26,26 @@ Selected columns:
 - `water_l`
 - `energy_kwh`
 - `details`
+- `day`
 - `created_at`
+
+`day` is the calendar day the habit belongs to.  
+`created_at` is the exact timestamp when the row was inserted.
 
 ## Response Contract
 
-Current response shape:
+The response is grouped by known category keys:
 
-- `{ transport: EmissionRow[] }`
+```ts
+type LoggedHabitsResponse = {
+  transport: EcoActivityRow[];
+  shower: EcoActivityRow[];
+  dishwasher: EcoActivityRow[];
+};
+```
 
-`EmissionRow` in this endpoint includes:
+Each `EcoActivityRow` includes:
+
 - `id`
 - `user_id`
 - `category`
@@ -44,10 +53,11 @@ Current response shape:
 - `water_l`
 - `energy_kwh`
 - `details`
+- `day`
 - `created_at`
 
-Behavior details:
+## Behavior Notes
 
-- Always includes `transport` key, even when no rows exist for today (`transport: []`).
-- Throws an error if any row category is unknown to the API contract.
-- Unknown category mismatch returns `500` to surface schema/category drift quickly.
+- The endpoint always returns all known category keys, even when some arrays are empty.
+- Unknown category rows are treated as schema drift and return `500`.
+- The data source is already ordered within the day by `created_at DESC`.

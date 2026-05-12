@@ -71,8 +71,8 @@ export default function HomePage() {
         style={{ background: isDark ? "rgba(17,19,24,0.85)" : "rgba(244,244,245,0.85)", backdropFilter: "blur(16px)", borderBottom: "1px solid var(--border-subtle)" }}>
         <Link href="/" className="flex items-center gap-2.5 group">
           <Sprout className="w-6 h-6 group-hover:scale-110 transition-transform duration-200" style={{ color: "var(--accent-green)" }} />
-          <span className="gradient-text font-bold tracking-widest"
-            style={{ fontFamily: "var(--font-display)", fontSize: "18px" }}>
+          <span className="font-bold tracking-widest"
+            style={{ color: "var(--accent-green)", fontFamily: "var(--font-display)", fontSize: "18px" }}>
             ECO TRACKER
           </span>
         </Link>
@@ -85,7 +85,6 @@ export default function HomePage() {
             </Link>
           ) : (
             <>
-              {/* Sign in hidden on mobile */}
               <Link href="/login"
                 className="hidden sm:block text-sm transition-colors px-4 py-2 hover:opacity-70"
                 style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
@@ -113,8 +112,8 @@ export default function HomePage() {
             🌿 Track your habits. Help the planet.
           </div>
 
-          <h1 className="gradient-text leading-none mb-6"
-            style={{ fontFamily: "var(--font-display)", fontSize: "clamp(3.5rem, 9vw, 8rem)", letterSpacing: "-0.01em" }}>
+          <h1 className="leading-none mb-6"
+            style={{ color: "var(--accent-green)", fontFamily: "var(--font-display)", fontSize: "clamp(3.5rem, 9vw, 8rem)", letterSpacing: "-0.01em" }}>
             YOUR DAILY<br />CHOICES MATTER
           </h1>
 
@@ -202,7 +201,6 @@ export default function HomePage() {
               <div className="rounded-2xl p-6 sm:p-8 flex flex-col lg:flex-row gap-8 lg:gap-12"
                 style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
                 <div className="flex-1 flex flex-col items-center justify-center">
-                  {/* Mock Eco Score Ring */}
                   <div className="relative w-32 h-32 mb-3 flex items-center justify-center">
                     <svg className="absolute w-full h-full -rotate-90" viewBox="0 0 120 120">
                       <circle cx="60" cy="60" r="50" fill="none" style={{ stroke: "var(--border-strong)" }} strokeWidth="8" />
@@ -406,8 +404,8 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Sprout className="w-5 h-5" style={{ color: "var(--accent-green)" }} />
-            <span className="gradient-text font-bold"
-              style={{ fontFamily: "var(--font-display)", fontSize: "16px", letterSpacing: "0.1em" }}>
+            <span className="font-bold"
+              style={{ color: "var(--accent-green)", fontFamily: "var(--font-display)", fontSize: "16px", letterSpacing: "0.1em" }}>
               ECO TRACKER
             </span>
           </div>

@@ -1,6 +1,6 @@
-import { SupabaseClient } from '@supabase/supabase-js/dist/index.mjs';
-import { CalculationResult, Category, Eco_Activities_Row, HabitHandler, Metrics, TransportationInput, TransportMode } from '../habit-types';
+import { CalculationResult, HabitHandler, StoreHabitArgs, TransportationInput, TransportMode } from '../habit-types';
 import { InvalidPayloadError } from '../custom-errors';
+import { storeEcoActivity } from '../store-eco-activity';
 
 const CO2_FACTORS: Record<TransportMode, number> = {
   car: 0.12,
@@ -69,40 +69,22 @@ async function calculateTransportationMetrics(
   };
 }
 
-async function storeTransportationResult(args: {
-  parsed: TransportationParsedInput;
-  metrics: Metrics;
-  extra: TransportationExtra;
-  userId: string;
-  supabase: SupabaseClient;
-  category: Category;
-  date?: string; // <--- Säg till TypeScript att vi kan skicka in datum
-}): Promise<Eco_Activities_Row> {
-  const { userId, supabase, category, metrics, parsed, extra, date } = args;
+async function storeTransportationResult(
+  args: StoreHabitArgs<TransportationParsedInput, TransportationExtra>
+) {
+  const { userId, supabase, category, metrics, parsed, extra, day } = args;
 
-  const { data: savedData, error } = await supabase
-    .from('eco_activities')
-    .insert([
-      {
-        user_id: userId,
-        category: category,
-        co2_kg: metrics.co2_kg,
-        water_l: metrics.water_l,
-        energy_kwh: metrics.energy_kwh,
-        details: {
-          ...parsed,
-          distanceInKm: extra.distanceInKm,
-        },
-        // Om 'date' skickades med används det, annars tar vi dagens datum
-        activity_date: date || new Date().toISOString().split('T')[0],
-      }
-    ])
-    .select()
-    .single();
-
-  if (error) throw new Error(error.message);
-
-  return savedData;
+  return storeEcoActivity({
+    userId,
+    supabase,
+    category,
+    metrics,
+    day,
+    details: {
+      ...parsed,
+      distanceInKm: extra.distanceInKm,
+    },
+  });
 }
 
 export const transportationHandler: HabitHandler<TransportationParsedInput, TransportationExtra> = {

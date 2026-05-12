@@ -1,12 +1,10 @@
-import { SupabaseClient } from '@supabase/supabase-js/dist/index.mjs';
 import {
   CalculationResult,
-  Category,
-  Eco_Activities_Row,
   HabitHandler,
-  Metrics,
+  StoreHabitArgs,
 } from '../habit-types';
 import { InvalidPayloadError } from '../custom-errors';
+import { storeEcoActivity } from '../store-eco-activity';
 
 
 interface ShowerParsedInput {
@@ -89,46 +87,23 @@ async function calculateShowerMetrics(
 }
 
 
-async function storeShowerResult(args: {
-  parsed: ShowerParsedInput;
-  metrics: Metrics;
-  extra: ShowerExtra;
-  userId: string;
-  supabase: SupabaseClient;
-  category: Category;
-  date?: string;
-}): Promise<Eco_Activities_Row> {
-  const { userId, supabase, category, metrics, parsed, extra, date } = args;
+async function storeShowerResult(args: StoreHabitArgs<ShowerParsedInput, ShowerExtra>) {
+  const { userId, supabase, category, metrics, parsed, extra, day } = args;
 
-
-  const { data: savedData, error } = await supabase
-    .from('eco_activities')
-    .insert([
-      {
-        user_id: userId,
-        category,
-        co2_kg: metrics.co2_kg,
-        water_l: metrics.water_l,
-        energy_kwh: metrics.energy_kwh,
-        activity_date: date,
-        details: {
-          type: 'shower',
-          minutes: parsed.minutes,
-          litersPerMinute: extra.litersPerMinute,
-          totalWaterLiters: extra.totalWaterLiters,
-          energyPerLiterKwh: extra.energyPerLiterKwh,
-          co2FactorKgPerKwh: extra.co2FactorKgPerKwh,
-        },
-      },
-    ])
-    .select()
-    .single();
-
-
-  if (error) throw new Error(error.message);
-
-
-  return savedData;
+  return storeEcoActivity({
+    userId,
+    supabase,
+    category,
+    metrics,
+    day,
+    details: {
+      minutes: parsed.minutes,
+      litersPerMinute: extra.litersPerMinute,
+      totalWaterLiters: extra.totalWaterLiters,
+      energyPerLiterKwh: extra.energyPerLiterKwh,
+      co2FactorKgPerKwh: extra.co2FactorKgPerKwh,
+    },
+  });
 }
 
 

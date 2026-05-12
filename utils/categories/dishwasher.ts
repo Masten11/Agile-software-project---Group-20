@@ -1,12 +1,10 @@
-import { SupabaseClient } from '@supabase/supabase-js/dist/index.mjs';
 import {
   CalculationResult,
-  Category,
-  Eco_Activities_Row,
   HabitHandler,
-  Metrics,
+  StoreHabitArgs,
 } from '../habit-types';
 import { InvalidPayloadError } from '../custom-errors';
+import { storeEcoActivity } from '../store-eco-activity';
 
 
 interface DishwasherParsedInput {
@@ -91,46 +89,25 @@ async function calculateDishwasherMetrics(
 }
 
 
-async function storeDishwasherResult(args: {
-  parsed: DishwasherParsedInput;
-  metrics: Metrics;
-  extra: DishwasherExtra;
-  userId: string;
-  supabase: SupabaseClient;
-  category: Category;
-  date?: string;
-}): Promise<Eco_Activities_Row> {
-  const { userId, supabase, category, metrics, parsed, extra, date } = args;
+async function storeDishwasherResult(
+  args: StoreHabitArgs<DishwasherParsedInput, DishwasherExtra>
+) {
+  const { userId, supabase, category, metrics, parsed, extra, day } = args;
 
-
-  const { data: savedData, error } = await supabase
-    .from('eco_activities')
-    .insert([
-      {
-        user_id: userId,
-        category,
-        co2_kg: metrics.co2_kg,
-        water_l: metrics.water_l,
-        energy_kwh: metrics.energy_kwh,
-        activity_date: date,
-        details: {
-          type: 'dishwasher',
-          ecoMode: parsed.ecoMode,
-          mode: extra.mode,
-          waterPerRunLiters: extra.waterPerRunLiters,
-          energyPerRunKwh: extra.energyPerRunKwh,
-          co2FactorKgPerKwh: extra.co2FactorKgPerKwh,
-        },
-      },
-    ])
-    .select()
-    .single();
-
-
-  if (error) throw new Error(error.message);
-
-
-  return savedData;
+  return storeEcoActivity({
+    userId,
+    supabase,
+    category,
+    metrics,
+    day,
+    details: {
+      ecoMode: parsed.ecoMode,
+      mode: extra.mode,
+      waterPerRunLiters: extra.waterPerRunLiters,
+      energyPerRunKwh: extra.energyPerRunKwh,
+      co2FactorKgPerKwh: extra.co2FactorKgPerKwh,
+    },
+  });
 }
 
 

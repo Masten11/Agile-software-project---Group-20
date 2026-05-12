@@ -7,8 +7,11 @@ export enum Category {
   WashingMachine = 'washing_machine',
 }
 
+export type DayOffset = 0 | 1;
+
 export type LogHabitRequest = {
   category: Category;
+  dayOffset: DayOffset;
   body: unknown;
 };
 
@@ -22,6 +25,7 @@ export type Eco_Activities_Row = {
   water_l: number;
   energy_kwh: number;
   details: Record<string, unknown>;
+  day: string;
   created_at: string;
 };
 
@@ -36,18 +40,20 @@ export type CalculationResult<T> = {
   extra: T;
 };
 
+export type StoreHabitArgs<Parsed, TExtra> = {
+  parsed: Parsed;
+  metrics: Metrics;
+  extra: TExtra;
+  userId: string;
+  supabase: SupabaseClient;
+  category: Category;
+  day: string;
+};
+
 export interface HabitHandler<Parsed, TExtra> {
   parse: (raw: unknown) => Parsed;
   calculate: (parsed: Parsed) => Promise<CalculationResult<TExtra>>;
-  store: (args: {
-    parsed: Parsed;
-    metrics: Metrics;
-    extra: TExtra;
-    userId: string;
-    supabase: SupabaseClient;
-    category: Category;
-    date?: string; // <--- HÄR ÄR FIXEN! Nu stämmer kontraktet överens med logiken.
-  }) => Promise<Eco_Activities_Row>;
+  store: (args: StoreHabitArgs<Parsed, TExtra>) => Promise<Eco_Activities_Row>;
 }
 
 /////////////////////////////
