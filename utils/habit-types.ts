@@ -4,7 +4,7 @@ export enum Category {
   Transportation = 'transport', //Add more categories here
   Shower = 'shower',
   Dishwasher = 'dishwasher',
-  WashingMachine = 'washing_machine',
+  WashingMachine = 'washingmachine',
 }
 
 export type DayOffset = 0 | 1;
