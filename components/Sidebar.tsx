@@ -91,7 +91,7 @@ export default function Sidebar() {
         }}
       >
         {/* Logo */}
-        <Link href="/dashboard" className="flex items-center gap-3 px-4 py-6 shrink-0 group">
+        <Link href="/" className="flex items-center gap-3 px-4 py-6 shrink-0 group">
           <Sprout
             className="shrink-0 group-hover:scale-110 transition-transform duration-200"
             style={{ color: "var(--accent-green)" }}
