@@ -802,6 +802,10 @@ export default function DashboardPage() {
 
         if (data.firstName) setFirstName(data.firstName.toUpperCase());
 
+        if (data.ecoScore !== undefined) {
+          setEcoScore(data.ecoScore);
+        }
+        
         if (data.activities && data.activities.length > 0) {
           const uniqueCategories = Array.from(
             new Set(data.activities.map((a: { category: string }) => {
@@ -812,25 +816,21 @@ export default function DashboardPage() {
           );
           setLoggedToday(uniqueCategories as string[]);
           
-          const totalEmissions = data.activities.reduce(
-            (sum: number, act: { co2_emissions_kg?: number | string }) => sum + Number(act.co2_emissions_kg || 0), 0
-          );
-          setEcoScore(Math.max(0, Math.round(1000 - totalEmissions * 50)));
         }
 
         // --- STREAK CALCULATION LOGIC ---
         if (user) {
           const { data: history } = await supabase
             .from("eco_activities")
-            .select("activity_date")
+            .select("day")
             .eq("user_id", user.id)
-            .order("activity_date", { ascending: false });
+            .order("day", { ascending: false });
 
           if (history && history.length > 0) {
             const uniqueDates = Array.from(
               new Set(
                 history.map((row) => {
-                  const d = new Date(row.activity_date);
+                  const d = new Date(row.day);
                   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
                   return d.toISOString().split("T")[0];
                 })

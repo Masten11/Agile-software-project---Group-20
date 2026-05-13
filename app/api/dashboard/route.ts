@@ -16,7 +16,7 @@ export async function GET() {
     //  Fetch the user's profile
     const { data: profile } = await supabase
       .from("profiles")
-      .select("first_name")
+      .select("first_name, eco_score")
       .eq("id", user.id)
       .single();
 
@@ -26,12 +26,14 @@ export async function GET() {
       .from("eco_activities")
       .select("category, co2_kg")
       .eq("user_id", user.id)
-      .gte("activity_date", today);
+      .eq("day", today);
+   
 
     // Send all the data back as one neat package
     return NextResponse.json({
       firstName: profile?.first_name || "USER",
-      activities: activities || []
+      activities: activities || [],
+      ecoScore: profile?.eco_score ?? 500 // Return the score
     }, { status: 200 });
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
