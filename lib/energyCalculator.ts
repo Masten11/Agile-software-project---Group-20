@@ -1,8 +1,8 @@
 import { ActivityRow, MetricResult, MetricStatus } from '@/lib/tip-types';
 import { getEnergyTip } from './energy-rules'; // Adjust the path as necessary
 
-const THRESHOLD_OK = 50;
-const THRESHOLD_BORDERLINE = 100;
+const THRESHOLD_OK = 12;
+const THRESHOLD_BORDERLINE = 20;
 
 function getStatus(total: number): MetricStatus {
   if (total <= THRESHOLD_OK) return 'ok';
@@ -35,7 +35,7 @@ export function calculateEnergy(rows: ActivityRow[]): MetricResult {
     };
   }
 
-  const tip = topCategory ? getEnergyTip(topCategory, rows.filter(r => r.category === topCategory)) : null;
+  const tip = topCategory ? getEnergyTip(topCategory, rows.filter(r => r.category === topCategory), Math.round(total * 10) / 10) : null;
 
   return {
     metric: 'energy',
