@@ -3,6 +3,19 @@ import { createClient } from '../../../lib/supabaseServer';
 
 export const dynamic = 'force-dynamic';
 
+type HistoricalRow = {
+  day: string | null;
+  co2_kg: number | string | null;
+  water_l: number | string | null;
+  energy_kwh: number | string | null;
+};
+
+type MetricKey = 'co2_kg' | 'water_l' | 'energy_kwh';
+
+type DayRange = { label: string; dateStr: string };
+type WeekRange = { label: string; weekStart: string; weekEnd: string };
+type MonthRange = { label: string; year: number; month: number };
+
 function toNumber(value: number | string | null | undefined): number {
   if (typeof value === 'number') return value;
   if (typeof value === 'string') {
@@ -10,6 +23,34 @@ function toNumber(value: number | string | null | undefined): number {
     return Number.isFinite(parsed) ? parsed : 0;
   }
   return 0;
+}
+
+function roundTo(value: number, decimals: number): number {
+  return Number(value.toFixed(decimals));
+}
+
+function formatDateLocal(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeDateString(value: string | null | undefined): string | null {
+  return value ? value.split('T')[0] : null;
+}
+
+function getStartOfWeek(date: Date): Date {
+  const start = new Date(date);
+  const day = (start.getDay() + 6) % 7; // Monday-based week to match Postgres date_trunc('week', ...)
+  start.setDate(start.getDate() - day);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+function getYearMonth(dateStr: string): { year: number; month: number } {
+  const [year, month] = dateStr.split('-').map(Number);
+  return { year, month: month - 1 };
 }
 
 /* ── Helpers för dynamiska etiketter ── */
@@ -21,39 +62,153 @@ function getLast7Days(): { label: string; dateStr: string }[] {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const label = d.toLocaleDateString('en-GB', { weekday: 'short' }); // Mon, Tue...
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = formatDateLocal(d);
     result.push({ label, dateStr });
   }
   return result;
 }
 
-// Senaste 5 veckorna med denna vecka sist
-function getLast5Weeks(): { label: string; weekStart: string; weekEnd: string }[] {
+// Alla veckor i innevarande månad, grupperade som Postgres date_trunc('week', day)
+function getCurrentMonthWeeks(): { label: string; weekStart: string; weekEnd: string }[] {
   const result = [];
-  for (let i = 4; i >= 0; i--) {
-    const end = new Date();
-    end.setDate(end.getDate() - i * 7);
-    const start = new Date(end);
-    start.setDate(start.getDate() - 6);
+  const seenWeekStarts = new Set<string>();
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  let weekIndex = 1;
+  for (const cursor = new Date(firstDay); cursor <= lastDay; cursor.setDate(cursor.getDate() + 1)) {
+    const weekStart = getStartOfWeek(cursor);
+    const weekStartStr = formatDateLocal(weekStart);
+
+    if (seenWeekStarts.has(weekStartStr)) continue;
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
     result.push({
-      label: `Week ${5 - i}`,
-      weekStart: start.toISOString().split('T')[0],
-      weekEnd: end.toISOString().split('T')[0],
+      label: `Week ${weekIndex++}`,
+      weekStart: weekStartStr,
+      weekEnd: formatDateLocal(weekEnd),
     });
+    seenWeekStarts.add(weekStartStr);
   }
   return result;
 }
 
-// Senaste 12 månaderna med denna månad sist
-function getLast12Months(): { label: string; year: number; month: number }[] {
-  const result = [];
+// Innevarande år, Jan-Dec
+function getCurrentYearMonths(): { label: string; year: number; month: number }[] {
   const now = new Date();
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const label = d.toLocaleDateString('en-GB', { month: 'short' }); // Jan, Feb...
-    result.push({ label, year: d.getFullYear(), month: d.getMonth() }); // month: 0-indexed
+  return Array.from({ length: 12 }, (_, month) => {
+    const d = new Date(now.getFullYear(), month, 1);
+    return {
+      label: d.toLocaleDateString('en-GB', { month: 'short' }),
+      year: d.getFullYear(),
+      month,
+    };
+  });
+}
+
+function buildDailySeries(
+  rows: HistoricalRow[],
+  days: { label: string; dateStr: string }[],
+  metric: MetricKey,
+  decimals: number
+) {
+  const totals = new Map<string, number>(days.map((day) => [day.dateStr, 0]));
+
+  for (const row of rows) {
+    const dateStr = normalizeDateString(row.day);
+    if (!dateStr || !totals.has(dateStr)) continue;
+
+    totals.set(dateStr, (totals.get(dateStr) ?? 0) + toNumber(row[metric]));
   }
-  return result;
+
+  return days.map((day) => ({
+    day: day.label,
+    total: roundTo(totals.get(day.dateStr) ?? 0, decimals),
+  }));
+}
+
+function buildWeeklySeries(
+  rows: HistoricalRow[],
+  weeks: { label: string; weekStart: string; weekEnd: string }[],
+  metric: MetricKey,
+  decimals: number
+) {
+  const totals = new Array(weeks.length).fill(0);
+
+  for (const row of rows) {
+    const dateStr = normalizeDateString(row.day);
+    if (!dateStr) continue;
+
+    for (let i = 0; i < weeks.length; i++) {
+      if (dateStr >= weeks[i].weekStart && dateStr <= weeks[i].weekEnd) {
+        totals[i] += toNumber(row[metric]);
+        break;
+      }
+    }
+  }
+
+  return weeks.map((week, index) => ({
+    week: week.label,
+    total: roundTo(totals[index], decimals),
+  }));
+}
+
+function buildYearlySeries(
+  rows: HistoricalRow[],
+  months: { label: string; year: number; month: number }[],
+  metric: MetricKey,
+  decimals: number
+) {
+  const totals = new Array(months.length).fill(0);
+
+  for (const row of rows) {
+    const dateStr = normalizeDateString(row.day);
+    if (!dateStr) continue;
+
+    const { year, month } = getYearMonth(dateStr);
+
+    for (let i = 0; i < months.length; i++) {
+      if (year === months[i].year && month === months[i].month) {
+        totals[i] += toNumber(row[metric]);
+        break;
+      }
+    }
+  }
+
+  return months.map((month, index) => ({
+    month: month.label,
+    total: roundTo(totals[index], decimals),
+  }));
+}
+
+function buildTodayTotal(rows: HistoricalRow[], metric: MetricKey, decimals: number): number {
+  const today = formatDateLocal(new Date());
+
+  return roundTo(
+    rows
+      .filter((row) => normalizeDateString(row.day) === today)
+      .reduce((sum, row) => sum + toNumber(row[metric]), 0),
+    decimals
+  );
+}
+
+function buildMetricHistory(
+  rows: HistoricalRow[],
+  metric: MetricKey,
+  decimals: number,
+  days: DayRange[],
+  weeks: WeekRange[],
+  months: MonthRange[]
+) {
+  return {
+    daily: buildTodayTotal(rows, metric, decimals),
+    weekly: buildDailySeries(rows, days, metric, decimals),
+    monthly: buildWeeklySeries(rows, weeks, metric, decimals),
+    yearly: buildYearlySeries(rows, months, metric, decimals),
+  };
 }
 
 export async function GET() {
@@ -64,135 +219,33 @@ export async function GET() {
       return NextResponse.json({ error: 'you have not logged in' }, { status: 401 });
     }
 
-    // Hämta all rådata för senaste 12 månaderna
-    const twelveMonthsAgo = new Date();
-    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-    const fromDate = twelveMonthsAgo.toISOString().split('T')[0];
+    // Hämta data från den tidigaste punkt som behövs för:
+    // - senaste 7 dagarna
+    // - innevarande månad
+    // - innevarande år
+    const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+    const last7Start = new Date();
+    last7Start.setDate(last7Start.getDate() - 6);
+    const fromDate = formatDateLocal(last7Start < startOfYear ? last7Start : startOfYear);
 
     const { data: rawData, error: rawError } = await supabase
       .from('eco_activities')
-      .select('activity_date, co2_kg, water_l')
+      .select('day, co2_kg, water_l, energy_kwh')
       .eq('user_id', user.id)
-      .gte('activity_date', fromDate);
+      .gte('day', fromDate)
+      .returns<HistoricalRow[]>();
 
     if (rawError) throw rawError;
 
     const rows = rawData ?? [];
-
-    /* ── CO2 VECKA: senaste 7 dagarna ── */
     const last7Days = getLast7Days();
-    const weeklyMap = new Map<string, number>(last7Days.map(d => [d.dateStr, 0]));
-
-    for (const row of rows) {
-      const dateStr = row.activity_date?.split('T')[0];
-      if (!dateStr || !weeklyMap.has(dateStr)) continue;
-      weeklyMap.set(dateStr, (weeklyMap.get(dateStr) ?? 0) + toNumber(row.co2_kg));
-    }
-    const weekly_stats = last7Days.map(d => ({
-      day: d.label,
-      total: Number((weeklyMap.get(d.dateStr) ?? 0).toFixed(2)),
-    }));
-
-    /* ── CO2 MÅNAD: senaste 5 veckorna ── */
-    const last5Weeks = getLast5Weeks();
-    const monthlyTotals = new Array(5).fill(0);
-
-    for (const row of rows) {
-      const dateStr = row.activity_date?.split('T')[0];
-      if (!dateStr) continue;
-      for (let i = 0; i < last5Weeks.length; i++) {
-        if (dateStr >= last5Weeks[i].weekStart && dateStr <= last5Weeks[i].weekEnd) {
-          monthlyTotals[i] += toNumber(row.co2_kg);
-          break;
-        }
-      }
-    }
-    const monthly_stats = last5Weeks.map((w, i) => ({
-      week: w.label,
-      total: Number(monthlyTotals[i].toFixed(2)),
-    }));
-
-    /* ── CO2 ÅR: senaste 12 månaderna ── */
-    const last12Months = getLast12Months();
-    const yearlyTotals = new Array(12).fill(0);
-
-    for (const row of rows) {
-      const dateStr = row.activity_date?.split('T')[0];
-      if (!dateStr) continue;
-      const d = new Date(dateStr);
-      for (let i = 0; i < last12Months.length; i++) {
-        if (d.getFullYear() === last12Months[i].year && d.getMonth() === last12Months[i].month) {
-          yearlyTotals[i] += toNumber(row.co2_kg);
-          break;
-        }
-      }
-    }
-    const yearly_stats = last12Months.map((m, i) => ({
-      month: m.label,
-      total: Number(yearlyTotals[i].toFixed(2)),
-    }));
-
-    /* ── VATTEN: samma logik ── */
-    const waterWeeklyMap = new Map<string, number>(last7Days.map(d => [d.dateStr, 0]));
-    const waterMonthlyTotals = new Array(5).fill(0);
-    const waterYearlyTotals = new Array(12).fill(0);
-
-    for (const row of rows) {
-      const dateStr = row.activity_date?.split('T')[0];
-      if (!dateStr) continue;
-      const water = toNumber(row.water_l);
-
-      // Vecka
-      if (waterWeeklyMap.has(dateStr)) {
-        waterWeeklyMap.set(dateStr, (waterWeeklyMap.get(dateStr) ?? 0) + water);
-      }
-
-      // Månad
-      for (let i = 0; i < last5Weeks.length; i++) {
-        if (dateStr >= last5Weeks[i].weekStart && dateStr <= last5Weeks[i].weekEnd) {
-          waterMonthlyTotals[i] += water;
-          break;
-        }
-      }
-
-      // År
-      const d = new Date(dateStr);
-      for (let i = 0; i < last12Months.length; i++) {
-        if (d.getFullYear() === last12Months[i].year && d.getMonth() === last12Months[i].month) {
-          waterYearlyTotals[i] += water;
-          break;
-        }
-      }
-    }
-
-    const water_weekly_stats = last7Days.map(d => ({
-      day: d.label,
-      total: Number((waterWeeklyMap.get(d.dateStr) ?? 0).toFixed(1)),
-    }));
-    const water_monthly_stats = last5Weeks.map((w, i) => ({
-      week: w.label,
-      total: Number(waterMonthlyTotals[i].toFixed(1)),
-    }));
-    const water_yearly_stats = last12Months.map((m, i) => ({
-      month: m.label,
-      total: Number(waterYearlyTotals[i].toFixed(1)),
-    }));
-
-    /* ── Today total ── */
-    const todayStr = new Date().toISOString().split('T')[0];
-    const todayTotal = rows
-      .filter(r => r.activity_date?.split('T')[0] === todayStr)
-      .reduce((sum, r) => sum + toNumber(r.co2_kg), 0);
+    const currentMonthWeeks = getCurrentMonthWeeks();
+    const currentYearMonths = getCurrentYearMonths();
 
     return NextResponse.json({
-      unit: 'kg',
-      daily_stats: { today_total: Number(todayTotal.toFixed(2)) },
-      weekly_stats,
-      monthly_stats,
-      yearly_stats,
-      water_weekly_stats,
-      water_monthly_stats,
-      water_yearly_stats,
+      co2_kg: buildMetricHistory(rows, 'co2_kg', 2, last7Days, currentMonthWeeks, currentYearMonths),
+      water_l: buildMetricHistory(rows, 'water_l', 1, last7Days, currentMonthWeeks, currentYearMonths),
+      energy_kwh: buildMetricHistory(rows, 'energy_kwh', 2, last7Days, currentMonthWeeks, currentYearMonths),
     });
 
   } catch (error: unknown) {

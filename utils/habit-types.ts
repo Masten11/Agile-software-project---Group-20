@@ -1,12 +1,12 @@
 import { SupabaseClient } from '@supabase/supabase-js/dist/index.mjs';
+import { DayOffset } from './day_offset';
+
 
 export enum Category {
   Transportation = 'transport', //Add more categories here
   Shower = 'shower',
   Dishwasher = 'dishwasher'
 }
-
-export type DayOffset = 0 | 1;
 
 export type LogHabitRequest = {
   category: Category;

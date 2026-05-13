@@ -1,36 +1,30 @@
 # Logged Habits Endpoint
 
-`GET /api/logged-habits` returns the authenticated user's logged habits for today, grouped by known category.
+`GET /api/logged-habits?dayOffset=0|1` returns the authenticated user's logged habits for the requested day, grouped by known category.
 
 Main entrypoint: `app/api/logged-habits/route.ts`
 
+## Query Parameters
+
+- `dayOffset` (required): the number of days back from today to fetch.
+  - `0` -> today
+  - `1` -> yesterday
+  - Any missing or invalid value returns `400`.
+
 ## Request Lifecycle
 
-1. **Auth**  
+1. **Auth**
    Validate the authenticated user with `supabase.auth.getUser()`.
-2. **Fetch**  
-   Read rows from `view_today_habits` filtered by `user_id`.
-3. **Validate + Group**  
-   Validate each row category against the API contract, then group the rows by category.
-4. **Respond**  
+2. **Parse offset**
+   Read `dayOffset` from the query string and validate it as `0` or `1`.
+3. **Resolve day**
+   Convert the offset to a `YYYY-MM-DD` date string via `resolveDayFromOffset`.
+4. **Fetch**
+   Read rows from `eco_activities` filtered by `user_id` and `day`.
+5. **Group**
+   Group the rows by category.
+6. **Respond**
    Return an object with all known categories present.
-
-## Data Source
-
-The endpoint reads from `view_today_habits`, which exposes:
-
-- `id`
-- `user_id`
-- `category`
-- `co2_kg`
-- `water_l`
-- `energy_kwh`
-- `details`
-- `day`
-- `created_at`
-
-`day` is the calendar day the habit belongs to.  
-`created_at` is the exact timestamp when the row was inserted.
 
 ## Response Contract
 
@@ -58,6 +52,7 @@ Each `EcoActivityRow` includes:
 
 ## Behavior Notes
 
+- `dayOffset` is required; missing or invalid values return `400`.
 - The endpoint always returns all known category keys, even when some arrays are empty.
 - Unknown category rows are treated as schema drift and return `500`.
-- The data source is already ordered within the day by `created_at DESC`.
+- Rows are returned ordered within the day by `created_at DESC`.

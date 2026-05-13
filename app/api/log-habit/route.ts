@@ -3,7 +3,7 @@ import { createClient } from '../../../lib/supabaseServer';
 import { parseLogHabitRequest } from '../../../utils/payload_parsing';
 import { InvalidPayloadError, UnsupportedCategoryError } from '../../../utils/custom-errors';
 import { getHabitHandler } from '../../../utils/habit-handlers';
-import { resolveDayFromOffset } from '../../../utils/log-habit-day';
+import { resolveDayFromOffset } from '../../../utils/day_offset';
 
 export async function POST(request: NextRequest) {
   try {

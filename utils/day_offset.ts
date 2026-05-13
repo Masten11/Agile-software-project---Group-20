@@ -1,4 +1,5 @@
-import { DayOffset } from './habit-types';
+export type DayOffset = 0 | 1;
+
 
 export function resolveDayFromOffset(dayOffset: DayOffset, now = new Date()): string {
   // Keep day resolution centralized and UTC-based until timezone support is added.
