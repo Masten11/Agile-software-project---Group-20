@@ -5,7 +5,6 @@ import { useState, useEffect, type FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
 import BottomNav from "@/components/BottomNav";
-import { supabase } from "@/lib/supabase";
 import { Car, Bus, Train, Bike, Plane, Trash2 } from "lucide-react";
 import PlaceAutocompleteInput from "@/components/PlaceAutocompleteInput";
 import { useTheme } from "@/lib/theme-context";
@@ -471,17 +470,17 @@ export default function LogPage() {
       setLoading(true);
 
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        const res = await fetch(`/api/logged-habits?dayOffset=${dateOffset}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error("Failed to load logs:", (body as { error?: string }).error ?? res.statusText);
+          setLogs([]);
+          return;
+        }
 
-        const habitsView = dateOffset === 0 ? "view_today_habits" : "view_yesterday_habits";
-        const { data } = await supabase
-          .from(habitsView)
-          .select("id, category, details, co2_kg, water_l, energy_kwh, day, created_at")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
-
-        const mapped: Log[] = (data || []).map((row: any) => ({
+        const grouped = (await res.json()) as Record<string, any[]>;
+        const rows = Object.values(grouped).flat();
+        const mapped: Log[] = rows.map((row: any) => ({
           id: row.id,
           category: row.category,
           details: row.details,
@@ -491,6 +490,9 @@ export default function LogPage() {
           day: row.day,
           created_at: row.created_at,
         }));
+        mapped.sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        );
 
         setLogs(mapped);
       } catch (err) {

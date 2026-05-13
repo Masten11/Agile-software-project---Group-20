@@ -196,14 +196,21 @@ function EcoScoreChart() {
   );
 }
 
-/* ── ENERGY chart (hardcoded placeholder) ── */
+type ChartPoint = { name: string; value: number };
+
+/* ── ENERGY chart with real data ── */
 function EnergyChart() {
-  const [range, setRange] = useState("week");
+  const [range, setRange] = useState<"week" | "month" | "year">("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [activeBarName, setActiveBarName] = useState<string | null>(null);
   const [hoveredBarName, setHoveredBarName] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(true);
+
+  const [weeklyData, setWeeklyData] = useState<ChartPoint[]>([]);
+  const [monthlyData, setMonthlyData] = useState<ChartPoint[]>([]);
+  const [yearlyData, setYearlyData] = useState<ChartPoint[]>([]);
+  const [chartLoading, setChartLoading] = useState(true);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -220,24 +227,35 @@ function EnergyChart() {
     return () => { window.removeEventListener("resize", check); observer.disconnect(); };
   }, []);
 
-  const datasets = {
-    week: [
-      { name: "Mon", value: 12.4 }, { name: "Tue", value: 14.1 }, { name: "Wed", value: 11.2 },
-      { name: "Thu", value: 15.6 }, { name: "Fri", value: 13.8 }, { name: "Sat", value: 18.2 }, { name: "Sun", value: 17.5 },
-    ],
-    month: [
-      { name: "Week 1", value: 85 }, { name: "Week 2", value: 92 },
-      { name: "Week 3", value: 78 }, { name: "Week 4", value: 88 }, { name: "Week 5", value: 95 },
-    ],
-    year: [
-      { name: "Jan", value: 420 }, { name: "Feb", value: 390 }, { name: "Mar", value: 350 },
-      { name: "Apr", value: 280 }, { name: "May", value: 250 }, { name: "Jun", value: 220 },
-      { name: "Jul", value: 240 }, { name: "Aug", value: 260 }, { name: "Sep", value: 290 },
-      { name: "Oct", value: 340 }, { name: "Nov", value: 380 }, { name: "Dec", value: 430 },
-    ],
-  };
+  useEffect(() => {
+    async function fetchData() {
+      setChartLoading(true);
+      try {
+        const res = await fetch("/api/historical-data");
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data = await res.json();
+        const energy = data.energy_kwh;
+        if (energy) {
+          setWeeklyData((energy.weekly ?? []).map((row: { day: string; total: number }) => ({
+            name: row.day, value: Number(row.total.toFixed(2)),
+          })));
+          setMonthlyData((energy.monthly ?? []).map((row: { week: string; total: number }) => ({
+            name: row.week, value: Number(row.total.toFixed(2)),
+          })));
+          setYearlyData((energy.yearly ?? []).map((row: { month: string; total: number }) => ({
+            name: row.month, value: Number(row.total.toFixed(2)),
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to load Energy chart data:", err);
+      } finally {
+        setChartLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
-  const data = datasets[range as keyof typeof datasets];
+  const data = range === "week" ? weeklyData : range === "month" ? monthlyData : yearlyData;
   const chartColor = "#c084fc";
   const axisColor = isDark ? "#71717a" : "#a1a1aa";
   const tooltipBg = isDark ? "#18181b" : "#ffffff";
@@ -261,7 +279,7 @@ function EnergyChart() {
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50 shadow-xl"
               style={{ background: "var(--bg-elevated)", border: "1px solid var(--border-strong)" }}>
-              {["week", "month", "year"].map((opt) => (
+              {(["week", "month", "year"] as const).map((opt) => (
                 <div key={opt} onClick={() => { setRange(opt); setDropdownOpen(false); setActiveBarName(null); setHoveredBarName(null); }}
                   className="px-4 py-2 text-sm cursor-pointer hover:bg-black/5 dark:hover:bg-white/5"
                   style={{ color: range === opt ? chartColor : "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
@@ -272,39 +290,43 @@ function EnergyChart() {
           )}
         </div>
       </div>
-      <div style={{ width: "100%", height: 260 }}>
-        <ResponsiveContainer>
-          <BarChart data={data}>
-            <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 12 }} />
-            <YAxis stroke={axisColor} tick={{ fontSize: 12 }} unit=" kWh" />
-            <Tooltip cursor={{ fill: "transparent" }}
-              contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "12px", color: tooltipText }}
-              itemStyle={{ color: tooltipText }}
-              formatter={(value: unknown) => [`${value} kWh`, "Energy"]} />
-            <Bar dataKey="value" radius={[6, 6, 0, 0]}
-              onMouseEnter={(entry) => { if (!isMobile && entry?.name) setHoveredBarName(entry.name); }}
-              onMouseLeave={() => { if (!isMobile) setHoveredBarName(null); }}
-              onClick={(entry) => { if (isMobile && entry?.name) setActiveBarName(entry.name); }}>
-              {data.map((entry) => {
-                const isActive = (isMobile && activeBarName === entry.name) || (!isMobile && hoveredBarName === entry.name);
-                return (
-                  <Cell key={`cell-${entry.name}`}
-                    fill={chartColor}
-                    fillOpacity={isActive ? 1 : 0.7}
-                    className="transition-all duration-300" />
-                );
-              })}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      {chartLoading ? (
+        <div className="h-64 flex items-center justify-center">
+          <p className="text-sm animate-pulse" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Loading data...</p>
+        </div>
+      ) : (
+        <div style={{ width: "100%", height: 260 }}>
+          <ResponsiveContainer>
+            <BarChart data={data}>
+              <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 12 }} />
+              <YAxis stroke={axisColor} tick={{ fontSize: 12 }} unit=" kWh" />
+              <Tooltip cursor={{ fill: "transparent" }}
+                contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "12px", color: tooltipText }}
+                itemStyle={{ color: tooltipText }}
+                formatter={(value: unknown) => [`${value} kWh`, "Energy"]} />
+              <Bar dataKey="value" radius={[6, 6, 0, 0]}
+                onMouseEnter={(entry) => { if (!isMobile && entry?.name) setHoveredBarName(entry.name); }}
+                onMouseLeave={() => { if (!isMobile) setHoveredBarName(null); }}
+                onClick={(entry) => { if (isMobile && entry?.name) setActiveBarName(entry.name); }}>
+                {data.map((entry) => {
+                  const isActive = (isMobile && activeBarName === entry.name) || (!isMobile && hoveredBarName === entry.name);
+                  return (
+                    <Cell key={`cell-${entry.name}`}
+                      fill={chartColor}
+                      fillOpacity={isActive ? 1 : 0.7}
+                      className="transition-all duration-300" />
+                  );
+                })}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ── CO2 chart with real data + engaging popover ── */
-type ChartPoint = { name: string; value: number };
-
 function CO2Chart({ userId }: { userId: string | null }) {
   const [range, setRange] = useState<"week" | "month" | "year">("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -345,19 +367,15 @@ function CO2Chart({ userId }: { userId: string | null }) {
         const res = await fetch("/api/historical-data");
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
-
-        if (data.weekly_stats) {
-          setWeeklyData(data.weekly_stats.map((row: { day: string; total: number }) => ({
+        const co2 = data.co2_kg;
+        if (co2) {
+          setWeeklyData((co2.weekly ?? []).map((row: { day: string; total: number }) => ({
             name: row.day, value: Number(row.total.toFixed(2)),
           })));
-        }
-        if (data.monthly_stats) {
-          setMonthlyData(data.monthly_stats.map((row: { week: string; total: number }) => ({
+          setMonthlyData((co2.monthly ?? []).map((row: { week: string; total: number }) => ({
             name: row.week, value: Number(row.total.toFixed(2)),
           })));
-        }
-        if (data.yearly_stats) {
-          setYearlyData(data.yearly_stats.map((row: { month: string; total: number }) => ({
+          setYearlyData((co2.yearly ?? []).map((row: { month: string; total: number }) => ({
             name: row.month, value: Number(row.total.toFixed(2)),
           })));
         }
@@ -563,19 +581,15 @@ function WaterChart() {
         const res = await fetch("/api/historical-data");
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
-
-        if (data.water_weekly_stats) {
-          setWeeklyData(data.water_weekly_stats.map((row: { day: string; total: number }) => ({
+        const water = data.water_l;
+        if (water) {
+          setWeeklyData((water.weekly ?? []).map((row: { day: string; total: number }) => ({
             name: row.day, value: Number(row.total.toFixed(1)),
           })));
-        }
-        if (data.water_monthly_stats) {
-          setMonthlyData(data.water_monthly_stats.map((row: { week: string; total: number }) => ({
+          setMonthlyData((water.monthly ?? []).map((row: { week: string; total: number }) => ({
             name: row.week, value: Number(row.total.toFixed(1)),
           })));
-        }
-        if (data.water_yearly_stats) {
-          setYearlyData(data.water_yearly_stats.map((row: { month: string; total: number }) => ({
+          setYearlyData((water.yearly ?? []).map((row: { month: string; total: number }) => ({
             name: row.month, value: Number(row.total.toFixed(1)),
           })));
         }
