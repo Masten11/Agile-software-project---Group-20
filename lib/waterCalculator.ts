@@ -1,8 +1,8 @@
 import { ActivityRow, MetricResult, MetricStatus } from '@/lib/tip-types';
-import { getWaterTip } from './water-rules'; // Adjusted to a relative path
+import { getWaterTip } from './water-rules';
 
-const THRESHOLD_OK = 350;
-const THRESHOLD_BORDERLINE = 600;
+const THRESHOLD_OK = 300;
+const THRESHOLD_BORDERLINE = 500;
 
 function getStatus(total: number): MetricStatus {
   if (total <= THRESHOLD_OK) return 'ok';
@@ -35,7 +35,7 @@ export function calculateWater(rows: ActivityRow[]): MetricResult {
     };
   }
 
-  const tip = topCategory ? getWaterTip(topCategory, rows.filter(r => r.category === topCategory)) : null;
+  const tip = topCategory ? getWaterTip(topCategory, rows.filter(r => r.category === topCategory), Math.round(total)) : null;
 
   return {
     metric: 'water',

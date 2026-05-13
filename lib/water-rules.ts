@@ -1,27 +1,38 @@
 // water-rules.ts
+
 import { ActivityRow } from '@/lib/tip-types';
 
-export function getWaterTip(category: string, rows: ActivityRow[]): string | null {
+export function getWaterTip(category: string, rows: ActivityRow[], weeklyTotal: number): string | null {
   switch (category) {
-    case 'shower':     return getShowerWaterTip(rows);
-    case 'dishwasher': return getDishwasherWaterTip(rows);
+    case 'shower':     return getShowerWaterTip(rows, weeklyTotal);
+    case 'dishwasher': return getDishwasherWaterTip(rows, weeklyTotal);
     default:           return null;
   }
 }
 
-function getShowerWaterTip(rows: ActivityRow[]): string | null {
-  const totalWater = rows.reduce((sum, r) => sum + r.water_l, 0);
-  const avgWaterPerShower = Math.round(totalWater / rows.length);
+function getShowerWaterTip(rows: ActivityRow[], weeklyTotal: number): string | null {
+  const totalShowerWater = rows.reduce((sum, r) => sum + r.water_l, 0);
+  const avgWaterPerShower = Math.round(totalShowerWater / rows.length);
 
-  if (avgWaterPerShower < 30) return null;
+  const durations = rows.map(r => r.details?.minutes as number | undefined).filter(Boolean) as number[];
+  const avgDuration = durations.length > 0
+    ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+    : null;
 
-  return `Dina duschar använder i snitt ${avgWaterPerShower} liter vatten per gång. Försök korta ner duschtiden för att minska förbrukningen.`;
+  if (avgDuration) {
+    return `You used ${weeklyTotal} liters of water this week. Your showers are the biggest source, averaging ${avgDuration} minutes and ${avgWaterPerShower} liters each. Try to keep showers under 5 minutes.`;
+  }
+
+  return `You used ${weeklyTotal} liters of water this week. Your showers are the biggest source, averaging ${avgWaterPerShower} liters each. Try to take shorter showers.`;
 }
 
-function getDishwasherWaterTip(rows: ActivityRow[]): string | null {
+function getDishwasherWaterTip(rows: ActivityRow[], weeklyTotal: number): string | null {
   const nonEcoRuns = rows.filter(r => r.details?.ecoMode === false);
+  const totalDishwasherWater = rows.reduce((sum, r) => sum + r.water_l, 0);
 
-  if (nonEcoRuns.length < 3) return null;
+  if (nonEcoRuns.length >= 3) {
+    return `You used ${weeklyTotal} liters of water this week. Your dishwasher is the biggest source, using ${Math.round(totalDishwasherWater)} liters. You ran it ${nonEcoRuns.length} times without eco mode — switching to eco mode can save up to 30% water.`;
+  }
 
-  return `Du har kört diskmaskinen ${nonEcoRuns.length} gånger utan eco-läge den här veckan. Eco-läget kan spara upp till 30% vatten per körning.`;
+  return `You used ${weeklyTotal} liters of water this week. Your dishwasher is the biggest source, using ${Math.round(totalDishwasherWater)} liters. Try running it less frequently or use eco mode.`;
 }
