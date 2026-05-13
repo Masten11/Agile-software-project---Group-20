@@ -1,8 +1,8 @@
 import { ActivityRow, MetricResult, MetricStatus } from '@/lib/tip-types';
 import { getWaterTip } from './water-rules';
 
-const THRESHOLD_OK = 300;
-const THRESHOLD_BORDERLINE = 500;
+const THRESHOLD_OK = 250;
+const THRESHOLD_BORDERLINE = 450;
 
 function getStatus(total: number): MetricStatus {
   if (total <= THRESHOLD_OK) return 'ok';
