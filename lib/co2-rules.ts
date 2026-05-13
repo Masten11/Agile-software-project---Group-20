@@ -15,20 +15,32 @@ function getTransportCo2Tip(rows: ActivityRow[]): string | null {
   const modes = rows.map(r => r.details?.transportMode as string | undefined).filter(Boolean);
   const hasFlight = modes.includes('flight');
   const carCount = modes.filter(m => m === 'car').length;
+  const busCount = modes.filter(m => m === 'bus').length;
 
-  if (hasFlight) return 'Du har flugit den här veckan. Tåg är ett betydligt mer klimatvänligt alternativ för resor inom Europa.';
-  if (carCount >= 3) return `Du har åkt bil ${carCount} gånger den här veckan. Buss eller samåkning kan minska ditt CO₂-utsläpp med upp till 70%.`;
+  if (hasFlight) return 'You flew this week. Taking the train is a much more climate-friendly option for travel within Europe.';
+  if (carCount >= 3) return `You drove a car ${carCount} times this week. Taking the bus or carpooling can reduce your CO₂ emissions by up to 70%.`;
+  if (busCount >= 3) return 'You already take the bus regularly — great job! For shorter distances, cycling can reduce emissions even further.';
   return null;
 }
 
 function getShowerCo2Tip(rows: ActivityRow[]): string | null {
   const totalCo2 = rows.reduce((sum, r) => sum + r.co2_kg, 0);
   if (totalCo2 < 5) return null;
-  return `Dina duschar har bidragit med ${Math.round(totalCo2 * 10) / 10} kg CO₂ den här veckan. Kortare och kallare duschar minskar både energi och utsläpp.`;
+
+  const durations = rows.map(r => r.details?.minutes as number | undefined).filter(Boolean) as number[];
+  const avgDuration = durations.length > 0
+    ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+    : null;
+
+  if (avgDuration && avgDuration > 8) {
+    return `Your showers average ${avgDuration} minutes and have contributed ${Math.round(totalCo2 * 10) / 10} kg of CO₂ this week. Try to keep showers under 5 minutes.`;
+  }
+
+  return `Your showers have contributed ${Math.round(totalCo2 * 10) / 10} kg of CO₂ this week. Shorter and cooler showers reduce both energy use and emissions.`;
 }
 
 function getDishwasherCo2Tip(rows: ActivityRow[]): string | null {
   const nonEcoRuns = rows.filter(r => r.details?.ecoMode === false);
   if (nonEcoRuns.length < 3) return null;
-  return `Du har kört diskmaskinen ${nonEcoRuns.length} gånger utan eco-läge. Eco-läget kan minska CO₂-utsläppen med upp till 30%.`;
+  return `You ran the dishwasher ${nonEcoRuns.length} times without eco mode this week. Using eco mode can reduce CO₂ emissions by up to 30%.`;
 }
