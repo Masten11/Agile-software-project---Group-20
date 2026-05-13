@@ -12,15 +12,29 @@ export function getCo2Tip(category: string, rows: ActivityRow[]): string | null 
 }
 
 function getTransportCo2Tip(rows: ActivityRow[]): string | null {
-  const modes = rows.map(r => r.details?.transportMode as string | undefined).filter(Boolean);
-  const hasFlight = modes.includes('flight');
-  const carCount = modes.filter(m => m === 'car').length;
-  const busCount = modes.filter(m => m === 'bus').length;
+  const modeTotals = new Map<string, number>();
 
-  if (hasFlight) return 'You flew this week. Taking the train is a much more climate-friendly option for travel within Europe.';
-  if (carCount >= 3) return `You drove a car ${carCount} times this week. Taking the bus or carpooling can reduce your CO₂ emissions by up to 70%.`;
-  if (busCount >= 3) return 'You already take the bus regularly — great job! For shorter distances, cycling can reduce emissions even further.';
-  return null;
+  for (const row of rows) {
+    const mode = row.details?.transportMode as string | undefined;
+    if (!mode) continue;
+    modeTotals.set(mode, (modeTotals.get(mode) ?? 0) + row.co2_kg);
+  }
+
+  if (modeTotals.size === 0) return null;
+
+  const topMode = [...modeTotals.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  const topTotal = Math.round(modeTotals.get(topMode)! * 10) / 10;
+
+  switch (topMode) {
+    case 'plane':
+      return `Flying is your biggest CO₂ source this week with ${topTotal} kg. Taking the train is a much more climate-friendly option for travel within Europe.`;
+    case 'car':
+      return `Driving is your biggest CO₂ source this week with ${topTotal} kg. Taking the bus or carpooling can reduce your CO₂ emissions by up to 70%.`;
+    case 'bus':
+      return `Great job taking the bus! It contributed ${topTotal} kg CO₂ this week. For shorter distances, cycling can reduce emissions even further.`;
+    default:
+      return null;
+  }
 }
 
 function getShowerCo2Tip(rows: ActivityRow[]): string | null {
