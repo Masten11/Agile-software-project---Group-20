@@ -29,7 +29,7 @@ function getTransportCo2Tip(rows: ActivityRow[]): string | null {
     case 'plane':
       return `Flying is your biggest CO₂ source this week with ${topTotal} kg. Taking the train is a much more climate-friendly option for travel within Europe.`;
     case 'car':
-      return `Driving is your biggest CO₂ source this week with ${topTotal} kg. Taking the bus or carpooling can reduce your CO₂ emissions by up to 70%.`;
+      return `Driving is your biggest CO₂ source this week with ${topTotal} kg. Taking the bus, train or carpooling can reduce your CO₂ emissions by up to 70%.`;
     case 'bus':
       return `Great job taking the bus! It contributed ${topTotal} kg CO₂ this week. For shorter distances, cycling can reduce emissions even further.`;
     default:
