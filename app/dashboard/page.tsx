@@ -42,9 +42,15 @@ function EcoScoreRing({ score }: { score: number }) {
           </span>
         </div>
       </div>
-      <p className="text-sm mt-3" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
-        {score > 700 ? "🌿 Great day so far!" : score > 400 ? "⚡ Room to improve" : "🔴 High impact day"}
-      </p>
+      <div className="flex items-center gap-2 mt-4">
+        <div 
+          className="w-2.5 h-2.5 rounded-full" 
+          style={{ background: scoreColor }} 
+        />
+        <p className="text-sm font-medium" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
+          {score > 700 ? "Great day so far!" : score > 400 ? "Room to improve" : "High impact day"}
+        </p>
+      </div>
     </div>
   );
 }
@@ -584,64 +590,65 @@ function WeeklyTipsCard() {
             {tips.map((tip) => {
               const meta = metaMap[tip.metric];
               const isOpen = expanded === tip.metric;
-              const hasTip = tip.tip !== null;
 
               return (
                 <div key={tip.metric} className="py-3 first:pt-0 last:pb-0">
-                  <motion.button
-                    type="button"
-                    onClick={() => hasTip && setExpanded(isOpen ? null : tip.metric)}
-                    className="w-full flex items-center gap-4 text-left rounded-xl transition-all"
-                    style={{ cursor: hasTip ? "pointer" : "default" }}
+                  <motion.div
                     whileHover={!isOpen ? { scale: 1.02 } : {}}
                     transition={{ duration: 0.2 }}
                   >
-                    {/* Icon */}
-                    <span className="text-2xl shrink-0">{meta.icon}</span>
+                    <button
+                      type="button"
+                      onClick={() => setExpanded(isOpen ? null : tip.metric)} // Alltid klickbar!
+                      className="w-full flex items-center gap-4 text-left rounded-xl transition-all"
+                      style={{ cursor: "pointer" }}
+                    >
+                      {/* Icon */}
+                      <span className="text-2xl shrink-0">{meta.icon}</span>
 
-                    {/* Label */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
-                        {meta.label}
-                      </p>
-                    </div>
+                      {/* Label */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
+                          {meta.label}
+                        </p>
+                      </div>
 
-                    {/* Value + Chevron */}
-                    <div className="flex items-center gap-3 shrink-0">
-                      <p className="text-sm font-semibold" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>
-                        {tip.total.toFixed(1)} <span className="text-xs font-normal" style={{ color: "var(--text-muted)" }}>{tip.unit}</span>
-                      </p>
-                      {hasTip && (
+                      {/* Value + Chevron always visible on the far right */}
+                      <div className="flex items-center gap-3 shrink-0">
+                        <p className="text-sm font-semibold" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>
+                          {tip.total.toFixed(1)} <span className="text-xs font-normal" style={{ color: "var(--text-muted)" }}>{tip.unit}</span>
+                        </p>
                         <ChevronDown
                           size={16}
                           className="transition-transform duration-300 shrink-0"
                           style={{
                             color: "var(--text-muted)",
-                            transform: isOpen ? "rotate(180deg)" : "rotate(0deg)"
+                            transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                            opacity: 1 // Alltid synlig
                           }}
                         />
-                      )}
-                    </div>
-                  </motion.button>
+                      </div>
+                    </button>
 
-                  {/* Expanded tip (Seamless extension) */}
-                  <AnimatePresence>
-                    {isOpen && tip.tip && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="pt-3 pl-10 pr-2 pb-1">
-                          <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
-                            {tip.tip}
-                          </p>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                    {/* Expanded tip (Seamless extension) */}
+                    <AnimatePresence>
+                      {isOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pt-3 pl-10 pr-2 pb-1">
+                            <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
+                              {tip.tip || `Great job! Your ${meta.label.toLowerCase()} is on track this week.`}
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
                 </div>
               );
             })}
