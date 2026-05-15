@@ -638,7 +638,7 @@ export default function LogPage() {
                       <p className="text-xs mt-1" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Use the form to add your first log</p>
                     </div>
                   ) : (
-                    <div className="divide-y" style={{ borderColor: "var(--border-subtle)" }}>
+                    <div>
                       <AnimatePresence initial={false}>
                         {logs.map((log) => {
                           let detailsStr = "Unknown activity";
@@ -694,8 +694,11 @@ export default function LogPage() {
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, x: 24 }}
                               transition={{ duration: 0.2 }}
-                              className="px-5 py-4"
-                              style={{ background: "var(--bg-card-deep)" }}
+                              className="px-5 py-4 border-b last:border-b-0"
+                              style={{
+                                background: "var(--bg-card-deep)",
+                                borderColor: "var(--border-faint)",
+                              }}
                             >
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--bg-card-nested)" }}>
