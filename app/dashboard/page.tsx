@@ -819,6 +819,8 @@ export default function DashboardPage() {
         if (data.ecoScore !== undefined) {
           setEcoScore(data.ecoScore);
         }
+
+        if (data.streak !== undefined) setStreak(data.streak);
         
         if (data.activities && data.activities.length > 0) {
           const uniqueCategories = Array.from(
@@ -830,51 +832,6 @@ export default function DashboardPage() {
           );
           setLoggedToday(uniqueCategories as string[]);
           
-        }
-
-        // --- STREAK CALCULATION LOGIC ---
-        if (user) {
-          const { data: history } = await supabase
-            .from("eco_activities")
-            .select("day")
-            .eq("user_id", user.id)
-            .order("day", { ascending: false });
-
-          if (history && history.length > 0) {
-            const uniqueDates = Array.from(
-              new Set(
-                history.map((row) => {
-                  const d = new Date(row.day);
-                  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-                  return d.toISOString().split("T")[0];
-                })
-              )
-            );
-
-            const getOffsetDate = (offset: number) => {
-              const d = new Date();
-              d.setDate(d.getDate() - offset);
-              d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-              return d.toISOString().split("T")[0];
-            };
-
-            const today = getOffsetDate(0);
-            const yesterday = getOffsetDate(1);
-
-            let calculatedStreak = 0;
-            
-            if (uniqueDates.includes(today) || uniqueDates.includes(yesterday)) {
-              let offset = uniqueDates.includes(today) ? 0 : 1;
-              
-              while (uniqueDates.includes(getOffsetDate(offset))) {
-                calculatedStreak++;
-                offset++;
-              }
-            }
-            setStreak(calculatedStreak);
-          } else {
-             setStreak(0);
-          }
         }
 
       } catch (error) {
