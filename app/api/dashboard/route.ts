@@ -1,6 +1,7 @@
 // app/api/dashboard/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabaseServer";
+import { calculateUserStreak } from "@/utils/streak";
 
 export async function GET() {
   try {
@@ -29,11 +30,15 @@ export async function GET() {
       .eq("day", today);
    
 
+    //  Calculate Streak   
+    const streak = await calculateUserStreak(supabase, user.id);
+
     // Send all the data back as one neat package
     return NextResponse.json({
       firstName: profile?.first_name || "USER",
       activities: activities || [],
-      ecoScore: profile?.eco_score ?? 500 // Return the score
+      ecoScore: profile?.eco_score ?? 500, // Return the score
+      streak: streak
     }, { status: 200 });
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
