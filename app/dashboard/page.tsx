@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
-import { Zap, Car, TrendingUp, Flame, Calendar, Plus, ChevronDown, Info, X, Droplet } from "lucide-react";
+import { Zap, Car, Flame, Calendar, Plus, ChevronDown, Info, X, Droplet } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/lib/supabase";
@@ -16,32 +16,24 @@ function EcoScoreRing({ score }: { score: number }) {
   const radius = 80;
   const circumference = 2 * Math.PI * radius;
   const progress = (score / max) * circumference;
-  // Dynamisk färg beroende på score
   const scoreColor = score > 700 ? "var(--accent-green)" : score > 400 ? "#facc15" : "#f87171";
 
   return (
     <div className="flex flex-col items-center justify-center">
       <div className="relative w-52 h-52">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
-          <circle cx="100" cy="100" r={radius}
-            fill="none" style={{ stroke: "var(--border-strong)" }} strokeWidth="10" />
-          <motion.circle
-            cx="100" cy="100" r={radius}
-            fill="none" stroke={scoreColor} strokeWidth="10" strokeLinecap="round"
+          <circle cx="100" cy="100" r={radius} fill="none" style={{ stroke: "var(--border-strong)" }} strokeWidth="10" />
+          <motion.circle cx="100" cy="100" r={radius} fill="none" stroke={scoreColor} strokeWidth="10" strokeLinecap="round"
             strokeDasharray={circumference}
             initial={{ strokeDashoffset: circumference }}
             animate={{ strokeDashoffset: circumference - progress }}
-            transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
-          />
+            transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1], delay: 0.3 }} />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <motion.span
-            className="font-bold leading-none"
+          <motion.span className="font-bold leading-none"
             style={{ fontFamily: "var(--font-display)", fontSize: "52px", color: scoreColor }}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-          >
+            initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}>
             {score}
           </motion.span>
           <span className="text-sm tracking-widest uppercase mt-1"
@@ -62,18 +54,10 @@ function CategoryCard({ icon: Icon, label, color, logged, href }: {
   icon: React.ElementType; label: string; color: string; logged: boolean; href: string;
 }) {
   return (
-    <motion.a
-      href={href}
-      whileHover={{ scale: 1.02, y: -1 }}
-      whileTap={{ scale: 0.97 }}
+    <motion.a href={href} whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.97 }}
       className="flex items-center gap-4 p-5 rounded-2xl cursor-pointer group"
-      style={{
-        background: "var(--bg-card)",
-        border: logged ? `1px solid ${color}40` : "1px solid var(--border-subtle)",
-      }}
-    >
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-        style={{ background: `${color}15` }}>
+      style={{ background: "var(--bg-card)", border: logged ? `1px solid ${color}40` : "1px solid var(--border-subtle)" }}>
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${color}15` }}>
         <Icon size={20} style={{ color }} />
       </div>
       <div className="flex-1">
@@ -83,7 +67,7 @@ function CategoryCard({ icon: Icon, label, color, logged, href }: {
         </p>
       </div>
       {!logged && (
-        <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:bg-black/5 dark:group-hover:bg-white/10"
+        <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110"
           style={{ border: "1px solid var(--border-strong)" }}>
           <Plus size={16} className="transition-colors duration-300" style={{ color: "var(--text-muted)" }} strokeWidth={2.5} />
         </div>
@@ -92,40 +76,23 @@ function CategoryCard({ icon: Icon, label, color, logged, href }: {
   );
 }
 
-/* ── Eco Score chart (Area Chart med Gradient) ── */
+/* ── Eco Score chart ── */
 function EcoScoreChart() {
   const [range, setRange] = useState("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
-    // FIX: setTimeout för att undvika ESLint's cascading render error
-    setTimeout(() => {
-      setIsDark(document.documentElement.getAttribute("data-theme") !== "light");
-    }, 0);
-    
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.getAttribute("data-theme") !== "light");
-    });
+    setTimeout(() => { setIsDark(document.documentElement.getAttribute("data-theme") !== "light"); }, 0);
+    const observer = new MutationObserver(() => setIsDark(document.documentElement.getAttribute("data-theme") !== "light"));
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     return () => observer.disconnect();
   }, []);
 
   const datasets = {
-    week: [
-      { name: "Mon", value: 18 }, { name: "Tue", value: 25 }, { name: "Wed", value: 20 },
-      { name: "Thu", value: 28 }, { name: "Fri", value: 22 }, { name: "Sat", value: 30 }, { name: "Sun", value: 24 },
-    ],
-    month: [
-      { name: "Week 1", value: 120 }, { name: "Week 2", value: 98 },
-      { name: "Week 3", value: 135 }, { name: "Week 4", value: 110 }, { name: "Week 5", value: 126 },
-    ],
-    year: [
-      { name: "Jan", value: 410 }, { name: "Feb", value: 380 }, { name: "Mar", value: 450 },
-      { name: "Apr", value: 420 }, { name: "May", value: 470 }, { name: "Jun", value: 430 },
-      { name: "Jul", value: 490 }, { name: "Aug", value: 460 }, { name: "Sep", value: 440 },
-      { name: "Oct", value: 500 }, { name: "Nov", value: 470 }, { name: "Dec", value: 520 },
-    ],
+    week: [{ name: "Mon", value: 18 }, { name: "Tue", value: 25 }, { name: "Wed", value: 20 }, { name: "Thu", value: 28 }, { name: "Fri", value: 22 }, { name: "Sat", value: 30 }, { name: "Sun", value: 24 }],
+    month: [{ name: "Week 1", value: 120 }, { name: "Week 2", value: 98 }, { name: "Week 3", value: 135 }, { name: "Week 4", value: 110 }, { name: "Week 5", value: 126 }],
+    year: [{ name: "Jan", value: 410 }, { name: "Feb", value: 380 }, { name: "Mar", value: 450 }, { name: "Apr", value: 420 }, { name: "May", value: 470 }, { name: "Jun", value: 430 }, { name: "Jul", value: 490 }, { name: "Aug", value: 460 }, { name: "Sep", value: 440 }, { name: "Oct", value: 500 }, { name: "Nov", value: 470 }, { name: "Dec", value: 520 }],
   };
 
   const data = datasets[range as keyof typeof datasets];
@@ -136,18 +103,15 @@ function EcoScoreChart() {
   const tooltipText = isDark ? "#ffffff" : "#09090b";
 
   return (
-    <div className="rounded-2xl p-6 relative"
-      style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
+    <div className="rounded-2xl p-6 relative shadow-sm" style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
       <div className="flex justify-between items-center mb-6">
         <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
           Eco Score – last 7 days
         </p>
         <div className="relative">
-          <button onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+          <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-colors hover:bg-black/5 dark:hover:bg-white/5"
             style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)" }}>
-            {range}
-            <ChevronDown size={14} />
+            {range}<ChevronDown size={14} />
           </button>
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50 shadow-xl"
@@ -174,21 +138,11 @@ function EcoScoreChart() {
             </defs>
             <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 12 }} />
             <YAxis stroke={axisColor} tick={{ fontSize: 12 }} />
-            <Tooltip 
-              cursor={{ stroke: axisColor, strokeWidth: 1, strokeDasharray: "3 3" }}
+            <Tooltip cursor={{ stroke: axisColor, strokeWidth: 1, strokeDasharray: "3 3" }}
               contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "12px", color: tooltipText }}
-              itemStyle={{ color: tooltipText }}
-              formatter={(value: unknown) => [`${value}`, "Eco Score"]}
-            />
-            <Area 
-              type="monotone" 
-              dataKey="value" 
-              stroke={chartColor} 
-              strokeWidth={3}
-              fillOpacity={1} 
-              fill="url(#ecoGradient)" 
-              activeDot={{ r: 6, fill: chartColor, stroke: tooltipBg, strokeWidth: 2 }}
-            />
+              itemStyle={{ color: tooltipText }} formatter={(value: unknown) => [`${value}`, "Eco Score"]} />
+            <Area type="monotone" dataKey="value" stroke={chartColor} strokeWidth={3} fillOpacity={1}
+              fill="url(#ecoGradient)" activeDot={{ r: 6, fill: chartColor, stroke: tooltipBg, strokeWidth: 2 }} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -198,7 +152,7 @@ function EcoScoreChart() {
 
 type ChartPoint = { name: string; value: number };
 
-/* ── ENERGY chart with real data ── */
+/* ── Energy chart ── */
 function EnergyChart() {
   const [range, setRange] = useState<"week" | "month" | "year">("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -206,7 +160,6 @@ function EnergyChart() {
   const [activeBarName, setActiveBarName] = useState<string | null>(null);
   const [hoveredBarName, setHoveredBarName] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(true);
-
   const [weeklyData, setWeeklyData] = useState<ChartPoint[]>([]);
   const [monthlyData, setMonthlyData] = useState<ChartPoint[]>([]);
   const [yearlyData, setYearlyData] = useState<ChartPoint[]>([]);
@@ -216,12 +169,7 @@ function EnergyChart() {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener("resize", check);
-    
-    // FIX: setTimeout för att undvika ESLint's cascading render error
-    setTimeout(() => {
-      setIsDark(document.documentElement.getAttribute("data-theme") !== "light");
-    }, 0);
-    
+    setTimeout(() => { setIsDark(document.documentElement.getAttribute("data-theme") !== "light"); }, 0);
     const observer = new MutationObserver(() => setIsDark(document.documentElement.getAttribute("data-theme") !== "light"));
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     return () => { window.removeEventListener("resize", check); observer.disconnect(); };
@@ -236,21 +184,12 @@ function EnergyChart() {
         const data = await res.json();
         const energy = data.energy_kwh;
         if (energy) {
-          setWeeklyData((energy.weekly ?? []).map((row: { day: string; total: number }) => ({
-            name: row.day, value: Number(row.total.toFixed(2)),
-          })));
-          setMonthlyData((energy.monthly ?? []).map((row: { week: string; total: number }) => ({
-            name: row.week, value: Number(row.total.toFixed(2)),
-          })));
-          setYearlyData((energy.yearly ?? []).map((row: { month: string; total: number }) => ({
-            name: row.month, value: Number(row.total.toFixed(2)),
-          })));
+          setWeeklyData((energy.weekly ?? []).map((row: { day: string; total: number }) => ({ name: row.day, value: Number(row.total.toFixed(2)) })));
+          setMonthlyData((energy.monthly ?? []).map((row: { week: string; total: number }) => ({ name: row.week, value: Number(row.total.toFixed(2)) })));
+          setYearlyData((energy.yearly ?? []).map((row: { month: string; total: number }) => ({ name: row.month, value: Number(row.total.toFixed(2)) })));
         }
-      } catch (err) {
-        console.error("Failed to load Energy chart data:", err);
-      } finally {
-        setChartLoading(false);
-      }
+      } catch (err) { console.error("Failed to load Energy chart data:", err); }
+      finally { setChartLoading(false); }
     }
     fetchData();
   }, []);
@@ -263,18 +202,13 @@ function EnergyChart() {
   const tooltipText = isDark ? "#ffffff" : "#09090b";
 
   return (
-    <div className="rounded-2xl p-6 relative"
-      style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
+    <div className="rounded-2xl p-6 relative shadow-sm h-full" style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
       <div className="flex justify-between items-center mb-6">
-        <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
-          Energy usage
-        </p>
+        <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Energy usage</p>
         <div className="relative">
-          <button onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+          <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-colors hover:bg-black/5 dark:hover:bg-white/5"
             style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)" }}>
-            {range}
-            <ChevronDown size={14} />
+            {range}<ChevronDown size={14} />
           </button>
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50 shadow-xl"
@@ -302,20 +236,14 @@ function EnergyChart() {
               <YAxis stroke={axisColor} tick={{ fontSize: 12 }} unit=" kWh" />
               <Tooltip cursor={{ fill: "transparent" }}
                 contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "12px", color: tooltipText }}
-                itemStyle={{ color: tooltipText }}
-                formatter={(value: unknown) => [`${value} kWh`, "Energy"]} />
+                itemStyle={{ color: tooltipText }} formatter={(value: unknown) => [`${value} kWh`, "Energy"]} />
               <Bar dataKey="value" radius={[6, 6, 0, 0]}
                 onMouseEnter={(entry) => { if (!isMobile && entry?.name) setHoveredBarName(entry.name); }}
                 onMouseLeave={() => { if (!isMobile) setHoveredBarName(null); }}
                 onClick={(entry) => { if (isMobile && entry?.name) setActiveBarName(entry.name); }}>
                 {data.map((entry) => {
                   const isActive = (isMobile && activeBarName === entry.name) || (!isMobile && hoveredBarName === entry.name);
-                  return (
-                    <Cell key={`cell-${entry.name}`}
-                      fill={chartColor}
-                      fillOpacity={isActive ? 1 : 0.7}
-                      className="transition-all duration-300" />
-                  );
+                  return <Cell key={`cell-${entry.name}`} fill={chartColor} fillOpacity={isActive ? 1 : 0.7} />;
                 })}
               </Bar>
             </BarChart>
@@ -326,7 +254,7 @@ function EnergyChart() {
   );
 }
 
-/* ── CO2 chart with real data + engaging popover ── */
+/* ── CO2 chart ── */
 function CO2Chart({ userId }: { userId: string | null }) {
   const [range, setRange] = useState<"week" | "month" | "year">("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -334,12 +262,10 @@ function CO2Chart({ userId }: { userId: string | null }) {
   const [activeBarName, setActiveBarName] = useState<string | null>(null);
   const [hoveredBarName, setHoveredBarName] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(true);
-
   const [weeklyData, setWeeklyData] = useState<ChartPoint[]>([]);
   const [monthlyData, setMonthlyData] = useState<ChartPoint[]>([]);
   const [yearlyData, setYearlyData] = useState<ChartPoint[]>([]);
   const [chartLoading, setChartLoading] = useState(true);
-
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [engagingText, setEngagingText] = useState<string | null>(null);
   const [engagingLoading, setEngagingLoading] = useState(false);
@@ -349,12 +275,7 @@ function CO2Chart({ userId }: { userId: string | null }) {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener("resize", check);
-    
-    // FIX: setTimeout för att undvika ESLint's cascading render error
-    setTimeout(() => {
-      setIsDark(document.documentElement.getAttribute("data-theme") !== "light");
-    }, 0);
-    
+    setTimeout(() => { setIsDark(document.documentElement.getAttribute("data-theme") !== "light"); }, 0);
     const observer = new MutationObserver(() => setIsDark(document.documentElement.getAttribute("data-theme") !== "light"));
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     return () => { window.removeEventListener("resize", check); observer.disconnect(); };
@@ -369,62 +290,38 @@ function CO2Chart({ userId }: { userId: string | null }) {
         const data = await res.json();
         const co2 = data.co2_kg;
         if (co2) {
-          setWeeklyData((co2.weekly ?? []).map((row: { day: string; total: number }) => ({
-            name: row.day, value: Number(row.total.toFixed(2)),
-          })));
-          setMonthlyData((co2.monthly ?? []).map((row: { week: string; total: number }) => ({
-            name: row.week, value: Number(row.total.toFixed(2)),
-          })));
-          setYearlyData((co2.yearly ?? []).map((row: { month: string; total: number }) => ({
-            name: row.month, value: Number(row.total.toFixed(2)),
-          })));
+          setWeeklyData((co2.weekly ?? []).map((row: { day: string; total: number }) => ({ name: row.day, value: Number(row.total.toFixed(2)) })));
+          setMonthlyData((co2.monthly ?? []).map((row: { week: string; total: number }) => ({ name: row.week, value: Number(row.total.toFixed(2)) })));
+          setYearlyData((co2.yearly ?? []).map((row: { month: string; total: number }) => ({ name: row.month, value: Number(row.total.toFixed(2)) })));
         }
-      } catch (err) {
-        console.error("Failed to load CO2 chart data:", err);
-      } finally {
-        setChartLoading(false);
-      }
+      } catch (err) { console.error("Failed to load CO2 chart data:", err); }
+      finally { setChartLoading(false); }
     }
     fetchData();
   }, []);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setPopoverOpen(false);
-      }
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) setPopoverOpen(false);
     };
     if (popoverOpen) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [popoverOpen]);
 
   const handleInfoClick = async () => {
-    if (popoverOpen) {
-      setPopoverOpen(false);
-      return;
-    }
+    if (popoverOpen) { setPopoverOpen(false); return; }
     setPopoverOpen(true);
-    if (engagingText) return;
-    if (!userId) return;
-
+    if (engagingText || !userId) return;
     setEngagingLoading(true);
     try {
       const res = await fetch("/api/engaging", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId, category: "co2" }),
       });
       const data = await res.json();
-      if (res.ok && data.text) {
-        setEngagingText(data.text);
-      } else {
-        setEngagingText("Not enough data yet — keep logging your habits!");
-      }
-    } catch {
-      setEngagingText("Could not load impact data.");
-    } finally {
-      setEngagingLoading(false);
-    }
+      setEngagingText(res.ok && data.text ? data.text : "Not enough data yet — keep logging your habits!");
+    } catch { setEngagingText("Could not load impact data."); }
+    finally { setEngagingLoading(false); }
   };
 
   const data = range === "week" ? weeklyData : range === "month" ? monthlyData : yearlyData;
@@ -435,62 +332,37 @@ function CO2Chart({ userId }: { userId: string | null }) {
   const tooltipText = isDark ? "#ffffff" : "#09090b";
 
   return (
-    <div className="rounded-2xl p-6 relative"
-      style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
+    <div className="rounded-2xl p-6 relative shadow-sm" style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-2">
-          <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
-            CO₂ usage
-          </p>
-
+          <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>CO₂ usage</p>
           <div className="relative" ref={popoverRef}>
-            <button
-              onClick={handleInfoClick}
-              className="w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200"
-              style={{
-                background: popoverOpen ? "rgba(251,146,60,0.15)" : "var(--bg-card-deep)",
-                border: `1px solid ${popoverOpen ? "rgba(251,146,60,0.3)" : "var(--border-strong)"}`,
-              }}
-            >
+            <button onClick={handleInfoClick} className="w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200"
+              style={{ background: popoverOpen ? "rgba(251,146,60,0.15)" : "var(--bg-card-deep)", border: `1px solid ${popoverOpen ? "rgba(251,146,60,0.3)" : "var(--border-strong)"}` }}>
               {popoverOpen ? <X size={11} className="text-orange-400" /> : <Info size={11} style={{ color: "var(--text-muted)" }} />}
             </button>
-
             <AnimatePresence>
               {popoverOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                  transition={{ duration: 0.18 }}
+                <motion.div initial={{ opacity: 0, y: 6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.97 }} transition={{ duration: 0.18 }}
                   className="absolute -left-20 md:left-0 top-full mt-2 z-50 rounded-2xl p-4 w-[85vw] sm:w-65 shadow-2xl"
-                  style={{
-                    background: "var(--bg-elevated)", border: "1px solid rgba(251,146,60,0.2)",
-                    maxWidth: "280px"
-                  }}
-                >
+                  style={{ background: "var(--bg-elevated)", border: "1px solid rgba(251,146,60,0.2)" }}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-base">🌍</span>
-                    <p className="text-xs text-orange-400 font-medium tracking-wider uppercase"
-                      style={{ fontFamily: "var(--font-body)" }}>
-                      Your impact this week
-                    </p>
+                    <p className="text-xs text-orange-400 font-medium tracking-wider uppercase" style={{ fontFamily: "var(--font-body)" }}>Your impact this week</p>
                   </div>
-                  {engagingLoading ? (
-                    <p className="text-xs animate-pulse" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Calculating your impact...</p>
-                  ) : (
-                    <p className="text-sm leading-relaxed" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>{engagingText}</p>
-                  )}
+                  {engagingLoading
+                    ? <p className="text-xs animate-pulse" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Calculating your impact...</p>
+                    : <p className="text-sm leading-relaxed" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>{engagingText}</p>}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
         </div>
-
         <div className="relative">
-          <button onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+          <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-colors hover:bg-black/5 dark:hover:bg-white/5"
             style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)" }}>
-            {range} <ChevronDown size={14} />
+            {range}<ChevronDown size={14} />
           </button>
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50 shadow-xl"
@@ -506,7 +378,6 @@ function CO2Chart({ userId }: { userId: string | null }) {
           )}
         </div>
       </div>
-
       {chartLoading ? (
         <div className="h-64 flex items-center justify-center">
           <p className="text-sm animate-pulse" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Loading data...</p>
@@ -517,24 +388,16 @@ function CO2Chart({ userId }: { userId: string | null }) {
             <BarChart data={data}>
               <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 12 }} />
               <YAxis stroke={axisColor} tick={{ fontSize: 12 }} unit=" kg" />
-              <Tooltip
-                cursor={{ fill: "transparent" }}
+              <Tooltip cursor={{ fill: "transparent" }}
                 contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "12px", color: tooltipText }}
-                itemStyle={{ color: tooltipText }}
-                formatter={(value: unknown) => [`${value} kg`, "CO₂"]}
-              />
+                itemStyle={{ color: tooltipText }} formatter={(value: unknown) => [`${value} kg`, "CO₂"]} />
               <Bar dataKey="value" radius={[6, 6, 0, 0]}
                 onMouseEnter={(entry) => { if (!isMobile && entry?.name) setHoveredBarName(entry.name); }}
                 onMouseLeave={() => { if (!isMobile) setHoveredBarName(null); }}
                 onClick={(entry) => { if (isMobile && entry?.name) setActiveBarName(entry.name); }}>
                 {data.map((entry) => {
                   const isActive = (isMobile && activeBarName === entry.name) || (!isMobile && hoveredBarName === entry.name);
-                  return (
-                    <Cell key={`cell-${entry.name}`}
-                      fill={chartColor}
-                      fillOpacity={isActive ? 1 : 0.7}
-                      className="transition-all duration-300" />
-                  );
+                  return <Cell key={`cell-${entry.name}`} fill={chartColor} fillOpacity={isActive ? 1 : 0.7} />;
                 })}
               </Bar>
             </BarChart>
@@ -545,7 +408,7 @@ function CO2Chart({ userId }: { userId: string | null }) {
   );
 }
 
-/* ── WATER chart with real data ── */
+/* ── Water chart ── */
 function WaterChart() {
   const [range, setRange] = useState<"week" | "month" | "year">("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -553,7 +416,6 @@ function WaterChart() {
   const [activeBarName, setActiveBarName] = useState<string | null>(null);
   const [hoveredBarName, setHoveredBarName] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(true);
-
   const [weeklyData, setWeeklyData] = useState<ChartPoint[]>([]);
   const [monthlyData, setMonthlyData] = useState<ChartPoint[]>([]);
   const [yearlyData, setYearlyData] = useState<ChartPoint[]>([]);
@@ -563,12 +425,7 @@ function WaterChart() {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener("resize", check);
-    
-    // FIX: setTimeout för att undvika ESLint's cascading render error
-    setTimeout(() => {
-      setIsDark(document.documentElement.getAttribute("data-theme") !== "light");
-    }, 0);
-    
+    setTimeout(() => { setIsDark(document.documentElement.getAttribute("data-theme") !== "light"); }, 0);
     const observer = new MutationObserver(() => setIsDark(document.documentElement.getAttribute("data-theme") !== "light"));
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     return () => { window.removeEventListener("resize", check); observer.disconnect(); };
@@ -583,21 +440,12 @@ function WaterChart() {
         const data = await res.json();
         const water = data.water_l;
         if (water) {
-          setWeeklyData((water.weekly ?? []).map((row: { day: string; total: number }) => ({
-            name: row.day, value: Number(row.total.toFixed(1)),
-          })));
-          setMonthlyData((water.monthly ?? []).map((row: { week: string; total: number }) => ({
-            name: row.week, value: Number(row.total.toFixed(1)),
-          })));
-          setYearlyData((water.yearly ?? []).map((row: { month: string; total: number }) => ({
-            name: row.month, value: Number(row.total.toFixed(1)),
-          })));
+          setWeeklyData((water.weekly ?? []).map((row: { day: string; total: number }) => ({ name: row.day, value: Number(row.total.toFixed(1)) })));
+          setMonthlyData((water.monthly ?? []).map((row: { week: string; total: number }) => ({ name: row.week, value: Number(row.total.toFixed(1)) })));
+          setYearlyData((water.yearly ?? []).map((row: { month: string; total: number }) => ({ name: row.month, value: Number(row.total.toFixed(1)) })));
         }
-      } catch (err) {
-        console.error("Failed to load Water chart data:", err);
-      } finally {
-        setChartLoading(false);
-      }
+      } catch (err) { console.error("Failed to load Water chart data:", err); }
+      finally { setChartLoading(false); }
     }
     fetchData();
   }, []);
@@ -610,19 +458,13 @@ function WaterChart() {
   const tooltipText = isDark ? "#ffffff" : "#09090b";
 
   return (
-    <div className="rounded-2xl p-6 relative"
-      style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
+    <div className="rounded-2xl p-6 relative shadow-sm" style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
       <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-2">
-          <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
-            Water usage
-          </p>
-        </div>
+        <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Water usage</p>
         <div className="relative">
-          <button onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+          <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-colors hover:bg-black/5 dark:hover:bg-white/5"
             style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)" }}>
-            {range} <ChevronDown size={14} />
+            {range}<ChevronDown size={14} />
           </button>
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 rounded-xl overflow-hidden z-50 shadow-xl"
@@ -638,7 +480,6 @@ function WaterChart() {
           )}
         </div>
       </div>
-
       {chartLoading ? (
         <div className="h-64 flex items-center justify-center">
           <p className="text-sm animate-pulse" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Loading data...</p>
@@ -649,24 +490,16 @@ function WaterChart() {
             <BarChart data={data}>
               <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 12 }} />
               <YAxis stroke={axisColor} tick={{ fontSize: 12 }} unit=" L" />
-              <Tooltip
-                cursor={{ fill: "transparent" }}
+              <Tooltip cursor={{ fill: "transparent" }}
                 contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: "12px", color: tooltipText }}
-                itemStyle={{ color: tooltipText }}
-                formatter={(value: unknown) => [`${value} L`, "Water"]}
-              />
+                itemStyle={{ color: tooltipText }} formatter={(value: unknown) => [`${value} L`, "Water"]} />
               <Bar dataKey="value" radius={[6, 6, 0, 0]}
                 onMouseEnter={(entry) => { if (!isMobile && entry?.name) setHoveredBarName(entry.name); }}
                 onMouseLeave={() => { if (!isMobile) setHoveredBarName(null); }}
                 onClick={(entry) => { if (isMobile && entry?.name) setActiveBarName(entry.name); }}>
                 {data.map((entry) => {
                   const isActive = (isMobile && activeBarName === entry.name) || (!isMobile && hoveredBarName === entry.name);
-                  return (
-                    <Cell key={`cell-${entry.name}`}
-                      fill={chartColor}
-                      fillOpacity={isActive ? 1 : 0.7}
-                      className="transition-all duration-300" />
-                  );
+                  return <Cell key={`cell-${entry.name}`} fill={chartColor} fillOpacity={isActive ? 1 : 0.7} />;
                 })}
               </Bar>
             </BarChart>
@@ -677,23 +510,157 @@ function WaterChart() {
   );
 }
 
+/* ── Weekly Tips card (Flat list, dividers, no scroll) ── */
+type MetricStatus = "ok" | "borderline" | "bad";
+type MetricResult = {
+  metric: "co2" | "water" | "energy";
+  total: number;
+  unit: string;
+  status: MetricStatus;
+  top_category: string | null;
+  tip: string | null;
+};
+
+function WeeklyTipsCard() {
+  const [tips, setTips] = useState<MetricResult[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchTips() {
+      try {
+        const res = await fetch("/api/weekly-tip");
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data = await res.json();
+        setTips(data.tips ?? []);
+      } catch (err) {
+        console.error("Failed to load weekly tips:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTips();
+  }, []);
+
+  const metaMap: Record<string, { icon: string; label: string }> = {
+    co2:    { icon: "🌿", label: "CO₂ Usage" },
+    water:  { icon: "💧", label: "Water Usage" },
+    energy: { icon: "⚡", label: "Energy Usage" },
+  };
+
+  return (
+    <div className="rounded-2xl flex flex-col shadow-sm h-full"
+      style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
+
+      {/* Header */}
+      <div className="px-6 py-5 flex items-center gap-2 shrink-0"
+        style={{ borderBottom: "1px solid var(--border-subtle)", background: "var(--bg-card-nested)" }}>
+        <span className="text-base">📊</span>
+        <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+          Weekly insights
+        </p>
+      </div>
+
+      {/* Content (No scroll) */}
+      <div className="flex-1 flex flex-col justify-center p-4 lg:p-6">
+        {loading ? (
+          <div className="flex flex-col gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-10 rounded-xl animate-pulse" style={{ background: "var(--bg-card-nested)" }} />
+            ))}
+          </div>
+        ) : tips.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-6 text-center h-full">
+            <span className="text-3xl mb-3">🌱</span>
+            <p className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
+              No data yet
+            </p>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+              Log a few habits to get personalized weekly insights
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-zinc-500/40">
+            {tips.map((tip) => {
+              const meta = metaMap[tip.metric];
+              const isOpen = expanded === tip.metric;
+              const hasTip = tip.tip !== null;
+
+              return (
+                <div key={tip.metric} className="py-3 first:pt-0 last:pb-0">
+                  <motion.button
+                    type="button"
+                    onClick={() => hasTip && setExpanded(isOpen ? null : tip.metric)}
+                    className="w-full flex items-center gap-4 text-left rounded-xl transition-all"
+                    style={{ cursor: hasTip ? "pointer" : "default" }}
+                    whileHover={!isOpen ? { scale: 1.02 } : {}}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {/* Icon */}
+                    <span className="text-2xl shrink-0">{meta.icon}</span>
+
+                    {/* Label */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
+                        {meta.label}
+                      </p>
+                    </div>
+
+                    {/* Value + Chevron */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <p className="text-sm font-semibold" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>
+                        {tip.total.toFixed(1)} <span className="text-xs font-normal" style={{ color: "var(--text-muted)" }}>{tip.unit}</span>
+                      </p>
+                      {hasTip && (
+                        <ChevronDown
+                          size={16}
+                          className="transition-transform duration-300 shrink-0"
+                          style={{
+                            color: "var(--text-muted)",
+                            transform: isOpen ? "rotate(180deg)" : "rotate(0deg)"
+                          }}
+                        />
+                      )}
+                    </div>
+                  </motion.button>
+
+                  {/* Expanded tip (Seamless extension) */}
+                  <AnimatePresence>
+                    {isOpen && tip.tip && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pt-3 pl-10 pr-2 pb-1">
+                          <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
+                            {tip.tip}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── Log banner ── */
 function LogBanner({ loggedCount, href }: { loggedCount: number; href: string }) {
   if (loggedCount >= 1) return null;
-  
   return (
     <AnimatePresence>
-      <motion.a
-        href={href}
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        transition={{ duration: 0.4 }}
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
-        className="flex items-center justify-between gap-4 px-6 py-4 rounded-2xl cursor-pointer mb-8"
-        style={{ background: "var(--accent-green-subtle)", border: "1px solid var(--accent-green-badge-border)" }}
-      >
+      <motion.a href={href} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.4 }} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+        className="flex items-center justify-between gap-4 px-6 py-4 rounded-2xl cursor-pointer mb-8 shadow-sm"
+        style={{ background: "var(--accent-green-subtle)", border: "1px solid var(--accent-green-badge-border)" }}>
         <div className="flex items-center gap-3">
           <div className="relative shrink-0">
             <div className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--accent-green)" }} />
@@ -708,90 +675,11 @@ function LogBanner({ loggedCount, href }: { loggedCount: number; href: string })
             </p>
           </div>
         </div>
-        <div className="shrink-0 px-4 py-2 rounded-xl text-sm font-semibold text-black"
-          style={{ background: "var(--accent-green)" }}>
+        <div className="shrink-0 px-4 py-2 rounded-xl text-sm font-semibold text-black transition-colors hover:opacity-90" style={{ background: "var(--accent-green)" }}>
           Log now
         </div>
       </motion.a>
     </AnimatePresence>
-  );
-}
-
-/* ── Tips carousel ── */
-const TIPS = [
-  { icon: "🥗", title: "Eat plant-based", tip: "Choosing a plant-based meal instead of beef saves up to 5 kg CO₂ — that's worth +500 points." },
-  { icon: "🚌", title: "Use public transport", tip: "Taking the bus instead of driving 10 minutes saves ~1 kg CO₂ — worth +100 points." },
-  { icon: "🚿", title: "Shorter showers", tip: "Cutting your shower from 15 to 5 minutes saves ~0.3 kg CO₂ and conserves water." },
-  { icon: "💡", title: "Turn off lights", tip: "Turning off lights when leaving a room saves ~0.05 kg CO₂ per hour — small but it adds up." },
-  { icon: "♻️", title: "Recycle more", tip: "Recycling one plastic bottle saves ~0.1 kg CO₂ compared to landfill disposal." },
-];
-
-function TipsCarousel() {
-  const [index, setIndex] = useState(0);
-  const [direction, setDirection] = useState(1);
-
-  const go = (dir: number) => {
-    setDirection(dir);
-    setIndex((prev) => (prev + dir + TIPS.length) % TIPS.length);
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: 0.4 }}
-      className="rounded-2xl overflow-hidden mb-8"
-      style={{ border: "1px solid var(--border-subtle)" }}
-    >
-      <div className="px-5 py-3 flex items-center justify-between"
-        style={{ background: "var(--bg-card-nested)", borderBottom: "1px solid var(--border-subtle)" }}>
-        <div className="flex items-center gap-2">
-          <TrendingUp size={15} style={{ color: "var(--accent-green)" }} />
-          <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
-            Daily Tip
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex gap-1.5">
-            {TIPS.map((_, i) => (
-              <button key={i} onClick={() => { setDirection(i > index ? 1 : -1); setIndex(i); }}
-                className="rounded-full transition-all duration-300"
-                style={{ width: i === index ? "16px" : "6px", height: "6px", background: i === index ? "var(--accent-green)" : "var(--border-strong)" }} />
-            ))}
-          </div>
-          <div className="flex gap-1">
-            {(["←", "→"] as const).map((arrow, i) => (
-              <button key={arrow} onClick={() => go(i === 0 ? -1 : 1)}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all duration-200 hover:bg-black/5 dark:hover:bg-white/5"
-                style={{ background: "var(--bg-card-deep)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
-                {arrow}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="relative overflow-hidden" style={{ height: "100px", background: "var(--bg-card)" }}>
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={index} custom={direction}
-            variants={{
-              enter: (d: number) => ({ opacity: 0, x: d > 0 ? 40 : -40 }),
-              center: { opacity: 1, x: 0 },
-              exit: (d: number) => ({ opacity: 0, x: d > 0 ? -40 : 40 }),
-            }}
-            initial="enter" animate="center" exit="exit"
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="absolute inset-0 flex items-center gap-4 px-5"
-          >
-            <span className="text-3xl shrink-0">{TIPS[index].icon}</span>
-            <div>
-              <p className="text-sm font-medium mb-1" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>{TIPS[index].title}</p>
-              <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>{TIPS[index].tip}</p>
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-    </motion.div>
   );
 }
 
@@ -815,11 +703,8 @@ export default function DashboardPage() {
         const data = await response.json();
 
         if (data.firstName) setFirstName(data.firstName.toUpperCase());
+        if (data.ecoScore !== undefined) setEcoScore(data.ecoScore);
 
-        if (data.ecoScore !== undefined) {
-          setEcoScore(data.ecoScore);
-        }
-        
         if (data.activities && data.activities.length > 0) {
           const uniqueCategories = Array.from(
             new Set(data.activities.map((a: { category: string }) => {
@@ -829,59 +714,36 @@ export default function DashboardPage() {
             }))
           );
           setLoggedToday(uniqueCategories as string[]);
-          
         }
 
-        // --- STREAK CALCULATION LOGIC ---
         if (user) {
           const { data: history } = await supabase
-            .from("eco_activities")
-            .select("day")
-            .eq("user_id", user.id)
-            .order("day", { ascending: false });
+            .from("eco_activities").select("day").eq("user_id", user.id).order("day", { ascending: false });
 
           if (history && history.length > 0) {
-            const uniqueDates = Array.from(
-              new Set(
-                history.map((row) => {
-                  const d = new Date(row.day);
-                  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-                  return d.toISOString().split("T")[0];
-                })
-              )
-            );
-
+            const uniqueDates = Array.from(new Set(history.map((row) => {
+              const d = new Date(row.day);
+              d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+              return d.toISOString().split("T")[0];
+            })));
             const getOffsetDate = (offset: number) => {
               const d = new Date();
               d.setDate(d.getDate() - offset);
               d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
               return d.toISOString().split("T")[0];
             };
-
             const today = getOffsetDate(0);
             const yesterday = getOffsetDate(1);
-
             let calculatedStreak = 0;
-            
             if (uniqueDates.includes(today) || uniqueDates.includes(yesterday)) {
               let offset = uniqueDates.includes(today) ? 0 : 1;
-              
-              while (uniqueDates.includes(getOffsetDate(offset))) {
-                calculatedStreak++;
-                offset++;
-              }
+              while (uniqueDates.includes(getOffsetDate(offset))) { calculatedStreak++; offset++; }
             }
             setStreak(calculatedStreak);
-          } else {
-             setStreak(0);
-          }
+          } else { setStreak(0); }
         }
-
-      } catch (error) {
-        console.error("Error loading dashboard:", error);
-      } finally {
-        setLoading(false);
-      }
+      } catch (error) { console.error("Error loading dashboard:", error); }
+      finally { setLoading(false); }
     }
     fetchDashboardData();
   }, []);
@@ -901,12 +763,8 @@ export default function DashboardPage() {
         <div className="max-w-5xl mx-auto px-6 py-10">
 
           {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="flex items-center justify-between mb-8"
-          >
+          <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+            className="flex items-center justify-between mb-8">
             <div>
               <h1 className="leading-none mb-1 uppercase"
                 style={{ color: "var(--text-primary)", fontFamily: "var(--font-display)", fontSize: "clamp(28px,3vw,40px)" }}>
@@ -917,7 +775,7 @@ export default function DashboardPage() {
                 {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
               </p>
             </div>
-            <div className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-full"
+            <div className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-full shadow-sm"
               style={{ background: "var(--accent-green-badge)", border: "1px solid var(--accent-green-badge-border)" }}>
               <Flame size={14} style={{ color: "var(--accent-green)" }} />
               <span className="text-sm font-medium" style={{ color: "var(--accent-green)", fontFamily: "var(--font-body)" }}>
@@ -928,15 +786,10 @@ export default function DashboardPage() {
 
           <LogBanner loggedCount={loggedToday.length} href="/dashboard/log" />
 
-          {/* Zon 1: Control Center (Eco Score + Habits) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
+          {/* Zon 1: Eco Score + Habits */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
             className="rounded-2xl p-6 sm:p-8 mb-8 flex flex-col lg:flex-row gap-8 lg:gap-12 shadow-sm"
-            style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}
-          >
-            {/* Vänster: Eco Score Section */}
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
             <div className="flex-1 flex flex-col items-center justify-center">
               <EcoScoreRing score={ecoScore} />
               <div className="flex gap-4 sm:gap-6 mt-6 pt-6 w-full max-w-sm" style={{ borderTop: "1px solid var(--border-faint)" }}>
@@ -948,18 +801,14 @@ export default function DashboardPage() {
                 ))}
               </div>
             </div>
-
-            {/* Avdelare */}
             <div className="hidden lg:block w-px" style={{ background: "var(--border-faint)" }} />
             <div className="block lg:hidden h-px w-full" style={{ background: "var(--border-faint)" }} />
-
-            {/* Höger: Habits Section */}
             <div className="flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between mb-5">
                 <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
                   Today&apos;s habits
                 </p>
-                <div className="px-3 py-1 rounded-full" style={{ background: "var(--bg-card-deep)", border: "1px solid var(--border-subtle)" }}>
+                <div className="px-3 py-1 rounded-full shadow-sm" style={{ background: "var(--bg-card-deep)", border: "1px solid var(--border-subtle)" }}>
                   <p className="text-xs font-medium" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
                     {loggedToday.length} / 3 logged
                   </p>
@@ -973,30 +822,20 @@ export default function DashboardPage() {
             </div>
           </motion.div>
 
-          {/* Zon 2: Huvud-KPI (Fullbredds-graf Eco Score) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="mb-8"
-          >
+          {/* Zon 2: Eco Score graf */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="mb-8 shadow-sm hover:scale-[1.005] transition-transform duration-300">
             <EcoScoreChart />
           </motion.div>
 
-          {/* Zon 3: Support Data & Insights (Nedre Grid) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8"
-          >
+          {/* Zon 3: 2x2 grid – CO2, Water, Energy, Weekly Tips */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <CO2Chart userId={userId} />
             <WaterChart />
             <EnergyChart />
+            <WeeklyTipsCard />
           </motion.div>
 
-          {/* Zon 4: Footer-tips */}
-          <TipsCarousel />
         </div>
       </main>
       <BottomNav />
