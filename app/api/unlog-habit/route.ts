@@ -3,6 +3,7 @@ import { createClient } from '../../../lib/supabaseServer';
 import { parseUnlogHabitRequest } from '../../../utils/payload_parsing';
 import { unlogHabit } from '../../../utils/unlog-habit';
 import { EmissionNotFoundError, InvalidPayloadError } from '../../../utils/custom-errors';
+import { calculateUserEcoScore, logScoreChange, updateUserProfile } from '../../../lib/eco-score';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,24 +18,27 @@ export async function POST(request: NextRequest) {
 
     const payload = parseUnlogHabitRequest(await request.json());
 
-
-    //May throw EmissionNotFoundError
+    // May throw EmissionNotFoundError
     await unlogHabit(payload.id, user.id, supabase);
+
+    const newScore = await calculateUserEcoScore(user.id, supabase);
+    await updateUserProfile(user.id, newScore, supabase);
+    await logScoreChange(user.id, null, newScore, supabase);
 
     return NextResponse.json({
       success: true,
-      message: 'Emission entry removed.'
+      message: 'Emission entry removed.',
+      eco_score: newScore,
     }, { status: 200 });
 
   } 
   catch (error) {
+    // Handle known errors
     if (error instanceof InvalidPayloadError) {
       return NextResponse.json(
         { error: error.message },
         { status: 400 }
       );
-    
-    console.log(await request.json());
     }
 
     if (error instanceof EmissionNotFoundError) {
@@ -44,7 +48,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    //Unhandled error
+    // Handle unknown errors
     const message = error instanceof Error ? error.message : 'server error';
     console.error('API Error:', error);
     return NextResponse.json(
