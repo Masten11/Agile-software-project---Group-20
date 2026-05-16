@@ -4,6 +4,7 @@ import { parseLogHabitRequest } from '../../../utils/payload_parsing';
 import { InvalidPayloadError, UnsupportedCategoryError } from '../../../utils/custom-errors';
 import { getHabitHandler } from '../../../utils/habit-handlers';
 import { resolveDayFromOffset } from '../../../utils/day_offset';
+import { calculateUserEcoScore, updateUserProfile } from '../../../lib/eco_score'; 
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,11 +39,15 @@ export async function POST(request: NextRequest) {
       day,
     }); 
 
+    const newScore = await calculateUserEcoScore(user.id, supabase);
+    await updateUserProfile(user.id, newScore, supabase);
+
     // Return the saved row from the database
     return NextResponse.json({
       success: true,
       message: 'Habit entry created.',
-      data: result
+      data: result,
+      eco_score: newScore
     }, { status: 201 });
 
   } 

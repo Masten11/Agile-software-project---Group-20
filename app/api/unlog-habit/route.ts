@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../lib/supabaseServer';
 import { parseUnlogHabitRequest } from '../../../utils/payload_parsing';
 import { unlogHabit } from '../../../utils/unlog-habit';
+import { calculateUserEcoScore, updateUserProfile } from '../../../lib/eco_score';
 import { EmissionNotFoundError, InvalidPayloadError } from '../../../utils/custom-errors';
 
 export async function POST(request: NextRequest) {
@@ -21,9 +22,13 @@ export async function POST(request: NextRequest) {
     //May throw EmissionNotFoundError
     await unlogHabit(payload.id, user.id, supabase);
 
+    const newScore = await calculateUserEcoScore(user.id, supabase);
+    await updateUserProfile(user.id, newScore, supabase);
+
     return NextResponse.json({
       success: true,
-      message: 'Emission entry removed.'
+      message: 'Emission entry removed.',
+      eco_score: newScore,
     }, { status: 200 });
 
   } 
