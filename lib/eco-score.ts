@@ -40,15 +40,14 @@ export interface EcoActivity {
       // SHOWER RULES
       if (act.category === 'shower' && act.details?.minutes) {
         const minutes = parseFloat(act.details.minutes);
-        if (minutes <= 3) bonus = 10;
-        else if (minutes <= 5) penalty = 5;
+        if (minutes <= 5) bonus = 10;
         else if (minutes >= 15) penalty = 20;
       }
   
       // DISHWASHER RULES
       if (act.category === 'dishwasher') {
         dishwasherCount += 1;
-        if (act.details?.ecoMode === 'true') bonus = 5;
+        if (act.details?.ecoMode === 'true') bonus = 10;
         if (dishwasherCount > 2) penalty += (dishwasherCount - 2) * 5;
       }
   
@@ -57,18 +56,17 @@ export interface EcoActivity {
         const mode = act.details.transportMode;
         if (mode === 'bike') bonus = 10;
         else if (mode === 'train' || mode === 'bus') bonus = 5;
-        else if (mode === 'plane') penalty = 200;
+        else if (mode === 'plane') penalty = 50;
         else if (mode === 'car') {
           const distance = parseFloat(act.details.distance_km || 0);
           if (distance < 2) penalty = 30;
-          else penalty = Math.round(distance * 0.5);
         }
       }
   
       // Calculate net change
       const environmentalImpact = 
         Math.round(
-          (act.co2_kg || 0) * 5 + 
+          (act.co2_kg || 0) * 2 + 
           (act.water_l || 0) * 0.1 + 
           (act.energy_kwh || 0) * 2
         );
