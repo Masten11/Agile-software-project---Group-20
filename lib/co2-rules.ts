@@ -7,7 +7,7 @@ export function getCo2Tip(category: string, rows: ActivityRow[]): string | null 
     case 'transport':  return getTransportCo2Tip(rows);
     case 'shower':     return getShowerCo2Tip(rows);
     case 'dishwasher': return getDishwasherCo2Tip(rows);
-    case 'washingmachine': return null; // No specific tip for washing machine yet
+    case 'washingmachine': return getWashingMachineCo2Tip(rows); // No specific tip for washing machine yet
     case 'clothes':     return null; // No specific tip for clothes yet
     default:           return null;
   }
@@ -62,7 +62,21 @@ function getDishwasherCo2Tip(rows: ActivityRow[]): string | null {
 }
 
 function getWashingMachineCo2Tip(rows: ActivityRow[]): string | null {
-  return null; // No specific tip for washing machine yet
+  const totalCo2 = rows.reduce((sum, r) => sum + r.co2_kg, 0);
+  if (totalCo2 < 1) return null;
+
+  const nonEcoRuns = rows.filter(r => r.details?.ecoMode === false);
+  const highTempRuns = rows.filter(r => (r.details?.temperatureCelsius as number) >= 60);
+
+  if (nonEcoRuns.length >= 2) {
+    return `You ran the washing machine ${nonEcoRuns.length} times without eco mode this week. Eco mode uses up to 35% less energy, which directly reduces CO₂ emissions.`;
+  }
+
+  if (highTempRuns.length >= 2) {
+    return `You washed at 60°C or higher ${highTempRuns.length} times this week. Most laundry gets just as clean at 30–40°C, which uses significantly less energy and produces less CO₂.`;
+  }
+
+  return `Your washing machine contributed ${Math.round(totalCo2 * 10) / 10} kg of CO₂ this week. Combining full loads and using eco mode are the most effective ways to reduce emissions.`;
 }
 
 
