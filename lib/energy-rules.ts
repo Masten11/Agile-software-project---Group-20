@@ -4,6 +4,8 @@ export function getEnergyTip(category: string, rows: ActivityRow[], weeklyTotal:
   switch (category) {
     case 'shower':     return getShowerEnergyTip(rows, weeklyTotal);
     case 'dishwasher': return getDishwasherEnergyTip(rows, weeklyTotal);
+    case 'washingmachine': return getWashingMachineEnergyTip(rows, weeklyTotal); // No specific tip for washing machine yet
+    case 'clothes':     return null; // No specific tip for clothes yet
     default:           return null;
   }
 }
@@ -39,3 +41,26 @@ function getDishwasherEnergyTip(rows: ActivityRow[], weeklyTotal: number): strin
 
   return null;
 }
+
+
+function getWashingMachineEnergyTip(rows: ActivityRow[], weeklyTotal: number): string | null {
+  const totalEnergy = rows.reduce((sum, r) => sum + r.energy_kwh, 0);
+  if (totalEnergy < 0.5) return null;
+
+  const nonEcoRuns = rows.filter(r => r.details?.ecoMode === false);
+  const highTempRuns = rows.filter(r => (r.details?.temperatureCelsius as number) >= 60);
+
+  if (nonEcoRuns.length >= 2) {
+    return `You ran the washing machine ${nonEcoRuns.length} times without eco mode this week, using ${Math.round(totalEnergy * 10) / 10} kWh in total. Eco mode reduces energy consumption by up to 35% per wash.`;
+  }
+
+  if (highTempRuns.length >= 2) {
+    return `You washed at 60°C or higher ${highTempRuns.length} times this week. Around 90% of a washing machine's energy goes to heating water — washing at 30–40°C can cut energy use significantly.`;
+  }
+
+  return `Your washing machine used ${Math.round(totalEnergy * 10) / 10} kWh this week. Full loads and lower temperatures are the most effective ways to reduce energy consumption.`;
+}
+
+function getClothesEnergyTip(rows: ActivityRow[], weeklyTotal: number): string | null {
+  return null; // No specific tip for clothes yet
+} 

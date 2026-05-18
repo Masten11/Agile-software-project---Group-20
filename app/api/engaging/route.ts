@@ -64,11 +64,10 @@ export async function POST(request: NextRequest) {
       impact_unit: config.impactUnit,
       text: config.createText(impactValue),
     });
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (error) {
+  }  catch (error) {
+    console.error('ENGAGING API ERROR:', error);
     return NextResponse.json(
       { error: 'Something went wrong' },
       { status: 500 }
     );
-  }
-}
+  }}
