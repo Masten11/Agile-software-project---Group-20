@@ -5,7 +5,8 @@ import { DayOffset } from './day_offset';
 export enum Category {
   Transportation = 'transport', //Add more categories here
   Shower = 'shower',
-  Dishwasher = 'dishwasher'
+  Dishwasher = 'dishwasher',
+  WashingMachine = 'washingmachine',
 }
 
 export type LogHabitRequest = {
