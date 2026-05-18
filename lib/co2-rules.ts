@@ -7,6 +7,8 @@ export function getCo2Tip(category: string, rows: ActivityRow[]): string | null 
     case 'transport':  return getTransportCo2Tip(rows);
     case 'shower':     return getShowerCo2Tip(rows);
     case 'dishwasher': return getDishwasherCo2Tip(rows);
+    case 'washingmachine': return null; // No specific tip for washing machine yet
+    case 'clothes':     return null; // No specific tip for clothes yet
     default:           return null;
   }
 }
@@ -58,3 +60,12 @@ function getDishwasherCo2Tip(rows: ActivityRow[]): string | null {
   if (nonEcoRuns.length < 3) return null;
   return `You ran the dishwasher ${nonEcoRuns.length} times without eco mode this week. Using eco mode can reduce CO₂ emissions by up to 30%.`;
 }
+
+function getWashingMachineCo2Tip(rows: ActivityRow[]): string | null {
+  return null; // No specific tip for washing machine yet
+};
+
+
+function getClothesCo2Tip(rows: ActivityRow[]): string | null {
+  return null; // No specific tip for clothes yet
+};
