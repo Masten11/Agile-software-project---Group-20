@@ -63,9 +63,9 @@ function getDishwasherCo2Tip(rows: ActivityRow[]): string | null {
 
 function getWashingMachineCo2Tip(rows: ActivityRow[]): string | null {
   return null; // No specific tip for washing machine yet
-};
+}
 
 
 function getClothesCo2Tip(rows: ActivityRow[]): string | null {
   return null; // No specific tip for clothes yet
-};
+}

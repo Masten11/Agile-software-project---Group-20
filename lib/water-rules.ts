@@ -6,6 +6,8 @@ export function getWaterTip(category: string, rows: ActivityRow[], weeklyTotal: 
   switch (category) {
     case 'shower':     return getShowerWaterTip(rows, weeklyTotal);
     case 'dishwasher': return getDishwasherWaterTip(rows, weeklyTotal);
+    case 'washingmachine': return null; // No specific tip for washing machine yet
+    case 'clothes':     return null; // No specific tip for clothes yet
     default:           return null;
   }
 }
@@ -35,4 +37,14 @@ function getDishwasherWaterTip(rows: ActivityRow[], weeklyTotal: number): string
   }
 
   return `You used ${weeklyTotal} liters of water this week. Your dishwasher is the biggest source, using ${Math.round(totalDishwasherWater)} liters. Try running it less frequently or use eco mode.`;
+}
+
+
+function getWashingMachineWaterTip(rows: ActivityRow[], weeklyTotal: number): string | null {
+  return null; // No specific tip for washing machine yet
+}
+
+
+function getClothesWaterTip(rows: ActivityRow[], weeklyTotal: number): string | null {
+  return null; // No specific tip for clothes yet
 }
