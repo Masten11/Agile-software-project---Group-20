@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
-import { Zap, Car, Flame, Calendar, Plus, ChevronDown, Info, X, Droplet } from "lucide-react";
+import { Zap, Car, Flame, Calendar, Plus, ChevronDown, Info, X, Home, Shirt } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/lib/supabase";
@@ -74,7 +75,7 @@ function CategoryCard({ icon: Icon, label, color, logged, href }: {
       </div>
       {!logged && (
         <div className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110"
-          style={{ border: "1px solid var(--border-strong)" }}>
+          style={{ border: "1px solid var(--accent-green-badge-border)" }}>
           <Plus size={16} className="transition-colors duration-300" style={{ color: "var(--text-muted)" }} strokeWidth={2.5} />
         </div>
       )}
@@ -159,7 +160,7 @@ function EcoScoreChart() {
 type ChartPoint = { name: string; value: number };
 
 /* ── Energy chart ── */
-function EnergyChart() {
+function EnergyChart({ userId }: { userId: string | null }) {
   const [range, setRange] = useState<"week" | "month" | "year">("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -170,6 +171,12 @@ function EnergyChart() {
   const [monthlyData, setMonthlyData] = useState<ChartPoint[]>([]);
   const [yearlyData, setYearlyData] = useState<ChartPoint[]>([]);
   const [chartLoading, setChartLoading] = useState(true);
+  
+  // Info popover state
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [engagingText, setEngagingText] = useState<string | null>(null);
+  const [engagingLoading, setEngagingLoading] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -200,8 +207,46 @@ function EnergyChart() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) setPopoverOpen(false);
+    };
+    if (popoverOpen) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [popoverOpen]);
+
+  const handleInfoClick = async () => {
+    if (popoverOpen) { setPopoverOpen(false); return; }
+    setPopoverOpen(true);
+    if (engagingText || !userId) return;
+    setEngagingLoading(true);
+    try {
+      const res = await fetch("/api/engaging", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, category: "electricity" }), 
+      });
+      
+      const textResponse = await res.text();
+      try {
+        const data = JSON.parse(textResponse);
+        if (res.ok && data.text) {
+          setEngagingText(data.text);
+        } else {
+          setEngagingText(`Server Error: ${data.error || "Unknown error"}`);
+        }
+      } catch (e) {
+        setEngagingText("Error: Backend crashed (returned HTML instead of JSON).");
+        console.error("Backend Error HTML:", textResponse);
+      }
+    } catch { 
+      setEngagingText("Network error fetching data."); 
+    } finally { 
+      setEngagingLoading(false); 
+    }
+  };
+
   const data = range === "week" ? weeklyData : range === "month" ? monthlyData : yearlyData;
-  const chartColor = "#c084fc";
+  const chartColor = "#c084fc"; // purple-400
   const axisColor = isDark ? "#71717a" : "#a1a1aa";
   const tooltipBg = isDark ? "#18181b" : "#ffffff";
   const tooltipBorder = isDark ? "#27272a" : "#e4e4e7";
@@ -210,7 +255,31 @@ function EnergyChart() {
   return (
     <div className="rounded-2xl p-6 relative shadow-sm h-full" style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
       <div className="flex justify-between items-center mb-6">
-        <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Energy usage</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Energy usage</p>
+          <div className="relative" ref={popoverRef}>
+            <button onClick={handleInfoClick} className="w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200"
+              style={{ background: popoverOpen ? "rgba(192,132,252,0.15)" : "var(--bg-card-deep)", border: `1px solid ${popoverOpen ? "rgba(192,132,252,0.3)" : "var(--border-strong)"}` }}>
+              {popoverOpen ? <X size={11} style={{ color: chartColor }} /> : <Info size={11} style={{ color: "var(--text-muted)" }} />}
+            </button>
+            <AnimatePresence>
+              {popoverOpen && (
+                <motion.div initial={{ opacity: 0, y: 6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.97 }} transition={{ duration: 0.18 }}
+                  className="absolute -left-20 md:left-0 top-full mt-2 z-50 rounded-2xl p-4 w-[85vw] sm:w-65 shadow-2xl"
+                  style={{ background: "var(--bg-elevated)", border: "1px solid rgba(192,132,252,0.2)" }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-base">⚡</span>
+                    <p className="text-xs font-medium tracking-wider uppercase" style={{ color: chartColor, fontFamily: "var(--font-body)" }}>Your impact this week</p>
+                  </div>
+                  {engagingLoading
+                    ? <p className="text-xs animate-pulse" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Calculating your impact...</p>
+                    : <p className="text-sm leading-relaxed" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>{engagingText}</p>}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
         <div className="relative">
           <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-colors hover:bg-black/5 dark:hover:bg-white/5"
             style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)" }}>
@@ -272,6 +341,8 @@ function CO2Chart({ userId }: { userId: string | null }) {
   const [monthlyData, setMonthlyData] = useState<ChartPoint[]>([]);
   const [yearlyData, setYearlyData] = useState<ChartPoint[]>([]);
   const [chartLoading, setChartLoading] = useState(true);
+  
+  // Info popover state
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [engagingText, setEngagingText] = useState<string | null>(null);
   const [engagingLoading, setEngagingLoading] = useState(false);
@@ -322,16 +393,30 @@ function CO2Chart({ userId }: { userId: string | null }) {
     try {
       const res = await fetch("/api/engaging", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId, category: "co2" }),
+        body: JSON.stringify({ user_id: userId, category: "co2" }), 
       });
-      const data = await res.json();
-      setEngagingText(res.ok && data.text ? data.text : "Not enough data yet — keep logging your habits!");
-    } catch { setEngagingText("Could not load impact data."); }
-    finally { setEngagingLoading(false); }
+      
+      const textResponse = await res.text();
+      try {
+        const data = JSON.parse(textResponse);
+        if (res.ok && data.text) {
+          setEngagingText(data.text);
+        } else {
+          setEngagingText(`Server Error: ${data.error || "Unknown error"}`);
+        }
+      } catch (e) {
+        setEngagingText("Error: Backend crashed (returned HTML instead of JSON).");
+        console.error("Backend Error HTML:", textResponse);
+      }
+    } catch { 
+      setEngagingText("Network error fetching data."); 
+    } finally { 
+      setEngagingLoading(false); 
+    }
   };
 
   const data = range === "week" ? weeklyData : range === "month" ? monthlyData : yearlyData;
-  const chartColor = "#fb923c";
+  const chartColor = "#fb923c"; // orange-400
   const axisColor = isDark ? "#71717a" : "#a1a1aa";
   const tooltipBg = isDark ? "#18181b" : "#ffffff";
   const tooltipBorder = isDark ? "#27272a" : "#e4e4e7";
@@ -345,7 +430,7 @@ function CO2Chart({ userId }: { userId: string | null }) {
           <div className="relative" ref={popoverRef}>
             <button onClick={handleInfoClick} className="w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200"
               style={{ background: popoverOpen ? "rgba(251,146,60,0.15)" : "var(--bg-card-deep)", border: `1px solid ${popoverOpen ? "rgba(251,146,60,0.3)" : "var(--border-strong)"}` }}>
-              {popoverOpen ? <X size={11} className="text-orange-400" /> : <Info size={11} style={{ color: "var(--text-muted)" }} />}
+              {popoverOpen ? <X size={11} style={{ color: chartColor }} /> : <Info size={11} style={{ color: "var(--text-muted)" }} />}
             </button>
             <AnimatePresence>
               {popoverOpen && (
@@ -355,7 +440,7 @@ function CO2Chart({ userId }: { userId: string | null }) {
                   style={{ background: "var(--bg-elevated)", border: "1px solid rgba(251,146,60,0.2)" }}>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-base">🌍</span>
-                    <p className="text-xs text-orange-400 font-medium tracking-wider uppercase" style={{ fontFamily: "var(--font-body)" }}>Your impact this week</p>
+                    <p className="text-xs font-medium tracking-wider uppercase" style={{ color: chartColor, fontFamily: "var(--font-body)" }}>Your impact this week</p>
                   </div>
                   {engagingLoading
                     ? <p className="text-xs animate-pulse" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Calculating your impact...</p>
@@ -415,7 +500,7 @@ function CO2Chart({ userId }: { userId: string | null }) {
 }
 
 /* ── Water chart ── */
-function WaterChart() {
+function WaterChart({ userId }: { userId: string | null }) {
   const [range, setRange] = useState<"week" | "month" | "year">("week");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -426,6 +511,12 @@ function WaterChart() {
   const [monthlyData, setMonthlyData] = useState<ChartPoint[]>([]);
   const [yearlyData, setYearlyData] = useState<ChartPoint[]>([]);
   const [chartLoading, setChartLoading] = useState(true);
+  
+  // Info popover state
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [engagingText, setEngagingText] = useState<string | null>(null);
+  const [engagingLoading, setEngagingLoading] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -456,8 +547,46 @@ function WaterChart() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) setPopoverOpen(false);
+    };
+    if (popoverOpen) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [popoverOpen]);
+
+  const handleInfoClick = async () => {
+    if (popoverOpen) { setPopoverOpen(false); return; }
+    setPopoverOpen(true);
+    if (engagingText || !userId) return;
+    setEngagingLoading(true);
+    try {
+      const res = await fetch("/api/engaging", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, category: "water" }), 
+      });
+      
+      const textResponse = await res.text();
+      try {
+        const data = JSON.parse(textResponse);
+        if (res.ok && data.text) {
+          setEngagingText(data.text);
+        } else {
+          setEngagingText(`Server Error: ${data.error || "Unknown error"}`);
+        }
+      } catch (e) {
+        setEngagingText("Error: Backend crashed (returned HTML instead of JSON).");
+        console.error("Backend Error HTML:", textResponse);
+      }
+    } catch { 
+      setEngagingText("Network error fetching data."); 
+    } finally { 
+      setEngagingLoading(false); 
+    }
+  };
+
   const data = range === "week" ? weeklyData : range === "month" ? monthlyData : yearlyData;
-  const chartColor = "#22d3ee";
+  const chartColor = "#22d3ee"; // cyan-400
   const axisColor = isDark ? "#71717a" : "#a1a1aa";
   const tooltipBg = isDark ? "#18181b" : "#ffffff";
   const tooltipBorder = isDark ? "#27272a" : "#e4e4e7";
@@ -466,7 +595,31 @@ function WaterChart() {
   return (
     <div className="rounded-2xl p-6 relative shadow-sm" style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
       <div className="flex justify-between items-center mb-6">
-        <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Water usage</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Water usage</p>
+          <div className="relative" ref={popoverRef}>
+            <button onClick={handleInfoClick} className="w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200"
+              style={{ background: popoverOpen ? "rgba(34,211,238,0.15)" : "var(--bg-card-deep)", border: `1px solid ${popoverOpen ? "rgba(34,211,238,0.3)" : "var(--border-strong)"}` }}>
+              {popoverOpen ? <X size={11} style={{ color: chartColor }} /> : <Info size={11} style={{ color: "var(--text-muted)" }} />}
+            </button>
+            <AnimatePresence>
+              {popoverOpen && (
+                <motion.div initial={{ opacity: 0, y: 6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.97 }} transition={{ duration: 0.18 }}
+                  className="absolute -left-20 md:left-0 top-full mt-2 z-50 rounded-2xl p-4 w-[85vw] sm:w-65 shadow-2xl"
+                  style={{ background: "var(--bg-elevated)", border: "1px solid rgba(34,211,238,0.2)" }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-base">💧</span>
+                    <p className="text-xs font-medium tracking-wider uppercase" style={{ color: chartColor, fontFamily: "var(--font-body)" }}>Your impact this week</p>
+                  </div>
+                  {engagingLoading
+                    ? <p className="text-xs animate-pulse" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Calculating your impact...</p>
+                    : <p className="text-sm leading-relaxed" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>{engagingText}</p>}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
         <div className="relative">
           <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-colors hover:bg-black/5 dark:hover:bg-white/5"
             style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)", color: "var(--text-secondary)" }}>
@@ -698,8 +851,15 @@ export default function DashboardPage() {
   const [ecoScore, setEcoScore] = useState(1000);
   const [streak, setStreak] = useState(0);
   const [loggedToday, setLoggedToday] = useState<string[]>([]);
+  const [isDark, setIsDark] = useState(true); // Added for bfcache force re-render fix
 
   useEffect(() => {
+    // Initial theme check and listener
+    const checkTheme = () => setIsDark(document.documentElement.getAttribute("data-theme") !== "light");
+    checkTheme();
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
     async function fetchDashboardData() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -717,17 +877,45 @@ export default function DashboardPage() {
           const uniqueCategories = Array.from(
             new Set(data.activities.map((a: { category: string }) => {
               const c = a.category.toLowerCase();
-              if (c === "shower" || c === "dishwasher") return "water";
+              if (c === "shower" || c === "dishwasher" || c === "washing_machine") return "household";
               return c;
             }))
           );
           setLoggedToday(uniqueCategories as string[]);
         }
 
+        if (user) {
+          const { data: history } = await supabase
+            .from("eco_activities").select("day").eq("user_id", user.id).order("day", { ascending: false });
+
+          if (history && history.length > 0) {
+            const uniqueDates = Array.from(new Set(history.map((row) => {
+              const d = new Date(row.day);
+              d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+              return d.toISOString().split("T")[0];
+            })));
+            const getOffsetDate = (offset: number) => {
+              const d = new Date();
+              d.setDate(d.getDate() - offset);
+              d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+              return d.toISOString().split("T")[0];
+            };
+            const today = getOffsetDate(0);
+            const yesterday = getOffsetDate(1);
+            let calculatedStreak = 0;
+            if (uniqueDates.includes(today) || uniqueDates.includes(yesterday)) {
+              let offset = uniqueDates.includes(today) ? 0 : 1;
+              while (uniqueDates.includes(getOffsetDate(offset))) { calculatedStreak++; offset++; }
+            }
+            setStreak(calculatedStreak);
+          } else { setStreak(0); }
+        }
       } catch (error) { console.error("Error loading dashboard:", error); }
       finally { setLoading(false); }
     }
     fetchDashboardData();
+
+    return () => observer.disconnect();
   }, []);
 
   if (loading) {
@@ -739,7 +927,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg-primary)" }}>
+    // Key forces a re-render on theme change or bfcache restore, preventing black screen
+    <div key={isDark ? "dark" : "light"} className="flex h-screen overflow-hidden" style={{ background: "var(--bg-primary)" }}>
       <Sidebar />
       <main className="flex-1 overflow-y-auto pb-20 lg:pb-0">
         <div className="max-w-5xl mx-auto px-6 py-10">
@@ -797,9 +986,9 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-3">
-                <CategoryCard icon={Car} label="Transport" color="#fb923c" logged={loggedToday.includes("transport")} href="/dashboard/log?tab=transport" />
-                <CategoryCard icon={Droplet} label="Water" color="#22d3ee" logged={loggedToday.includes("water")} href="/dashboard/log?tab=water" />
-                <CategoryCard icon={Zap} label="Energy" color="#c084fc" logged={loggedToday.includes("energy")} href="/dashboard/log?tab=energy" />
+                <CategoryCard icon={Car} label="Transport" color="var(--accent-green)" logged={loggedToday.includes("transport")} href="/dashboard/log?tab=transport" />
+                <CategoryCard icon={Home} label="Household" color="var(--accent-green)" logged={loggedToday.includes("household")} href="/dashboard/log?tab=household" />
+                <CategoryCard icon={Shirt} label="Clothing" color="var(--accent-green)" logged={loggedToday.includes("clothing")} href="/dashboard/log?tab=clothing" />
               </div>
             </div>
           </motion.div>
@@ -813,8 +1002,8 @@ export default function DashboardPage() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}
             className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <CO2Chart userId={userId} />
-            <WaterChart />
-            <EnergyChart />
+            <WaterChart userId={userId} />
+            <EnergyChart userId={userId} />
             <WeeklyTipsCard />
           </motion.div>
 
