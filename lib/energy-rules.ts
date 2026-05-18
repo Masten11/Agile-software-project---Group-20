@@ -4,6 +4,8 @@ export function getEnergyTip(category: string, rows: ActivityRow[], weeklyTotal:
   switch (category) {
     case 'shower':     return getShowerEnergyTip(rows, weeklyTotal);
     case 'dishwasher': return getDishwasherEnergyTip(rows, weeklyTotal);
+    case 'washingmachine': return null; // No specific tip for washing machine yet
+    case 'clothes':     return null; // No specific tip for clothes yet
     default:           return null;
   }
 }
@@ -39,3 +41,12 @@ function getDishwasherEnergyTip(rows: ActivityRow[], weeklyTotal: number): strin
 
   return null;
 }
+
+
+function getWashingMachineEnergyTip(rows: ActivityRow[], weeklyTotal: number): string | null {
+  return null; // No specific tip for washing machine yet
+}
+
+function getClothesEnergyTip(rows: ActivityRow[], weeklyTotal: number): string | null {
+  return null; // No specific tip for clothes yet
+} 
