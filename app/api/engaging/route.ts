@@ -64,10 +64,10 @@ export async function POST(request: NextRequest) {
       impact_unit: config.impactUnit,
       text: config.createText(impactValue),
     });
-  } catch (error) {
+  }  catch (error) {
+    console.error('ENGAGING API ERROR:', error);
     return NextResponse.json(
       { error: 'Something went wrong' },
       { status: 500 }
     );
-  }
-}
+  }}
