@@ -8,7 +8,21 @@ const CO2_FACTORS: Record<TransportMode, number> = {
   train: 0.01,
   bike: 0.0,
   plane: 0.25,
+  walking: 0.0,
+  electric_car: 0.05, 
 };
+
+const ENERGY_FACTORS: Record<TransportMode, number> = {
+  car: 0,
+  bus: 0,
+  train: 0,
+  bike: 0,
+  plane: 0,
+  walking: 0,
+  electric_car: 0.2,
+};
+
+
 
 interface TransportationParsedInput {
   start: string;
@@ -29,7 +43,7 @@ function isTransportationInput(value: unknown): value is TransportationInput {
     return false;
   }
 
-  const validModes = new Set(['car', 'bus', 'train', 'plane', 'bike']);
+  const validModes = new Set(['car', 'bus', 'train', 'plane', 'bike', 'electric_car', 'walking']);
   return (
     typeof value.start === 'string' &&
     typeof value.destination === 'string' &&
@@ -61,7 +75,7 @@ async function calculateTransportationMetrics(
     metrics: {
       co2_kg: co2Emissions,
       water_l: 0,
-      energy_kwh: 0,
+      energy_kwh: distanceInKm * ENERGY_FACTORS[transportMode],
     },
     extra: {
       distanceInKm,
