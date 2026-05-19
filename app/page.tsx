@@ -45,8 +45,8 @@ const FEATURES = [
 
 const STATS = [
   { val: "3", label: "Habit categories" },
-  { val: "1000", label: "Max daily Eco Score" },
-  { val: "CO₂", label: "Tracked in real time" },
+  { val: "1000", label: "Max all time score" },
+  { val: "CO₂, Water, Energy", label: "Tracked in real time" },
 ];
 
 /* ── Completely Static Weekly Recharts Chart ── */
@@ -60,7 +60,6 @@ function PreviewEcoScoreChart() {
     return () => observer.disconnect();
   }, []);
 
-  // Strictly hardcoded to weekly data
   const weeklyData = [
     { name: "Mon", value: 18 },
     { name: "Tue", value: 25 },
@@ -82,7 +81,6 @@ function PreviewEcoScoreChart() {
         </p>
       </div>
       
-      {/* pointer-events-none makes the entire chart non-interactive (no clicks, no hover) */}
       <div className="pointer-events-none select-none" style={{ width: "100%", height: 200 }}>
         <ResponsiveContainer>
           <AreaChart data={weeklyData}>
