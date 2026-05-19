@@ -3,7 +3,7 @@ import { createClient } from '../../../lib/supabaseServer';
 import { parseUnlogHabitRequest } from '../../../utils/payload_parsing';
 import { unlogHabit } from '../../../utils/unlog-habit';
 import { EmissionNotFoundError, InvalidPayloadError } from '../../../utils/custom-errors';
-import { calculateUserEcoScore, logScoreChange, updateUserProfile } from '../../../lib/eco-score';
+import { calculateAndLogUserEcoScore} from '../../../lib/eco-score';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,10 +21,8 @@ export async function POST(request: NextRequest) {
     // May throw EmissionNotFoundError
     await unlogHabit(payload.id, user.id, supabase);
 
-    const newScore = await calculateUserEcoScore(user.id, supabase);
-    await updateUserProfile(user.id, newScore, supabase);
-    await logScoreChange(user.id, null, newScore, supabase);
-
+    const newScore = await calculateAndLogUserEcoScore(user.id, supabase);
+   
     return NextResponse.json({
       success: true,
       message: 'Emission entry removed.',
