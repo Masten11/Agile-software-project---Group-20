@@ -60,7 +60,7 @@ export interface HabitHandler<Parsed, TExtra> {
 /// Input types for log-habit endpoint
 ////////////////////////////7
 
-export type TransportMode = 'car' | 'bus' | 'train' | 'plane' | 'bike';
+export type TransportMode = 'car' | 'bus' | 'train' | 'plane' | 'bike'|'electric_car'|'walking'; // Lägg till fler transportmedel efter behov
 
 export interface TransportationInput {
   start: string;
