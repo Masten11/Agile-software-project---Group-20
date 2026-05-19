@@ -19,7 +19,7 @@ const WashingMachineIcon = ({ size, style }: { size: number; style?: React.CSSPr
 );
 
 /* ─── Types ─── */
-type BackendCategory = "transport" | "shower" | "dishwasher" | "energy" | "washing_machine";
+type BackendCategory = "transport" | "shower" | "dishwasher" | "energy" | "washingmachine";
 type UiTab = "transport" | "household" | "clothing";
 type DateOffset = 0 | 1;
 
@@ -79,22 +79,24 @@ function CategoryIcon({ category, details }: { category: string; details?: strin
       mode = (details as { transportMode?: string }).transportMode?.toLowerCase() || "car";
     } else if (typeof details === "string") {
       const l = details.toLowerCase();
-      if (l.includes("electric bus")) mode = "bus";
+      if (l.includes("electric bus")) mode = "electric_bus";
       else if (l.includes("bus")) mode = "bus";
       else if (l.includes("train")) mode = "train";
       else if (l.includes("bike")) mode = "bike";
       else if (l.includes("walking")) mode = "walking";
       else if (l.includes("plane")) mode = "plane";
-      else if (l.includes("electric car")) mode = "car";
+      else if (l.includes("electric car")) mode = "electric_car";
       else if (l.includes("car")) mode = "car";
     }
     
     switch (mode) {
-      case "bus": return <Bus size={14} style={{ color: iconColor }} />;
+      case "bus":
+      case "electric_bus": return <Bus size={14} style={{ color: iconColor }} />;
       case "train": return <Train size={14} style={{ color: iconColor }} />;
       case "bike": return <Bike size={14} style={{ color: iconColor }} />;
       case "walking": return <Footprints size={14} style={{ color: iconColor }} />;
       case "plane": return <Plane size={14} style={{ color: iconColor }} />;
+      case "electric_car":
       case "car":
       default: return <Car size={14} style={{ color: iconColor }} />;
     }
@@ -102,7 +104,7 @@ function CategoryIcon({ category, details }: { category: string; details?: strin
 
   if (category === "shower") return <Droplets size={14} style={{ color: iconColor }} />;
   if (category === "dishwasher") return <Utensils size={14} style={{ color: iconColor }} />;
-  if (category === "washing_machine") return <WashingMachineIcon size={14} style={{ color: iconColor }} />;
+  if (category === "washingmachine") return <WashingMachineIcon size={14} style={{ color: iconColor }} />;
   if (category === "clothing") return <Shirt size={14} style={{ color: iconColor }} />;
   if (category === "household") return <Home size={14} style={{ color: iconColor }} />;
 
@@ -135,13 +137,16 @@ function TransportForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
     setSubmitting(true);
     setError(null);
     try {
+      // Byter ut "Electric car" -> "electric_car" så det matchar backends enum perfekt
+      const backendMode = mode.toLowerCase().replace(" ", "_");
+
       const response = await fetch("/api/log-habit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category: "transport",
           dayOffset,
-          body: { start: from, destination: to, transportMode: mode.toLowerCase() },
+          body: { start: from, destination: to, transportMode: backendMode },
         }),
       });
       const result = await response.json();
@@ -202,11 +207,14 @@ function TransportForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
 
 /* ─── Household form ─── */
 function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSuccess: () => void }) {
-  const [type, setType] = useState<"shower" | "dishwasher" | "">("");
+  const [type, setType] = useState<"shower" | "dishwasher" | "washingmachine" | "">("");
   const [minutes, setMinutes] = useState("");
   const [usesEcoMode, setUsesEcoMode] = useState(false);
+  const [temperature, setTemperature] = useState<30 | 40 | 60 | 90>(40);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const temperatures: (30 | 40 | 60 | 90)[] = [30, 40, 60, 90];
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -218,7 +226,16 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
     setSubmitting(true);
     setError(null);
     try {
-      const payloadBody = type === "shower" ? { minutes: Number(minutes) } : { ecoMode: usesEcoMode };
+      let payloadBody: Record<string, unknown>;
+      if (type === "shower") {
+        payloadBody = { minutes: Number(minutes) };
+      } else if (type === "dishwasher") {
+        payloadBody = { ecoMode: usesEcoMode };
+      } else {
+        // washingmachine
+        payloadBody = { ecoMode: usesEcoMode, temperatureCelsius: temperature };
+      }
+
       const response = await fetch("/api/log-habit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -226,7 +243,7 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
       });
       const result = await response.json();
       if (!response.ok) { setError(result.error || "Something went wrong"); return; }
-      setType(""); setMinutes(""); setUsesEcoMode(false);
+      setType(""); setMinutes(""); setUsesEcoMode(false); setTemperature(40);
       onSuccess();
     } catch { setError("Failed to log household usage. Please try again."); }
     finally { setSubmitting(false); }
@@ -238,8 +255,8 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
         <p className="text-xs tracking-widest uppercase mb-3" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
           Household activity
         </p>
-        {/* 3-column grid with washing machine as coming soon */}
         <div className="grid grid-cols-3 gap-3">
+
           {/* Shower */}
           <button type="button" onClick={() => { setType("shower"); setError(null); }}
             className="px-3 py-4 rounded-2xl text-sm transition-all flex flex-col items-center gap-2"
@@ -266,19 +283,26 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
             <span className="text-xs">Dishwasher</span>
           </button>
 
-          {/* Washing Machine – coming soon */}
-          <div className="px-3 py-4 rounded-2xl text-sm flex flex-col items-center gap-2 opacity-40 cursor-not-allowed"
-            style={{ background: "var(--bg-card-deep)", border: "1px solid var(--border-faint)", color: "var(--text-faint)", fontFamily: "var(--font-body)" }}>
+          {/* Washing Machine – now active */}
+          <button type="button" onClick={() => { setType("washingmachine"); setError(null); }}
+            className="px-3 py-4 rounded-2xl text-sm transition-all flex flex-col items-center gap-2"
+            style={{
+              background: type === "washingmachine" ? "var(--accent-green-dim)" : "var(--bg-card)",
+              border: type === "washingmachine" ? "1px solid var(--accent-green-border)" : "1px solid var(--border-subtle)",
+              color: type === "washingmachine" ? "var(--accent-green)" : "var(--text-secondary)",
+              fontFamily: "var(--font-body)",
+            }}>
             <WashingMachineIcon size={20} />
-            <span className="text-xs text-center leading-tight">Washer<br />(soon)</span>
-          </div>
+            <span className="text-xs">Washer</span>
+          </button>
         </div>
       </div>
 
-      {/* Shower length input */}
+      {/* Shower length */}
       {type === "shower" && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <label className="text-xs tracking-widest uppercase mb-3 block" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+          <label className="text-xs tracking-widest uppercase mb-3 block"
+            style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
             Shower length
           </label>
           <input type="number" min="1" value={minutes}
@@ -309,6 +333,51 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
         </motion.div>
       )}
 
+      {/* Washing machine options */}
+      {type === "washingmachine" && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+
+          {/* Temperature selector */}
+          <div>
+            <p className="text-xs tracking-widest uppercase mb-3"
+              style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+              Temperature
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              {temperatures.map((t) => (
+                <button key={t} type="button" onClick={() => setTemperature(t)}
+                  className="py-3 rounded-xl text-sm font-medium transition-all duration-200"
+                  style={{
+                    background: temperature === t ? "var(--accent-green-dim)" : "var(--bg-card)",
+                    border: temperature === t ? "1px solid var(--accent-green-border)" : "1px solid var(--border-subtle)",
+                    color: temperature === t ? "var(--accent-green)" : "var(--text-secondary)",
+                    fontFamily: "var(--font-body)",
+                  }}>
+                  {t}°C
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Eco toggle */}
+          <div className="flex items-center justify-between px-5 py-4 rounded-2xl cursor-pointer"
+            onClick={() => setUsesEcoMode((p) => !p)}
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
+            <div>
+              <p className="text-sm" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>Eco mode</p>
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+                Saves ~30% water and ~35% energy per run
+              </p>
+            </div>
+            <button type="button" className="w-12 h-7 rounded-full transition-all relative shrink-0"
+              style={{ background: usesEcoMode ? "var(--accent-green)" : "var(--border-strong)" }}>
+              <span className="absolute top-1 w-5 h-5 rounded-full transition-all shadow-sm"
+                style={{ background: "#ffffff", left: usesEcoMode ? "22px" : "4px" }} />
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       <AnimatePresence>
         {error && (
           <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -318,26 +387,6 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
 
       <SubmitBtn disabled={!type || (type === "shower" && !minutes)} loading={submitting} />
     </form>
-  );
-}
-
-/* ─── Coming soon ─── */
-function ComingSoon({ category }: { category: string }) {
-  const Icon = category === "clothing" ? Shirt : Home;
-  const label = category === "clothing" ? "Clothing" : "Energy";
-  return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
-        style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
-        <Icon size={24} style={{ color: "var(--text-secondary)" }} />
-      </div>
-      <p className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
-        {label} logging coming soon
-      </p>
-      <p className="text-xs" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
-        We&apos;re working on it — check back next sprint
-      </p>
-    </div>
   );
 }
 
@@ -373,7 +422,7 @@ export default function LogPage() {
   ];
 
   const loggedUiTabs = [...new Set(logs.map((l) => {
-    if (l.category === "shower" || l.category === "dishwasher" || l.category === "washing_machine") return "household";
+    if (l.category === "shower" || l.category === "dishwasher" || l.category === "washingmachine") return "household";
     if (l.category === "transport") return "transport";
     return l.category;
   }))];
@@ -600,7 +649,7 @@ export default function LogPage() {
                       {logs.map((log) => {
                         // Build details string
                         let detailsStr = "Unknown activity";
-                        let modeInfo = ""; // Används för att injicera mode om relevant
+                        let modeInfo = "";
 
                         const formatLoc = (loc: string) => {
                           if (!loc) return "";
@@ -611,7 +660,7 @@ export default function LogPage() {
                           
                           // Annars, ta näst sista delen (oftast staden) och plocka bort eventuella siffror
                           const cityPart = parts[parts.length - 2].trim();
-                          return cityPart.replace(/\d+/g, "").trim() || loc.trim(); // Fallback ifall regexen rensar för mycket
+                          return cityPart.replace(/\d+/g, "").trim() || loc.trim(); 
                         };
 
                         if (log.category === "transport") {
@@ -626,13 +675,13 @@ export default function LogPage() {
                           } else if (typeof log.details === "string") {
                              // Fallback parsning för gamla formatet om det skulle behövas
                              const lowerStr = log.details.toLowerCase();
-                             if (lowerStr.includes("electric bus")) modeInfo = "electric bus";
+                             if (lowerStr.includes("electric bus")) modeInfo = "electric_bus";
                              else if (lowerStr.includes("bus")) modeInfo = "bus";
                              else if (lowerStr.includes("train")) modeInfo = "train";
                              else if (lowerStr.includes("bike")) modeInfo = "bike";
                              else if (lowerStr.includes("walking")) modeInfo = "walking";
                              else if (lowerStr.includes("plane")) modeInfo = "plane";
-                             else if (lowerStr.includes("electric car")) modeInfo = "electric car";
+                             else if (lowerStr.includes("electric car")) modeInfo = "electric_car";
                              else if (lowerStr.includes("car")) modeInfo = "car";
 
                              const rawStr = log.details.includes(" · ") ? log.details.split(" · ")[1] : log.details;
@@ -648,9 +697,10 @@ export default function LogPage() {
                           
                           // Om vi har ett mode, inkludera det i strängen snyggt.
                           if (modeInfo) {
-                             // Gör första bokstaven stor i mode (e.g., "Electric car")
-                             const formattedMode = modeInfo.charAt(0).toUpperCase() + modeInfo.slice(1);
-                             detailsStr = `${formattedMode} · ${route}`;
+                             // Snygga till texten ("electric_car" -> "Electric car")
+                             const formattedMode = modeInfo.replace("_", " ");
+                             const finalMode = formattedMode.charAt(0).toUpperCase() + formattedMode.slice(1);
+                             detailsStr = `${finalMode} · ${route}`;
                           } else {
                              detailsStr = route; // Fallback om mode saknas
                           }
@@ -665,9 +715,21 @@ export default function LogPage() {
                           detailsStr = eco ? "Dishwasher · Eco mode" : "Dishwasher";
                         }
                         if (log.category === "energy") detailsStr = "Energy activity";
+                        
+                        if (log.category === "washingmachine") {
+  const eco = typeof log.details === "object"
+    ? (log.details as any).ecoMode
+    : false;
+
+  const temp = typeof log.details === "object"
+    ? (log.details as any).temperatureCelsius
+    : null;
+
+  detailsStr = `Washer${temp ? ` · ${temp}°C` : ""}${eco ? " · Eco mode" : ""}`;
+}
 
                         // Display category label
-                        const catLabel = (log.category === "shower" || log.category === "dishwasher" || log.category === "washing_machine")
+                        const catLabel = (log.category === "shower" || log.category === "dishwasher" || log.category === "washingmachine")
                           ? "household"
                           : log.category;
 
@@ -753,6 +815,16 @@ export default function LogPage() {
         </div>
       </main>
       <BottomNav />
+    </div>
+  );
+}
+
+/* ─── Coming soon placeholder ─── */
+function ComingSoon({ category }: { category: string }) {
+  return (
+    <div className="p-6 rounded-xl text-center" style={{ background: "var(--bg-card-deep)", border: "1px solid var(--border-faint)", color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+      <p className="text-sm font-medium">{category.charAt(0).toUpperCase() + category.slice(1)} features coming soon.</p>
+      <p className="text-xs mt-2">We are working on adding this category. Check back later!</p>
     </div>
   );
 }
