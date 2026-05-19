@@ -4,8 +4,9 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Sprout, Leaf, BarChart2, Trophy, ArrowRight, Zap, Users, ChevronDown } from "lucide-react";
+import { Sprout, Leaf, BarChart2, Trophy, ArrowRight, Zap, Users, ChevronDown, Car, Home, Shirt } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis } from "recharts";
 
 /* ─── Section divider ─── */
 function SectionDivider() {
@@ -34,7 +35,7 @@ function FadeIn({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 }
 
 const FEATURES = [
-  { icon: Leaf, title: "Track Daily Habits", desc: "Log your transport, food, and energy habits in seconds. Every choice counts." },
+  { icon: Leaf, title: "Track Daily Habits", desc: "Log your transport, household, and clothing habits in seconds. Every choice counts." },
   { icon: BarChart2, title: "See Your Impact", desc: "Visualize your carbon footprint over time with clear, beautiful charts." },
   { icon: Trophy, title: "Compete & Improve", desc: "Challenge friends, join groups, and climb the leaderboard while saving the planet." },
   { icon: Zap, title: "Eco Score", desc: "Get a daily score out of 1000 that reflects your environmental impact." },
@@ -44,9 +45,61 @@ const FEATURES = [
 
 const STATS = [
   { val: "3", label: "Habit categories" },
-  { val: "1000", label: "Max daily Eco Score" },
-  { val: "CO₂", label: "Tracked in real time" },
+  { val: "1000", label: "Max all time score" },
+  { val: "CO₂, Water, Energy", label: "Tracked in real time" },
 ];
+
+/* ── Completely Static Weekly Recharts Chart ── */
+function PreviewEcoScoreChart() {
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    setTimeout(() => { setIsDark(document.documentElement.getAttribute("data-theme") !== "light"); }, 0);
+    const observer = new MutationObserver(() => setIsDark(document.documentElement.getAttribute("data-theme") !== "light"));
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
+  }, []);
+
+  const weeklyData = [
+    { name: "Mon", value: 18 },
+    { name: "Tue", value: 25 },
+    { name: "Wed", value: 20 },
+    { name: "Thu", value: 28 },
+    { name: "Fri", value: 22 },
+    { name: "Sat", value: 30 },
+    { name: "Sun", value: 24 }
+  ];
+
+  const chartColor = isDark ? "#4ade80" : "#16a34a";
+  const axisColor = isDark ? "#71717a" : "#a1a1aa";
+
+  return (
+    <div className="rounded-2xl p-6 relative shadow-sm" style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
+      <div className="flex justify-between items-center mb-6">
+        <p className="text-sm tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+          Eco Score – last 7 days
+        </p>
+      </div>
+      
+      <div className="pointer-events-none select-none" style={{ width: "100%", height: 200 }}>
+        <ResponsiveContainer>
+          <AreaChart data={weeklyData}>
+            <defs>
+              <linearGradient id="previewEcoGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={chartColor} stopOpacity={0.4} />
+                <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 12 }} />
+            <YAxis stroke={axisColor} tick={{ fontSize: 12 }} />
+            <Area type="monotone" dataKey="value" stroke={chartColor} strokeWidth={3} fillOpacity={1}
+              fill="url(#previewEcoGradient)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const [hasSession, setHasSession] = useState(false);
@@ -195,25 +248,33 @@ export default function HomePage() {
               </span>
             </div>
             
-            <div className="flex flex-col gap-4 opacity-90 pointer-events-none">
+            <div className="flex flex-col gap-4 opacity-90">
               
-              {/* Mock Control Center */}
+              {/* Control Center */}
               <div className="rounded-2xl p-6 sm:p-8 flex flex-col lg:flex-row gap-8 lg:gap-12"
                 style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
                 <div className="flex-1 flex flex-col items-center justify-center">
                   <div className="relative w-32 h-32 mb-3 flex items-center justify-center">
                     <svg className="absolute w-full h-full -rotate-90" viewBox="0 0 120 120">
                       <circle cx="60" cy="60" r="50" fill="none" style={{ stroke: "var(--border-strong)" }} strokeWidth="8" />
-                      <circle cx="60" cy="60" r="50" fill="none" stroke="var(--accent-green)" strokeWidth="8"
-                        strokeLinecap="round" strokeDasharray={314} strokeDashoffset={314 * 0.28} />
+                      <circle cx="60" cy="60" r="50" fill="none" 
+                        stroke="var(--accent-green)" strokeWidth="8"
+                        strokeLinecap="round" strokeDasharray={314.16} strokeDashoffset={314.16 - (720 / 1000) * 314.16} />
                     </svg>
-                    <div className="text-center">
-                      <span className="text-3xl font-bold block leading-none" style={{ color: "var(--accent-green)", fontFamily: "var(--font-display)" }}>724</span>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-3xl font-bold block leading-none" style={{ color: "var(--accent-green)", fontFamily: "var(--font-display)", fontSize: "32px" }}>
+                        720
+                      </span>
+                      <span className="text-[10px] tracking-widest uppercase mt-0.5" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+                        Eco Score
+                      </span>
                     </div>
                   </div>
-                  <div className="flex gap-4 w-full mt-4 pt-4" style={{ borderTop: "1px solid var(--border-faint)" }}>
-                    <div className="flex-1 text-center"><p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>710</p><p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Yesterday</p></div>
-                    <div className="flex-1 text-center"><p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>680</p><p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Avg</p></div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="w-2 h-2 rounded-full" style={{ background: "var(--accent-green)" }} />
+                    <p className="text-xs font-medium" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
+                      Great day so far!
+                    </p>
                   </div>
                 </div>
                 
@@ -221,35 +282,46 @@ export default function HomePage() {
                 
                 <div className="flex-1 flex flex-col justify-center">
                   <div className="flex justify-between items-center mb-4">
-                     <p className="text-xs tracking-widest uppercase" style={{ color: "var(--text-muted)" }}>Habits</p>
-                     <p className="text-xs" style={{ color: "var(--text-secondary)" }}>2 / 3</p>
+                     <p className="text-xs tracking-widest uppercase" style={{ color: "var(--text-muted)" }}>Today&apos;s habits</p>
+                     <p className="text-xs" style={{ color: "var(--text-secondary)" }}>2 / 3 logged</p>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "var(--bg-card-nested)", border: "1px solid var(--border-subtle)" }}>
-                      <div className="w-2 h-2 rounded-full" style={{ background: "#fb923c" }} />
-                      <span className="text-sm" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>Transport</span>
-                      <span className="ml-auto text-xs" style={{ color: "var(--text-secondary)" }}>✓</span>
+                    {/* Transport - LOGGED */}
+                    <div className="flex items-center gap-4 p-4 rounded-2xl" style={{ background: "var(--bg-card)", border: "1px solid rgba(74,222,128,0.25)" }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(74,222,128,0.15)" }}>
+                        <Car size={20} style={{ color: "var(--accent-green)" }} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>Transport</p>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>✓ Logged today</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "var(--bg-card-nested)", border: "1px solid var(--border-subtle)" }}>
-                      <div className="w-2 h-2 rounded-full" style={{ background: "var(--border-strong)" }} />
-                      <span className="text-sm" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Energy</span>
+                    {/* Household - LOGGED */}
+                    <div className="flex items-center gap-4 p-4 rounded-2xl" style={{ background: "var(--bg-card)", border: "1px solid rgba(74,222,128,0.25)" }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(74,222,128,0.15)" }}>
+                        <Home size={20} style={{ color: "var(--accent-green)" }} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>Household</p>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>✓ Logged today</p>
+                      </div>
+                    </div>
+                    {/* Clothing - NOT LOGGED */}
+                    <div className="flex items-center gap-4 p-4 rounded-2xl" style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(74,222,128,0.05)" }}>
+                        <Shirt size={20} style={{ color: "var(--text-muted)" }} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Clothing</p>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>Not logged yet</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Mock CO2 Chart */}
-              <div className="rounded-2xl p-6 h-32 flex flex-col justify-between"
-                style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
-                  <p className="text-xs tracking-widest uppercase" style={{ color: "var(--text-muted)" }}>CO₂ Usage</p>
-                  <div className="flex items-end gap-2 h-16 opacity-50">
-                    <div className="w-full bg-orange-400/80 rounded-t-sm h-[40%]" />
-                    <div className="w-full bg-orange-400/80 rounded-t-sm h-[60%]" />
-                    <div className="w-full bg-orange-400/80 rounded-t-sm h-[30%]" />
-                    <div className="w-full bg-orange-400/80 rounded-t-sm h-[80%]" />
-                    <div className="w-full bg-orange-400/80 rounded-t-sm h-[50%]" />
-                  </div>
-              </div>
+              {/* Static Preview Eco Score Graph */}
+              <PreviewEcoScoreChart />
 
             </div>
           </div>
@@ -333,7 +405,7 @@ export default function HomePage() {
             style={{ background: "linear-gradient(90deg, transparent, var(--accent-green-border), transparent)" }} />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
             {[
-              { step: "01", title: "Log your habits", desc: "Takes less than a minute. Choose transport, food, or energy and fill in what you did today.", icon: "🌿" },
+              { step: "01", title: "Log your habits", desc: "Takes less than a minute. Choose transport, household, or clothing and fill in what you did today.", icon: "🌿" },
               { step: "02", title: "See your Eco Score", desc: "Get an instant score out of 1000 that reflects your daily environmental impact.", icon: "📊" },
               { step: "03", title: "Improve & compete", desc: "Track progress over time, get tips, and challenge friends on the leaderboard.", icon: "🏆" },
             ].map((s, i) => (
