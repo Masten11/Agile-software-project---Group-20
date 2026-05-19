@@ -7,6 +7,7 @@ export enum Category {
   Shower = 'shower',
   Dishwasher = 'dishwasher',
   WashingMachine = 'washingmachine',
+  Clothes = 'clothes',
 }
 
 export type LogHabitRequest = {
