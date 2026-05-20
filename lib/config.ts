@@ -36,7 +36,7 @@ export const CATEGORY_CONFIG: Record<
     totalColumn: 'total_electricity',
     totalUnit: 'kwh',
     impactUnit: 'basic_households_one_day',
-    calculate: (total) => total / 1,
+    calculate: (total) => total / 10,
     createText: (impactValue) =>
       `Your electricity usage from the last 7 days could provide basic electricity to ${impactValue} households for one day.`,
   },
