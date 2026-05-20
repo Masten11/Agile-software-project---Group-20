@@ -85,6 +85,8 @@ Returns grouped habits for the authenticated user for today. Each row follows th
 
 ## `historical-data`
 
+`GET /api/historical-data` returns aggregated metrics for the authenticated user: `co2_kg`, `water_l`, `energy_kwh` (from `eco_activities`), and `eco_score` (from `eco_score_log`). Each metric includes `daily`, `weekly`, `monthly`, and `yearly` series.
+
 Historical endpoints should treat `day` as the calendar date a habit belongs to and `created_at` as the insertion timestamp.
 
 
