@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // lib/scoring.ts
 export interface EcoActivity {
     id: string;
@@ -8,10 +9,9 @@ export interface EcoActivity {
     water_l: number;
     energy_kwh: number;
     created_at: string;
-    day: string;
   }
   
-  export async function calculateAndLogUserEcoScore(
+  export async function calculateUserEcoScore(
     userId: string,
     supabase: any
   ): Promise<number> {
@@ -20,7 +20,6 @@ export interface EcoActivity {
       .from('eco_activities')
       .select('id, category, details, co2_kg, water_l, energy_kwh, created_at, day')
       .eq('user_id', userId)
-      .order('day', { ascending: true })
       .order('created_at', { ascending: true });
   
     if (error) throw new Error(`Failed to fetch activities: ${error.message}`);
@@ -28,14 +27,12 @@ export interface EcoActivity {
     let runningScore = 500;
     let currentDay: string | null = null;
     let dishwasherCount = 0;
-
-    const dailyScores: Record<string, number> = {};
   
     for (const act of activities || []) {
       let bonus = 0;
       let penalty = 0;
   
-      // Återställ räknare om det är en ny dag i loopen
+      // Reset daily counters
       if (currentDay === null || currentDay !== act.day) {
         currentDay = act.day;
         dishwasherCount = 0;
@@ -54,36 +51,7 @@ export interface EcoActivity {
         if (act.details?.ecoMode === 'true') bonus = 10;
         if (dishwasherCount > 2) penalty += (dishwasherCount - 2) * 5;
       }
-      
-            // WASHING MACHINE RULES
-      if (act.category === 'washingmachine') {
-        if (act.details?.ecoMode === true) bonus += 10;
-
-        const temperature = parseFloat(act.details?.temperatureCelsius || 0);
-        if (temperature <= 30) bonus += 5;
-        else if (temperature >= 60) penalty += 15;
-      }
-
-            // CLOTHES RULES
-      if (act.category === 'clothes') {
-        const material = act.details?.material;
-        const productionRegion = act.details?.productionRegion;
-
-        if (material === 'organic_cotton' || material === 'recycled_polyester' || material === 'linen') {
-          bonus += 10;
-        }
-
-        if (material === 'leather' || material === 'wool') {
-          penalty += 15;
-        }
-
-        if (productionRegion === 'local') {
-          bonus += 5;
-        } else if (productionRegion === 'asia' || productionRegion === 'other') {
-          penalty += 5;
-        }
-      }
-
+  
       // TRANSPORT RULES
       if (act.category === 'transport' && act.details?.transportMode) {
         const mode = act.details.transportMode;
@@ -109,38 +77,39 @@ export interface EcoActivity {
   
       // Clamp to 0-1000
       runningScore = Math.max(0, Math.min(1000, runningScore));
-
-      dailyScores[act.day] = runningScore;
     }
-    
-    const upsertData = Object.entries(dailyScores).map(([day, score]) => ({
-      user_id: userId,
-      score: score,
-      day: day,
-      created_at: new Date().toISOString()
-    }));
-
-    //Spara alla dagliga resultat i eco_score_log
-    if (upsertData.length > 0) {
-      const { error: upsertError } = await supabase
-        .from('eco_score_log')
-        .upsert(upsertData, { 
-          onConflict: 'user_id, day' // Om dagen redan finns, skriv över scoren!
-        });
   
-      if (upsertError) throw new Error(`Failed to log daily scores: ${upsertError.message}`);
-    }
-
-  // Uppdatera användarens nuvarande poäng i profiles
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update({ eco_score: runningScore })
-    .eq('id', userId);
-
-  if (profileError) throw new Error(`Failed to update profile: ${profileError.message}`);
-
     return runningScore;
   }
 
-
+  export async function logScoreChange(
+    userId: string,
+    activityId: string | null,
+    newScore: number,
+    supabase: any
+  ) {
+    const { error } = await supabase
+      .from('eco_score_log')
+      .insert({
+        user_id: userId,
+        activity_id: activityId,
+        created_at: new Date().toISOString(),
+        score: newScore,
+      });
   
+    if (error) throw new Error(`Failed to log score: ${error.message}`);
+  }
+  
+  // Call this after inserting/updating/deleting activities
+  export async function updateUserProfile(
+    userId: string,
+    ecoScore: number,
+    supabase: any
+  ) {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ eco_score: ecoScore })
+      .eq('id', userId);
+  
+    if (error) throw new Error(`Failed to update profile: ${error.message}`);
+  }
