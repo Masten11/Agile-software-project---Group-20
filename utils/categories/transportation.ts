@@ -3,25 +3,25 @@ import { InvalidPayloadError } from '../custom-errors';
 import { storeEcoActivity } from '../store-eco-activity';
 
 const CO2_FACTORS: Record<TransportMode, number> = {
-  car: 0.16,           // kg/km. WTW (Well-to-Wheel) för svensk genomsnittlig fossilbil.
-  bus: 0.02,           // kg/km per passagerare. Hög andel HVO/biogas i svensk kollektivtrafik.
-  train: 0.001,        // kg/km per passagerare. Svenska tåg (ex. SJ) körs på 100% förnybar el.
+  car: 0.12,           // kg/km. (Fordonsavtryck / 1.35 passagerare).
+  bus: 0.02,           // kg/km per passagerare. 
+  train: 0.001,        // kg/km per passagerare. 
   bike: 0.0,
-  plane: 0.25,         // kg/km per passagerare. Flygbränsle (WTW) för inrikes/Europaflyg.
+  plane: 0.25,         // kg/km per passagerare. 
   walking: 0.0,
-  electric_car: 0.005, // kg/km. 0.2 kWh/km * ~15-20g CO2e/kWh (Svensk genomsnittlig elmix).
-  electric_bus: 0.002, // kg/km per passagerare. Elbuss delat på snittbeläggning.
+  electric_car: 0.004, // kg/km. (Fordonsavtryck / 1.35 passagerare).
+  electric_bus: 0.002, // kg/km per passagerare. 
 };
 
 const ENERGY_FACTORS: Record<TransportMode, number> = {
-  car: 0.6,            // kWh/km. Termiskt energivärde för bränslet (ca 0.6 liter/milen).
-  bus: 0.15,           // kWh/km per passagerare. Diesel/biogas omräknat till energi.
-  train: 0.08,         // kWh/km per passagerare. Mycket energieffektiv rälsdrift.
+  car: 0.0,            // kWh/km. Drar ingen el.
+  bus: 0.0,            // kWh/km. Drar ingen el.
+  train: 0.08,         // kWh/km per passagerare. Eltåg.
   bike: 0.0,
-  plane: 0.45,         // kWh/km per passagerare. Extremt hög energiåtgång per km.
+  plane: 0.0,          // kWh/km. Drar ingen el.
   walking: 0.0,
-  electric_car: 0.2,   // kWh/km. Genomsnittlig förbrukning för elbil.
-  electric_bus: 0.1,   // kWh/km per passagerare.
+  electric_car: 0.15,  // kWh/km. (0.2 kWh elförbrukning / 1.35 passagerare).
+  electric_bus: 0.1,   // kWh/km per passagerare. Elbuss.
 };
 
 interface TransportationParsedInput {
