@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import BottomNav from "@/components/BottomNav";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Trophy, Medal } from "lucide-react";
+import { Loader2, Trophy, Medal, Flame, Award } from "lucide-react";
 
 type LeaderboardUser = {
   user_id: string;
@@ -14,7 +14,7 @@ type LeaderboardUser = {
   total_co2_kg: number;
   total_water_l: number;
   total_energy_kwh: number;
-  streak: number; // Added streak to type
+  streak: number;
 };
 
 export default function LeaderboardPage() {
@@ -33,6 +33,7 @@ export default function LeaderboardPage() {
         } else {
           setError(json.error || "Failed to load leaderboard");
         }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
         setError("An unexpected error occurred while fetching the leaderboard.");
       } finally {
@@ -81,14 +82,13 @@ export default function LeaderboardPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <AnimatePresence>
                 {leaderboard.map((user, index) => {
-                  const isTopThree = index < 3;
                   const rankColor = 
-                    index === 0 ? "#fbbf24" : 
-                    index === 1 ? "#9ca3af" : 
-                    index === 2 ? "#b45309" : 
+                    index === 0 ? "#fbbf24" : // Gold
+                    index === 1 ? "#9ca3af" : // Silver
+                    index === 2 ? "#b45309" : // Bronze
                     "var(--text-muted)";
 
                   return (
@@ -99,57 +99,65 @@ export default function LeaderboardPage() {
                       transition={{ duration: 0.3, delay: index * 0.05 }}
                       className="flex items-center gap-4 p-4 rounded-2xl transition-all hover:scale-[1.01]"
                       style={{ 
-                        background: isTopThree ? "var(--bg-card-nested)" : "var(--bg-card)", 
-                        border: isTopThree ? `1px solid ${rankColor}40` : "1px solid var(--border-subtle)" 
+                        background: "var(--bg-card)", 
+                        border: "1px solid var(--border-subtle)" 
                       }}
                     >
-                      <div className="w-8 shrink-0 flex justify-center items-center font-bold text-lg" style={{ color: rankColor }}>
-                        {index === 0 ? <Trophy size={20} /> : index < 3 ? <Medal size={20} /> : `#${index + 1}`}
+                      {/* Rank Icon */}
+                      <div className="w-8 shrink-0 flex justify-center items-center font-bold text-sm" style={{ color: rankColor, fontFamily: "var(--font-body)" }}>
+                        {index === 0 ? <Trophy size={18} /> : 
+                         index === 1 ? <Award size={18} /> : 
+                         index === 2 ? <Medal size={18} /> : 
+                         `#${index + 1}`}
                       </div>
 
+                      {/* Avatar */}
                       <div 
-                        className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-md shrink-0" 
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-sm shrink-0" 
                         style={{ background: user.avatar_gradient || "var(--border-strong)" }}
                       >
                         {user.username ? user.username.charAt(0).toUpperCase() : "?"}
                       </div>
 
+                      {/* Info & Metrics */}
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-base truncate" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>
+                        <p className="font-medium text-sm truncate" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>
                           {user.username || "Anonymous"}
                         </p>
                         
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                          <span className="text-xs flex items-center gap-1" style={{ color: user.total_co2_kg > 0 ? "#fb923c" : "var(--text-muted)", fontFamily: "var(--font-body)" }}>
-                            CO₂: {user.total_co2_kg.toFixed(1)} kg
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <span className="text-xs tracking-wide" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+                            CO₂ <span style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{user.total_co2_kg.toFixed(1)} kg</span>
                           </span>
-                          <span style={{ color: "var(--border-strong)", fontSize: "10px" }}>•</span>
-                          <span className="text-xs flex items-center gap-1" style={{ color: user.total_water_l > 0 ? "#22d3ee" : "var(--text-muted)", fontFamily: "var(--font-body)" }}>
-                            Water: {user.total_water_l.toFixed(0)} L
+                          <span style={{ color: "var(--border-strong)", fontSize: "10px" }}>·</span>
+                          <span className="text-xs tracking-wide" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+                            Water <span style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{user.total_water_l.toFixed(0)} L</span>
                           </span>
-                          <span style={{ color: "var(--border-strong)", fontSize: "10px" }}>•</span>
-                          <span className="text-xs flex items-center gap-1" style={{ color: user.total_energy_kwh > 0 ? "#c084fc" : "var(--text-muted)", fontFamily: "var(--font-body)" }}>
-                            Energy: {user.total_energy_kwh.toFixed(1)} kWh
+                          <span style={{ color: "var(--border-strong)", fontSize: "10px" }}>·</span>
+                          <span className="text-xs tracking-wide" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+                            Energy <span style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{user.total_energy_kwh.toFixed(1)} kWh</span>
                           </span>
                         </div>
                       </div>
 
-                      {/* Eco Score & Streak Column */}
-                      <div className="shrink-0 text-right pr-2 flex flex-col items-end">
-                        <div className="flex items-center gap-3 mb-1">
-                          {/* Flame Badge */}
+                      {/* Streak & Score */}
+                      <div className="shrink-0 text-right pr-2 flex flex-col items-end gap-1.5">
+                        <div className="flex items-center gap-3">
                           {user.streak > 0 && (
-                            <div className="flex items-center gap-1 text-xs font-bold text-orange-500 bg-orange-500/10 px-2 py-1 rounded-full">
-                              🔥 {user.streak}
+                            <div 
+                              className="flex items-center gap-1.5 px-2 py-0.5 rounded-md"
+                              style={{ background: "var(--bg-card-deep)", border: "1px solid var(--border-subtle)" }}
+                            >
+                              <Flame size={12} style={{ color: "var(--text-muted)" }} />
+                              <span className="text-[11px] font-semibold" style={{ color: "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
+                                {user.streak}
+                              </span>
                             </div>
                           )}
-                          <p className="font-bold text-2xl leading-none" style={{ color: "var(--accent-green)", fontFamily: "var(--font-display)" }}>
+                          <p className="font-bold text-xl leading-none" style={{ color: "var(--accent-green)", fontFamily: "var(--font-display)" }}>
                             {user.eco_score}
                           </p>
                         </div>
-                        <p className="text-[10px] tracking-widest uppercase" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
-                          Score
-                        </p>
                       </div>
                     </motion.div>
                   );
