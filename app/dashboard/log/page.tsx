@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
 import BottomNav from "@/components/BottomNav";
 import { Car, Bus, Train, Bike, Plane, Trash2, Home, Shirt, Footprints, Droplets, Utensils } from "lucide-react";
+import { PiTShirt, PiPants, PiHoodie, PiDress, PiSneaker } from "react-icons/pi";
+import { TbJacket } from "react-icons/tb";
 import PlaceAutocompleteInput from "@/components/PlaceAutocompleteInput";
 import { useTheme } from "@/lib/theme-context";
 
@@ -19,9 +21,13 @@ const WashingMachineIcon = ({ size, style }: { size: number; style?: React.CSSPr
 );
 
 /* ─── Types ─── */
-type BackendCategory = "transport" | "shower" | "dishwasher" | "energy" | "washingmachine";
+type BackendCategory = "transport" | "shower" | "dishwasher" | "energy" | "washingmachine" | "clothing";
 type UiTab = "transport" | "household" | "clothing";
 type DateOffset = 0 | 1;
+
+type ClothingType = "tshirt" | "jeans" | "hoodie" | "jacket" | "dress" | "shoes";
+type ClothingMaterial = "cotton" | "organic_cotton" | "polyester" | "recycled_polyester" | "wool" | "leather" | "linen" | "mixed";
+type ProductionRegion = "local" | "europe" | "asia" | "other";
 
 type Log = {
   id: string;
@@ -42,7 +48,7 @@ const DATE_OPTIONS: { label: string; offset: DateOffset }[] = [
 const TIPS: Record<UiTab, string> = {
   transport: "Taking the train instead of driving saves ~5× more CO₂ per trip.",
   household: "Shorter showers can save 30–60 liters of water every time.",
-  clothing: "Washing clothes at 30°C instead of 60°C uses up to 50% less energy.",
+  clothing: "Choosing organic cotton over regular cotton cuts water usage by ~30%.",
 };
 
 /* ─── Submit button ─── */
@@ -88,7 +94,6 @@ function CategoryIcon({ category, details }: { category: string; details?: strin
       else if (l.includes("electric car")) mode = "electric_car";
       else if (l.includes("car")) mode = "car";
     }
-    
     switch (mode) {
       case "bus":
       case "electric_bus": return <Bus size={14} style={{ color: iconColor }} />;
@@ -137,9 +142,7 @@ function TransportForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
     setSubmitting(true);
     setError(null);
     try {
-      // Byter ut "Electric car" -> "electric_car" så det matchar backends enum perfekt
       const backendMode = mode.toLowerCase().replace(" ", "_");
-
       const response = await fetch("/api/log-habit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -232,10 +235,8 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
       } else if (type === "dishwasher") {
         payloadBody = { ecoMode: usesEcoMode };
       } else {
-        // washingmachine
         payloadBody = { ecoMode: usesEcoMode, temperatureCelsius: temperature };
       }
-
       const response = await fetch("/api/log-habit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -256,8 +257,6 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
           Household activity
         </p>
         <div className="grid grid-cols-3 gap-3">
-
-          {/* Shower */}
           <button type="button" onClick={() => { setType("shower"); setError(null); }}
             className="px-3 py-4 rounded-2xl text-sm transition-all flex flex-col items-center gap-2"
             style={{
@@ -269,8 +268,6 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
             <Droplets size={20} />
             <span className="text-xs">Shower</span>
           </button>
-
-          {/* Dishwasher */}
           <button type="button" onClick={() => { setType("dishwasher"); setError(null); }}
             className="px-3 py-4 rounded-2xl text-sm transition-all flex flex-col items-center gap-2"
             style={{
@@ -282,8 +279,6 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
             <Utensils size={20} />
             <span className="text-xs">Dishwasher</span>
           </button>
-
-          {/* Washing Machine – now active */}
           <button type="button" onClick={() => { setType("washingmachine"); setError(null); }}
             className="px-3 py-4 rounded-2xl text-sm transition-all flex flex-col items-center gap-2"
             style={{
@@ -298,7 +293,6 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
         </div>
       </div>
 
-      {/* Shower length */}
       {type === "shower" && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <label className="text-xs tracking-widest uppercase mb-3 block"
@@ -315,7 +309,6 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
         </motion.div>
       )}
 
-      {/* Dishwasher eco toggle */}
       {type === "dishwasher" && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-between px-5 py-4 rounded-2xl cursor-pointer"
@@ -333,11 +326,8 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
         </motion.div>
       )}
 
-      {/* Washing machine options */}
       {type === "washingmachine" && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-
-          {/* Temperature selector */}
           <div>
             <p className="text-xs tracking-widest uppercase mb-3"
               style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
@@ -358,8 +348,6 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
               ))}
             </div>
           </div>
-
-          {/* Eco toggle */}
           <div className="flex items-center justify-between px-5 py-4 rounded-2xl cursor-pointer"
             onClick={() => setUsesEcoMode((p) => !p)}
             style={{ background: "var(--bg-card)", border: "1px solid var(--border-subtle)" }}>
@@ -390,6 +378,186 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
   );
 }
 
+/* ─── Clothing form ─── */
+function ClothingForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSuccess: () => void }) {
+  const [clothingType, setClothingType] = useState<ClothingType | "">("");
+  const [material, setMaterial]         = useState<ClothingMaterial | "">("");
+  const [materialOpen, setMaterialOpen] = useState(false);
+  const [region, setRegion]             = useState<ProductionRegion | "">("");
+  const [submitting, setSubmitting]     = useState(false);
+  const [error, setError]               = useState<string | null>(null);
+
+  const clothingTypes: {
+    value: ClothingType;
+    label: string;
+    Icon: React.ElementType;
+  }[] = [
+    { value: "tshirt",  label: "T-Shirt",  Icon: PiTShirt  },
+    { value: "jeans",   label: "Jeans",    Icon: PiPants   },
+    { value: "hoodie",  label: "Hoodie",   Icon: PiHoodie  },
+    { value: "jacket",  label: "Jacket",   Icon: TbJacket  },
+    { value: "dress",   label: "Dress",    Icon: PiDress   },
+    { value: "shoes",   label: "Shoes",    Icon: PiSneaker },
+  ];
+
+  const materials: { value: ClothingMaterial; label: string }[] = [
+    { value: "cotton",             label: "Cotton"             },
+    { value: "organic_cotton",     label: "Organic cotton"     },
+    { value: "polyester",          label: "Polyester"          },
+    { value: "recycled_polyester", label: "Recycled polyester" },
+    { value: "wool",               label: "Wool"               },
+    { value: "leather",            label: "Leather"            },
+    { value: "linen",              label: "Linen"              },
+    { value: "mixed",              label: "Mixed"              },
+  ];
+
+  const regions: { value: ProductionRegion; label: string }[] = [
+    { value: "local",  label: "Local (Sweden)" },
+    { value: "europe", label: "Europe"         },
+    { value: "asia",   label: "Asia"           },
+    { value: "other",  label: "Other"          },
+  ];
+
+  const selectedMaterialLabel = materials.find((m) => m.value === material)?.label ?? "";
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!clothingType || !material || !region) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/log-habit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: "clothing",
+          dayOffset,
+          body: { clothingType, material, productionRegion: region },
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) { setError(result.error || "Something went wrong"); return; }
+      setClothingType(""); setMaterial(""); setRegion("");
+      onSuccess();
+    } catch { setError("Failed to log habit. Please try again."); }
+    finally { setSubmitting(false); }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+
+      {/* Clothing type — icon buttons */}
+      <div>
+        <p className="text-xs tracking-widest uppercase mb-3"
+          style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+          Item
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {clothingTypes.map(({ value, label, Icon }) => {
+            const active = clothingType === value;
+            return (
+              <button key={value} type="button"
+                onClick={() => { setClothingType(value); setError(null); }}
+                className="py-3.5 rounded-xl text-xs font-medium transition-all duration-200 flex flex-col items-center gap-2"
+                style={{
+                  background: active ? "var(--accent-green-dim)" : "var(--bg-card)",
+                  border: active ? "1px solid var(--accent-green-border)" : "1px solid var(--border-subtle)",
+                  color: active ? "var(--accent-green)" : "var(--text-secondary)",
+                  fontFamily: "var(--font-body)",
+                }}>
+                <Icon size={24} />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Material — dropdown */}
+      <div>
+        <p className="text-xs tracking-widest uppercase mb-3"
+          style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+          Material
+        </p>
+        <div className="relative">
+          <button type="button" onClick={() => setMaterialOpen(!materialOpen)}
+            className="w-full flex items-center justify-between px-5 py-4 rounded-2xl text-sm"
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border-subtle)",
+              color: material ? "var(--text-primary)" : "var(--text-muted)",
+              fontFamily: "var(--font-body)",
+            }}>
+            {selectedMaterialLabel || "Select material"}
+            <span className={`transition-transform duration-200 ${materialOpen ? "rotate-180" : ""}`}>↓</span>
+          </button>
+          <AnimatePresence>
+            {materialOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                transition={{ duration: 0.15 }}
+                className="absolute left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50 shadow-xl custom-scroll"
+                style={{
+                  background: "var(--bg-elevated)",
+                  border: "1px solid var(--border-subtle)",
+                  maxHeight: "260px",
+                  overflowY: "auto",
+                }}>
+                {materials.map((m) => (
+                  <button key={m.value} type="button"
+                    onClick={() => { setMaterial(m.value); setMaterialOpen(false); setError(null); }}
+                    className="w-full px-5 py-3 text-left text-sm transition-all duration-150 cursor-pointer"
+                    style={{
+                      color: material === m.value ? "var(--accent-green)" : "var(--text-secondary)",
+                      background: material === m.value ? "var(--accent-green-subtle)" : "transparent",
+                      fontFamily: "var(--font-body)",
+                    }}>
+                    {m.label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Production region — 2-col grid to fit "Local (Sweden)" */}
+      <div>
+        <p className="text-xs tracking-widest uppercase mb-3"
+          style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+          Made in
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {regions.map((r) => (
+            <button key={r.value} type="button"
+              onClick={() => { setRegion(r.value); setError(null); }}
+              className="py-3 rounded-xl text-xs font-medium transition-all duration-200"
+              style={{
+                background: region === r.value ? "var(--accent-green-dim)" : "var(--bg-card)",
+                border: region === r.value ? "1px solid var(--accent-green-border)" : "1px solid var(--border-subtle)",
+                color: region === r.value ? "var(--accent-green)" : "var(--text-secondary)",
+                fontFamily: "var(--font-body)",
+              }}>
+              {r.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {error && (
+          <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="text-sm" style={{ color: "#ef4444", fontFamily: "var(--font-body)" }}>{error}</motion.p>
+        )}
+      </AnimatePresence>
+
+      <SubmitBtn disabled={!clothingType || !material || !region} loading={submitting} />
+    </form>
+  );
+}
+
 /* ─── Main page ─── */
 export default function LogPage() {
   const { theme } = useTheme();
@@ -404,7 +572,6 @@ export default function LogPage() {
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Read URL param on mount – support both old ("water") and new ("household") names
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -415,15 +582,16 @@ export default function LogPage() {
     }
   }, []);
 
-  const tabs: { id: UiTab; label: string; available: boolean }[] = [
-    { id: "transport", label: "Transport", available: true },
-    { id: "household", label: "Household", available: true },
-    { id: "clothing", label: "Clothing", available: false },
+  const tabs: { id: UiTab; label: string }[] = [
+    { id: "transport", label: "Transport" },
+    { id: "household", label: "Household" },
+    { id: "clothing",  label: "Clothing"  },
   ];
 
   const loggedUiTabs = [...new Set(logs.map((l) => {
     if (l.category === "shower" || l.category === "dishwasher" || l.category === "washingmachine") return "household";
     if (l.category === "transport") return "transport";
+    if (l.category === "clothing") return "clothing";
     return l.category;
   }))];
 
@@ -471,37 +639,24 @@ export default function LogPage() {
     finally { setDeleting(null); }
   };
 
-  // Scrollbar CSS injected once. Döljer även webbläsarens pilar för <input type="number">
   const scrollbarStyle = isDark
     ? `
       .custom-scroll::-webkit-scrollbar { width: 5px; }
       .custom-scroll::-webkit-scrollbar-track { background: transparent; }
       .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
       .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
-      
       input[type="number"]::-webkit-inner-spin-button,
-      input[type="number"]::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-      }
-      input[type="number"] {
-        -moz-appearance: textfield;
-      }
+      input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+      input[type="number"] { -moz-appearance: textfield; }
     `
     : `
       .custom-scroll::-webkit-scrollbar { width: 5px; }
       .custom-scroll::-webkit-scrollbar-track { background: transparent; }
       .custom-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 4px; }
       .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.22); }
-      
       input[type="number"]::-webkit-inner-spin-button,
-      input[type="number"]::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-      }
-      input[type="number"] {
-        -moz-appearance: textfield;
-      }
+      input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+      input[type="number"] { -moz-appearance: textfield; }
     `;
 
   return (
@@ -558,9 +713,10 @@ export default function LogPage() {
                 return (
                   <div key={tab.id} className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full transition-colors duration-300"
-                      style={{ background: done ? "var(--accent-green)" : tab.available ? "var(--border-strong)" : "transparent", border: !done && !tab.available ? "1px solid var(--border-faint)" : "none" }} />
-                    <span className="text-xs whitespace-nowrap" style={{ color: done ? "var(--accent-green)" : tab.available ? "var(--text-secondary)" : "var(--text-faint)", fontFamily: "var(--font-body)" }}>
-                      {tab.label}{!tab.available && " (soon)"}
+                      style={{ background: done ? "var(--accent-green)" : "var(--border-strong)" }} />
+                    <span className="text-xs whitespace-nowrap"
+                      style={{ color: done ? "var(--accent-green)" : "var(--text-secondary)", fontFamily: "var(--font-body)" }}>
+                      {tab.label}
                     </span>
                   </div>
                 );
@@ -580,14 +736,14 @@ export default function LogPage() {
                 {/* Category tabs */}
                 <div className="flex gap-2 mb-8 p-1 rounded-xl" style={{ background: "var(--bg-card-nested)", border: "1px solid var(--border-faint)" }}>
                   {tabs.map((tab) => (
-                    <button key={tab.id} onClick={() => { if (tab.available) setActiveCategory(tab.id); }}
+                    <button key={tab.id} onClick={() => setActiveCategory(tab.id)}
                       className="flex-1 py-2 px-1 sm:px-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap"
                       style={{
                         background: activeCategory === tab.id ? "var(--accent-green-dim)" : "transparent",
                         border: activeCategory === tab.id ? "1px solid var(--accent-green-border)" : "1px solid transparent",
-                        color: activeCategory === tab.id ? "var(--accent-green)" : tab.available ? "var(--text-muted)" : "var(--text-faint)",
+                        color: activeCategory === tab.id ? "var(--accent-green)" : "var(--text-muted)",
                         fontFamily: "var(--font-body)",
-                        cursor: tab.available ? "pointer" : "default",
+                        cursor: "pointer",
                       }}>
                       {tab.label}
                     </button>
@@ -597,9 +753,15 @@ export default function LogPage() {
                 <AnimatePresence mode="wait">
                   <motion.div key={activeCategory} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.22 }}>
-                    {activeCategory === "transport" && <TransportForm dayOffset={dateOffset} onSuccess={() => setRefreshTrigger((p) => p + 1)} />}
-                    {activeCategory === "household" && <HouseholdForm dayOffset={dateOffset} onSuccess={() => setRefreshTrigger((p) => p + 1)} />}
-                    {activeCategory === "clothing" && <ComingSoon category="clothing" />}
+                    {activeCategory === "transport" && (
+                      <TransportForm dayOffset={dateOffset} onSuccess={() => setRefreshTrigger((p) => p + 1)} />
+                    )}
+                    {activeCategory === "household" && (
+                      <HouseholdForm dayOffset={dateOffset} onSuccess={() => setRefreshTrigger((p) => p + 1)} />
+                    )}
+                    {activeCategory === "clothing" && (
+                      <ClothingForm dayOffset={dateOffset} onSuccess={() => setRefreshTrigger((p) => p + 1)} />
+                    )}
                   </motion.div>
                 </AnimatePresence>
 
@@ -617,7 +779,6 @@ export default function LogPage() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="lg:col-span-2">
               <div className="rounded-2xl overflow-hidden flex flex-col" style={{ border: "1px solid var(--border-subtle)", maxHeight: "600px" }}>
 
-                {/* Header */}
                 <div className="px-5 py-4 flex items-center justify-between shrink-0"
                   style={{ background: "var(--bg-card-nested)", borderBottom: "1px solid var(--border-subtle)" }}>
                   <p className="text-sm font-medium" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>
@@ -629,7 +790,6 @@ export default function LogPage() {
                   </span>
                 </div>
 
-                {/* Scrollable list */}
                 <div className="custom-scroll overflow-y-auto flex-1" style={{ background: "var(--bg-card)" }}>
                   {loading ? (
                     <div className="px-5 py-8 text-center">
@@ -647,95 +807,87 @@ export default function LogPage() {
                   ) : (
                     <AnimatePresence initial={false}>
                       {logs.map((log) => {
-                        // Build details string
                         let detailsStr = "Unknown activity";
                         let modeInfo = "";
 
                         const formatLoc = (loc: string) => {
                           if (!loc) return "";
-                          
-                          // Om det bara är ett ord (ex "Sweden"), returnera det.
                           const parts = loc.split(",");
                           if (parts.length === 1) return loc.trim();
-                          
-                          // Annars, ta näst sista delen (oftast staden) och plocka bort eventuella siffror
                           const cityPart = parts[parts.length - 2].trim();
-                          return cityPart.replace(/\d+/g, "").trim() || loc.trim(); 
+                          return cityPart.replace(/\d+/g, "").trim() || loc.trim();
                         };
 
                         if (log.category === "transport") {
                           let startLoc = "";
                           let destLoc = "";
-
-                          // 1. Extrahera Mode
                           if (typeof log.details === "object" && log.details !== null) {
                             modeInfo = (log.details as { transportMode?: string }).transportMode || "";
                             startLoc = (log.details as { start?: string }).start ?? "";
-                            destLoc = (log.details as { destination?: string }).destination ?? "";
+                            destLoc  = (log.details as { destination?: string }).destination ?? "";
                           } else if (typeof log.details === "string") {
-                             // Fallback parsning för gamla formatet om det skulle behövas
-                             const lowerStr = log.details.toLowerCase();
-                             if (lowerStr.includes("electric bus")) modeInfo = "electric_bus";
-                             else if (lowerStr.includes("bus")) modeInfo = "bus";
-                             else if (lowerStr.includes("train")) modeInfo = "train";
-                             else if (lowerStr.includes("bike")) modeInfo = "bike";
-                             else if (lowerStr.includes("walking")) modeInfo = "walking";
-                             else if (lowerStr.includes("plane")) modeInfo = "plane";
-                             else if (lowerStr.includes("electric car")) modeInfo = "electric_car";
-                             else if (lowerStr.includes("car")) modeInfo = "car";
-
-                             const rawStr = log.details.includes(" · ") ? log.details.split(" · ")[1] : log.details;
-                             if (rawStr.includes(" → ")) {
-                               const [s, d] = rawStr.split(" → ");
-                               startLoc = s;
-                               destLoc = d;
-                             }
+                            const lowerStr = log.details.toLowerCase();
+                            if (lowerStr.includes("electric bus")) modeInfo = "electric_bus";
+                            else if (lowerStr.includes("bus")) modeInfo = "bus";
+                            else if (lowerStr.includes("train")) modeInfo = "train";
+                            else if (lowerStr.includes("bike")) modeInfo = "bike";
+                            else if (lowerStr.includes("walking")) modeInfo = "walking";
+                            else if (lowerStr.includes("plane")) modeInfo = "plane";
+                            else if (lowerStr.includes("electric car")) modeInfo = "electric_car";
+                            else if (lowerStr.includes("car")) modeInfo = "car";
+                            const rawStr = log.details.includes(" · ") ? log.details.split(" · ")[1] : log.details;
+                            if (rawStr.includes(" → ")) {
+                              const [s, d] = rawStr.split(" → ");
+                              startLoc = s;
+                              destLoc = d;
+                            }
                           }
-
-                          // 2. Bygg ihop detaljsträngen med formaterad location
                           const route = `${formatLoc(startLoc)} → ${formatLoc(destLoc)}`;
-                          
-                          // Om vi har ett mode, inkludera det i strängen snyggt.
                           if (modeInfo) {
-                             // Snygga till texten ("electric_car" -> "Electric car")
-                             const formattedMode = modeInfo.replace("_", " ");
-                             const finalMode = formattedMode.charAt(0).toUpperCase() + formattedMode.slice(1);
-                             detailsStr = `${finalMode} · ${route}`;
+                            const formattedMode = modeInfo.replace("_", " ");
+                            const finalMode = formattedMode.charAt(0).toUpperCase() + formattedMode.slice(1);
+                            detailsStr = `${finalMode} · ${route}`;
                           } else {
-                             detailsStr = route; // Fallback om mode saknas
+                            detailsStr = route;
                           }
-
                         }
+
                         if (log.category === "shower") {
                           const mins = typeof log.details === "object" ? (log.details as any).minutes : null;
                           detailsStr = `Shower · ${mins ?? 0} min`;
                         }
+
                         if (log.category === "dishwasher") {
                           const eco = typeof log.details === "object" ? (log.details as any).ecoMode : false;
                           detailsStr = eco ? "Dishwasher · Eco mode" : "Dishwasher";
                         }
+
                         if (log.category === "energy") detailsStr = "Energy activity";
-                        
+
                         if (log.category === "washingmachine") {
-  const eco = typeof log.details === "object"
-    ? (log.details as any).ecoMode
-    : false;
+                          const eco  = typeof log.details === "object" ? (log.details as any).ecoMode : false;
+                          const temp = typeof log.details === "object" ? (log.details as any).temperatureCelsius : null;
+                          detailsStr = `Washer${temp ? ` · ${temp}°C` : ""}${eco ? " · Eco mode" : ""}`;
+                        }
 
-  const temp = typeof log.details === "object"
-    ? (log.details as any).temperatureCelsius
-    : null;
+                        if (log.category === "clothing") {
+                          const d    = typeof log.details === "object" ? (log.details as any) : {};
+                          const type = ((d.clothingType ?? "") as string).replace("_", " ");
+                          const mat  = ((d.material    ?? "") as string).replace("_", " ");
+                          const reg  = ((d.productionRegion ?? "") as string);
+                          const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+                          const matLabel  = mat.charAt(0).toUpperCase() + mat.slice(1);
+                          const regLabel  = reg === "local" ? "Sweden" : reg.charAt(0).toUpperCase() + reg.slice(1);
+                          detailsStr = `${typeLabel} · ${matLabel}${regLabel ? ` · ${regLabel}` : ""}`;
+                        }
 
-  detailsStr = `Washer${temp ? ` · ${temp}°C` : ""}${eco ? " · Eco mode" : ""}`;
-}
+                        const catLabel =
+                          log.category === "shower" || log.category === "dishwasher" || log.category === "washingmachine"
+                            ? "household"
+                            : log.category;
 
-                        // Display category label
-                        const catLabel = (log.category === "shower" || log.category === "dishwasher" || log.category === "washingmachine")
-                          ? "household"
-                          : log.category;
-
-                        // Metrics
-                        const co2 = log.co2_kg ?? 0;
-                        const water = log.water_l ?? 0;
+                        const co2    = log.co2_kg     ?? 0;
+                        const water  = log.water_l    ?? 0;
                         const energy = log.energy_kwh ?? 0;
 
                         return (
@@ -743,44 +895,32 @@ export default function LogPage() {
                             exit={{ opacity: 0, x: 24 }} transition={{ duration: 0.2 }}
                             className="px-4 py-4 border-b last:border-b-0"
                             style={{ background: "var(--bg-card-deep)", borderColor: "var(--border-faint)" }}>
-
                             <div className="flex items-start gap-3">
-                              {/* Icon */}
                               <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
                                 style={{ background: "var(--bg-card-nested)" }}>
                                 <CategoryIcon category={log.category} details={log.details} />
                               </div>
-
-                              {/* Content */}
                               <div className="flex-1 min-w-0">
-                                {/* Category + detail */}
                                 <p className="text-xs capitalize mb-0.5" style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
                                   {catLabel}
                                 </p>
                                 <p className="text-sm truncate mb-2" style={{ color: "var(--text-primary)", fontFamily: "var(--font-body)" }}>
                                   {detailsStr}
                                 </p>
-
-                                {/* All three metrics */}
                                 <div className="flex items-center gap-3 flex-wrap">
-                                  {/* CO₂ */}
                                   <span className="text-xs" style={{ color: co2 > 0 ? "#fb923c" : "var(--text-faint)", fontFamily: "var(--font-body)" }}>
                                     {co2 > 0 ? `${co2.toFixed(1)} kg` : "—"}
                                   </span>
                                   <span style={{ color: "var(--border-strong)", fontSize: "10px" }}>·</span>
-                                  {/* Water */}
                                   <span className="text-xs" style={{ color: water > 0 ? "#22d3ee" : "var(--text-faint)", fontFamily: "var(--font-body)" }}>
                                     {water > 0 ? `${Number(water).toFixed(0)} L` : "—"}
                                   </span>
                                   <span style={{ color: "var(--border-strong)", fontSize: "10px" }}>·</span>
-                                  {/* Energy */}
                                   <span className="text-xs" style={{ color: energy > 0 ? "#c084fc" : "var(--text-faint)", fontFamily: "var(--font-body)" }}>
                                     {energy > 0 ? `${Number(energy).toFixed(2)} kWh` : "—"}
                                   </span>
                                 </div>
                               </div>
-
-                              {/* Delete */}
                               <div className="shrink-0 flex items-center self-start mt-0.5">
                                 {deleteConfirm === log.id ? (
                                   <div className="flex gap-1">
@@ -815,16 +955,6 @@ export default function LogPage() {
         </div>
       </main>
       <BottomNav />
-    </div>
-  );
-}
-
-/* ─── Coming soon placeholder ─── */
-function ComingSoon({ category }: { category: string }) {
-  return (
-    <div className="p-6 rounded-xl text-center" style={{ background: "var(--bg-card-deep)", border: "1px solid var(--border-faint)", color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
-      <p className="text-sm font-medium">{category.charAt(0).toUpperCase() + category.slice(1)} features coming soon.</p>
-      <p className="text-xs mt-2">We are working on adding this category. Check back later!</p>
     </div>
   );
 }

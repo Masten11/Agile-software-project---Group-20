@@ -3,11 +3,11 @@ import { DayOffset } from './day_offset';
 
 
 export enum Category {
-  Transportation = 'transport', //Add more categories here
+  Transportation = 'transport',
   Shower = 'shower',
   Dishwasher = 'dishwasher',
   WashingMachine = 'washingmachine',
-  Clothes = 'clothes',
+  Clothing = 'clothing',          // ← add
 }
 
 export type LogHabitRequest = {
@@ -61,7 +61,7 @@ export interface HabitHandler<Parsed, TExtra> {
 /// Input types for log-habit endpoint
 ////////////////////////////7
 
-export type TransportMode = 'car' | 'bus' | 'train' | 'plane' | 'bike'|'electric_car'|'walking'|'electric_bus'; // Lägg till fler transportmedel efter behov
+export type TransportMode = 'car' | 'bus' | 'train' | 'plane' | 'bike' | 'electric_car' | "electric_bus" |'walking'; // Lägg till fler transportmedel efter behov
 
 export interface TransportationInput {
   start: string;

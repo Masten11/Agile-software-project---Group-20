@@ -54,7 +54,36 @@ export interface EcoActivity {
         if (act.details?.ecoMode === 'true') bonus = 10;
         if (dishwasherCount > 2) penalty += (dishwasherCount - 2) * 5;
       }
-  
+      
+            // WASHING MACHINE RULES
+      if (act.category === 'washingmachine') {
+        if (act.details?.ecoMode === true) bonus += 10;
+
+        const temperature = parseFloat(act.details?.temperatureCelsius || 0);
+        if (temperature <= 30) bonus += 5;
+        else if (temperature >= 60) penalty += 15;
+      }
+
+            // CLOTHES RULES
+      if (act.category === 'clothes') {
+        const material = act.details?.material;
+        const productionRegion = act.details?.productionRegion;
+
+        if (material === 'organic_cotton' || material === 'recycled_polyester' || material === 'linen') {
+          bonus += 10;
+        }
+
+        if (material === 'leather' || material === 'wool') {
+          penalty += 15;
+        }
+
+        if (productionRegion === 'local') {
+          bonus += 5;
+        } else if (productionRegion === 'asia' || productionRegion === 'other') {
+          penalty += 5;
+        }
+      }
+
       // TRANSPORT RULES
       if (act.category === 'transport' && act.details?.transportMode) {
         const mode = act.details.transportMode;
