@@ -5,7 +5,7 @@ export function getEnergyTip(category: string, rows: ActivityRow[], weeklyTotal:
     case 'shower':     return getShowerEnergyTip(rows, weeklyTotal);
     case 'dishwasher': return getDishwasherEnergyTip(rows, weeklyTotal);
     case 'washingmachine': return getWashingMachineEnergyTip(rows, weeklyTotal); // No specific tip for washing machine yet
-    case 'clothes':     return null; // No specific tip for clothes yet
+    case 'transport':     return null; // No specific tip for transport in energy yet
     default:           return null;
   }
 }
@@ -61,6 +61,18 @@ function getWashingMachineEnergyTip(rows: ActivityRow[], weeklyTotal: number): s
   return `Your washing machine used ${Math.round(totalEnergy * 10) / 10} kWh this week. Full loads and lower temperatures are the most effective ways to reduce energy consumption.`;
 }
 
-function getClothesEnergyTip(rows: ActivityRow[], weeklyTotal: number): string | null {
-  return null; // No specific tip for clothes yet
-} 
+function getTransportEnergyTip(rows: ActivityRow[], weeklyTotal: number): string | null {
+  const totalEnergy = rows.reduce((sum, r) => sum + r.energy_kwh, 0);
+  if (totalEnergy < 0.5) return null;
+
+  const roundedEnergy = Math.round(totalEnergy * 10) / 10;
+  const modes = rows.map(r => r.details?.transportMode as string | undefined).filter(Boolean);
+  const hasElectricBus = modes.some(m => m === 'electric_bus');
+  const hasElectricCar = modes.some(m => m === 'electric_car');
+
+  if (hasElectricBus || hasElectricCar) {
+    return `Your biggest energy source this week is electric transport, using ${roundedEnergy} kWh. Great choice over fuel-powered vehicles! For shorter distances, cycling uses no energy at all.`;
+  }
+
+  return `Your transport used ${roundedEnergy} kWh this week. Switching to electric bus or train is more energy-efficient than fuel — and cycling is the best option for shorter distances.`;
+}
