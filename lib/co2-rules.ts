@@ -7,8 +7,8 @@ export function getCo2Tip(category: string, rows: ActivityRow[]): string | null 
     case 'transport':  return getTransportCo2Tip(rows);
     case 'shower':     return getShowerCo2Tip(rows);
     case 'dishwasher': return getDishwasherCo2Tip(rows);
-    case 'washingmachine': return getWashingMachineCo2Tip(rows); // No specific tip for washing machine yet
-    case 'clothes':     return null; // No specific tip for clothes yet
+    case 'washingmachine': return getWashingMachineCo2Tip(rows); 
+    case 'clothes':     return getClothesCo2Tip(rows); 
     default:           return null;
   }
 }
@@ -81,5 +81,11 @@ function getWashingMachineCo2Tip(rows: ActivityRow[]): string | null {
 
 
 function getClothesCo2Tip(rows: ActivityRow[]): string | null {
-  return null; // No specific tip for clothes yet
+  const totalCo2 = rows.reduce((sum, r) => sum + r.co2_kg, 0);
+  if (totalCo2 < 1) return null;
+
+  const itemCount = rows.length;
+  const roundedCo2 = Math.round(totalCo2 * 10) / 10;
+
+  return `You bought ${itemCount} clothing item${itemCount !== 1 ? 's' : ''} this week, contributing ${roundedCo2} kg of CO₂. Buying second-hand on Vinted produces up to 70% less CO₂ than buying new.`;
 }
