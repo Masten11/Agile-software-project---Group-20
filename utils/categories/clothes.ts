@@ -8,17 +8,28 @@ export type ClothingType = 'tshirt' | 'jeans' | 'hoodie' | 'jacket' | 'dress' | 
 export type ClothingMaterial = 'cotton' | 'organic_cotton' | 'polyester' | 'recycled_polyester' | 'wool' | 'leather' | 'linen' | 'mixed';
 export type ProductionRegion = 'local' | 'europe' | 'asia' | 'other';
 
-interface ClothesParsedInput {
+// secondHand: true  → material and productionRegion are not needed
+// secondHand: false → material and productionRegion are required
+type ClothesNewInput = {
   clothingType: ClothingType;
+  secondHand: false;
   material: ClothingMaterial;
   productionRegion: ProductionRegion;
-}
+};
+ 
+type ClothesSecondHandInput = {
+  clothingType: ClothingType;
+  secondHand: true;
+};
+ 
+type ClothesParsedInput = ClothesNewInput | ClothesSecondHandInput;
 
 type ClothesExtra = {
   weightKg: number;
-  co2PerKg: number;
-  waterPerKg: number;
-  transportMultiplier: number;
+  secondHand: boolean;
+  co2PerKg: number | null;
+  waterPerKg: number | null;
+  transportMultiplier: number | null;
 };
 
 // Lookup tables
@@ -78,97 +89,136 @@ const REGION_TRANSPORT_MULTIPLIER: Record<ProductionRegion, number> = {
   other:   1.12,
 };
 
-// ─── Valid sets ───────────────────────────────────────────────────────────────
+/**
+ * Second hand residual CO₂ factor.
+ * ~5% of weight-based manufacturing CO₂ to account for transport
+ * to thrift store and processing. No water since no textile is produced.
+ * Uses a fixed base of 10 kg CO₂/kg (roughly average across materials).
+ */
+const SECOND_HAND_CO2_PER_KG = 0.5; // 10 * 0.05
+const SECOND_HAND_WATER_L = 0;
 
-const VALID_CLOTHING_TYPES = new Set<ClothingType>(['tshirt', 'jeans', 'hoodie', 'jacket', 'dress', 'shoes']);
-const VALID_MATERIALS = new Set<ClothingMaterial>(['cotton', 'organic_cotton', 'polyester', 'recycled_polyester', 'wool', 'leather', 'linen', 'mixed']);
-const VALID_REGIONS = new Set<ProductionRegion>(['local', 'europe', 'asia', 'other']);
+// Valid sets
+const VALID_CLOTHING_TYPES = new Set<string>(['tshirt', 'jeans', 'hoodie', 'jacket', 'dress', 'shoes']);
+const VALID_MATERIALS = new Set<string>(['cotton', 'organic_cotton', 'polyester', 'recycled_polyester', 'wool', 'leather', 'linen', 'mixed']);
+const VALID_REGIONS = new Set<string>(['local', 'europe', 'asia', 'other']);
 
-// ─── Validation ───────────────────────────────────────────────────────────────
+// Validation
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
-
+ 
 function isClothesInput(value: unknown): value is ClothesParsedInput {
   if (!isObject(value)) return false;
-
+  if (typeof value.clothingType !== 'string') return false;
+  if (!VALID_CLOTHING_TYPES.has(value.clothingType)) return false;
+  if (typeof value.secondHand !== 'boolean') return false;
+ 
+  if (value.secondHand === true) {
+    // No further fields required
+    return true;
+  }
+ 
+  // secondHand === false: material and region are required
   return (
-    typeof value.clothingType === 'string' &&
-    VALID_CLOTHING_TYPES.has(value.clothingType as ClothingType) &&
     typeof value.material === 'string' &&
-    VALID_MATERIALS.has(value.material as ClothingMaterial) &&
+    VALID_MATERIALS.has(value.material) &&
     typeof value.productionRegion === 'string' &&
-    VALID_REGIONS.has(value.productionRegion as ProductionRegion)
+    VALID_REGIONS.has(value.productionRegion)
   );
 }
-
+ 
 function parseClothesInput(raw: unknown): ClothesParsedInput {
   if (!isClothesInput(raw)) {
     throw new InvalidPayloadError();
   }
   return raw;
 }
-
-// ─── Calculation ──────────────────────────────────────────────────────────────
+ 
+// Calculation
 
 async function calculateClothesMetrics(
   data: ClothesParsedInput
 ): Promise<CalculationResult<ClothesExtra>> {
-  const { clothingType, material, productionRegion } = data;
-
-  const weightKg            = CLOTHING_WEIGHT_KG[clothingType];
-  const co2PerKg            = MATERIAL_CO2_PER_KG[material];
-  const waterPerKg          = MATERIAL_WATER_PER_KG[material];
-  const transportMultiplier = REGION_TRANSPORT_MULTIPLIER[productionRegion];
-
-  const co2Kg    = weightKg * co2PerKg * transportMultiplier;
-  const waterL   = weightKg * waterPerKg;
-  // Clothes manufacturing is energy-intensive but we track it via CO₂;
-  // energy_kwh is left at 0 to keep the schema consistent with other handlers.
-  const energyKwh = 0;
-
+  const weightKg = CLOTHING_WEIGHT_KG[data.clothingType];
+ 
+  if (data.secondHand) {
+    const co2Kg  = weightKg * SECOND_HAND_CO2_PER_KG;
+    const waterL = SECOND_HAND_WATER_L;
+ 
+    return {
+      metrics: {
+        co2_kg:     Number(co2Kg.toFixed(3)),
+        water_l:    waterL,
+        energy_kwh: 0,
+      },
+      extra: {
+        weightKg,
+        secondHand:          true,
+        co2PerKg:            SECOND_HAND_CO2_PER_KG,
+        waterPerKg:          0,
+        transportMultiplier: null,
+      },
+    };
+  }
+ 
+  // New item
+  const co2PerKg            = MATERIAL_CO2_PER_KG[data.material];
+  const waterPerKg          = MATERIAL_WATER_PER_KG[data.material];
+  const transportMultiplier = REGION_TRANSPORT_MULTIPLIER[data.productionRegion];
+ 
+  const co2Kg  = weightKg * co2PerKg * transportMultiplier;
+  const waterL = weightKg * waterPerKg;
+ 
   return {
     metrics: {
       co2_kg:     Number(co2Kg.toFixed(3)),
       water_l:    Number(waterL.toFixed(1)),
-      energy_kwh: energyKwh,
+      energy_kwh: 0,
     },
     extra: {
       weightKg,
+      secondHand:          false,
       co2PerKg,
       waterPerKg,
       transportMultiplier,
     },
   };
 }
-
-// ─── Storage ──────────────────────────────────────────────────────────────────
+ 
+// Storage
 
 async function storeClothesResult(
   args: StoreHabitArgs<ClothesParsedInput, ClothesExtra>
 ) {
   const { userId, supabase, category, metrics, parsed, extra, day } = args;
-
+ 
+  const details: Record<string, unknown> = {
+    clothingType: parsed.clothingType,
+    secondHand:   parsed.secondHand,
+    weightKg:     extra.weightKg,
+  };
+ 
+  if (!parsed.secondHand) {
+    details.material            = parsed.material;
+    details.productionRegion    = parsed.productionRegion;
+    details.co2PerKg            = extra.co2PerKg;
+    details.waterPerKg          = extra.waterPerKg;
+    details.transportMultiplier = extra.transportMultiplier;
+  }
+ 
   return storeEcoActivity({
     userId,
     supabase,
     category,
     metrics,
     day,
-    details: {
-      clothingType:        parsed.clothingType,
-      material:            parsed.material,
-      productionRegion:    parsed.productionRegion,
-      weightKg:            extra.weightKg,
-      co2PerKg:            extra.co2PerKg,
-      waterPerKg:          extra.waterPerKg,
-      transportMultiplier: extra.transportMultiplier,
-    },
+    details,
   });
 }
-
-// ─── Export ───────────────────────────────────────────────────────────────────
+ 
+// Export
 
 export const clothesHandler: HabitHandler<ClothesParsedInput, ClothesExtra> = {
   parse: parseClothesInput,
