@@ -5,7 +5,7 @@ export function getEnergyTip(category: string, rows: ActivityRow[], weeklyTotal:
     case 'shower':     return getShowerEnergyTip(rows, weeklyTotal);
     case 'dishwasher': return getDishwasherEnergyTip(rows, weeklyTotal);
     case 'washingmachine': return getWashingMachineEnergyTip(rows, weeklyTotal); // No specific tip for washing machine yet
-    case 'transport':     return null; // No specific tip for transport in energy yet
+    case 'transport':     return getTransportEnergyTip(rows, weeklyTotal); // No specific tip for transport in energy yet
     default:           return null;
   }
 }
