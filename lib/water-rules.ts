@@ -8,7 +8,7 @@ export function getWaterTip(category: string, rows: ActivityRow[], weeklyTotal: 
     case 'shower':     return getShowerWaterTip(rows, weeklyTotal);
     case 'dishwasher': return getDishwasherWaterTip(rows, weeklyTotal);
     case 'washingmachine': return getWashingMachineWaterTip(rows, weeklyTotal); // No specific tip for washing machine yet
-    case 'clothes':     return getClothesWaterTip(rows, weeklyTotal); // No specific tip for clothes yet
+    case 'clothing':     return getClothesWaterTip(rows, weeklyTotal); // No specific tip for clothes yet
     default:           return null;
   }
 }
@@ -67,7 +67,7 @@ function getClothesWaterTip(rows: ActivityRow[], weeklyTotal: number): string | 
   const roundedWater = Math.round(totalWater);
   const cottonItems = rows.filter(r => r.details?.material === 'cotton');
 
-  let tip = `You bought ${itemCount} clothing item${itemCount !== 1 ? 's' : ''} this week, using ${roundedWater} liters of water in production. Buying second-hand on Vinted eliminates production water use entirely.`;
+  let tip = `You bought ${itemCount} clothing item${itemCount !== 1 ? 's' : ''} this week, using ${roundedWater} liters of water in production. Buying second-hand eliminates production water use entirely.`;
 
   if (cottonItems.length > 0) {
     tip += ` ${cottonItems.length} of your item${cottonItems.length !== 1 ? 's' : ''} ${cottonItems.length !== 1 ? 'were' : 'was'} made from cotton — one of the most water-intensive materials. Consider linen or recycled polyester as lower-impact alternatives.`;
