@@ -4,30 +4,32 @@ import { parseLogHabitRequest } from '../../../utils/payload_parsing';
 import { InvalidPayloadError, UnsupportedCategoryError } from '../../../utils/custom-errors';
 import { getHabitHandler } from '../../../utils/habit-handlers';
 import { resolveDayFromOffset } from '../../../utils/day_offset';
-import { calculateAndLogUserEcoScore } from '../../../lib/eco-score'; 
+
+// IMPORT the separated functions
+import { 
+  calculateUserEcoScore, 
+  logDailyScores, 
+  updateUserProfile 
+} from '../../../lib/eco-score'; 
 
 export async function POST(request: NextRequest) {
   try {
-    // Skapa Supabase-klienten och validera att användaren är inloggad
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json(
         { error: 'you have not logged in' },
-        { status: 401 } // 401 Unauthorized
+        { status: 401 }
       );
     }
 
-
     const rawBody = await request.json();
-
-    // Confirms data is of type { category: Category, dayOffset: 0 | 1, body: unknown }
     const payload = parseLogHabitRequest(rawBody);
     const day = resolveDayFromOffset(payload.dayOffset);
 
     const handler = getHabitHandler(payload.category);
-    const parsed = handler.parse(payload.body); // Assures that the body is of the correct type for the category
-    const { metrics, extra } = await handler.calculate(parsed); // Calculates the metrics and extra data for the category
+    const parsed = handler.parse(payload.body); 
+    const { metrics, extra } = await handler.calculate(parsed); 
     
     const result = await handler.store({
       parsed, 
@@ -39,15 +41,20 @@ export async function POST(request: NextRequest) {
       day,
     }); 
 
-    const newScore = await calculateAndLogUserEcoScore(user.id, supabase);
+    // 1. Calculate the scores (No database writes here)
+    const { currentScore, dailyScores } = await calculateUserEcoScore(user.id, supabase);
 
+    // 2. Log the history to eco_score_log
+    await logDailyScores(user.id, dailyScores, supabase);
 
-    // Return the saved row from the database
+    // 3. Update the user's current score in profiles
+    await updateUserProfile(user.id, currentScore, supabase);
+
     return NextResponse.json({
       success: true,
       message: 'Habit entry created.',
       data: result,
-      eco_score: newScore,
+      eco_score: currentScore,
     }, { status: 201 });
 
   } 
@@ -59,7 +66,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Unhandled error
     const message = error instanceof Error ? error.message : 'server error';
     console.error('API Error:', error);
     return NextResponse.json(

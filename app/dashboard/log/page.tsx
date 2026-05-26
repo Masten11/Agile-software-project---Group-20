@@ -379,8 +379,10 @@ function HouseholdForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucc
 }
 
 /* ─── Clothing form ─── */
+/* ─── Clothing form (FIXED) ─── */
 function ClothingForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSuccess: () => void }) {
   const [clothingType, setClothingType] = useState<ClothingType | "">("");
+  const [secondHand, setSecondHand]     = useState(false);  // ← ADD THIS
   const [material, setMaterial]         = useState<ClothingMaterial | "">("");
   const [materialOpen, setMaterialOpen] = useState(false);
   const [region, setRegion]             = useState<ProductionRegion | "">("");
@@ -422,22 +424,30 @@ function ClothingForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucce
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!clothingType || !material || !region) return;
+    if (!clothingType) return;
+    
+    // Validate based on secondHand status
+    if (secondHand === false && (!material || !region)) return;
+    
     setSubmitting(true);
     setError(null);
     try {
+      const body = secondHand 
+        ? { clothingType, secondHand: true }
+        : { clothingType, secondHand: false, material, productionRegion: region };
+      
       const response = await fetch("/api/log-habit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category: "clothing",
           dayOffset,
-          body: { clothingType, material, productionRegion: region },
+          body,
         }),
       });
       const result = await response.json();
       if (!response.ok) { setError(result.error || "Something went wrong"); return; }
-      setClothingType(""); setMaterial(""); setRegion("");
+      setClothingType(""); setSecondHand(false); setMaterial(""); setRegion("");
       onSuccess();
     } catch { setError("Failed to log habit. Please try again."); }
     finally { setSubmitting(false); }
@@ -445,6 +455,38 @@ function ClothingForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucce
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+
+      {/* New vs Second-hand toggle */}
+      <div>
+        <p className="text-xs tracking-widest uppercase mb-3"
+          style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+          Item condition
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button"
+            onClick={() => { setSecondHand(false); setError(null); }}
+            className="py-3 rounded-xl text-xs font-medium transition-all duration-200"
+            style={{
+              background: secondHand === false ? "var(--accent-green-dim)" : "var(--bg-card)",
+              border: secondHand === false ? "1px solid var(--accent-green-border)" : "1px solid var(--border-subtle)",
+              color: secondHand === false ? "var(--accent-green)" : "var(--text-secondary)",
+              fontFamily: "var(--font-body)",
+            }}>
+            New
+          </button>
+          <button type="button"
+            onClick={() => { setSecondHand(true); setError(null); }}
+            className="py-3 rounded-xl text-xs font-medium transition-all duration-200"
+            style={{
+              background: secondHand === true ? "var(--accent-green-dim)" : "var(--bg-card)",
+              border: secondHand === true ? "1px solid var(--accent-green-border)" : "1px solid var(--border-subtle)",
+              color: secondHand === true ? "var(--accent-green)" : "var(--text-secondary)",
+              fontFamily: "var(--font-body)",
+            }}>
+            Second-hand
+          </button>
+        </div>
+      </div>
 
       {/* Clothing type — icon buttons */}
       <div>
@@ -473,78 +515,86 @@ function ClothingForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucce
         </div>
       </div>
 
-      {/* Material — dropdown */}
-      <div>
-        <p className="text-xs tracking-widest uppercase mb-3"
-          style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
-          Material
-        </p>
-        <div className="relative">
-          <button type="button" onClick={() => setMaterialOpen(!materialOpen)}
-            className="w-full flex items-center justify-between px-5 py-4 rounded-2xl text-sm"
-            style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border-subtle)",
-              color: material ? "var(--text-primary)" : "var(--text-muted)",
-              fontFamily: "var(--font-body)",
-            }}>
-            {selectedMaterialLabel || "Select material"}
-            <span className={`transition-transform duration-200 ${materialOpen ? "rotate-180" : ""}`}>↓</span>
-          </button>
-          <AnimatePresence>
-            {materialOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                transition={{ duration: 0.15 }}
-                className="absolute left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50 shadow-xl custom-scroll"
-                style={{
-                  background: "var(--bg-elevated)",
-                  border: "1px solid var(--border-subtle)",
-                  maxHeight: "260px",
-                  overflowY: "auto",
-                }}>
-                {materials.map((m) => (
-                  <button key={m.value} type="button"
-                    onClick={() => { setMaterial(m.value); setMaterialOpen(false); setError(null); }}
-                    className="w-full px-5 py-3 text-left text-sm transition-all duration-150 cursor-pointer"
+      {/* Material & Region — only show if NOT second-hand */}
+      <AnimatePresence>
+        {secondHand === false && (
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-5">
+            
+            {/* Material — dropdown */}
+            <div>
+              <p className="text-xs tracking-widest uppercase mb-3"
+                style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+                Material
+              </p>
+              <div className="relative">
+                <button type="button" onClick={() => setMaterialOpen(!materialOpen)}
+                  className="w-full flex items-center justify-between px-5 py-4 rounded-2xl text-sm"
+                  style={{
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border-subtle)",
+                    color: material ? "var(--text-primary)" : "var(--text-muted)",
+                    fontFamily: "var(--font-body)",
+                  }}>
+                  {selectedMaterialLabel || "Select material"}
+                  <span className={`transition-transform duration-200 ${materialOpen ? "rotate-180" : ""}`}>↓</span>
+                </button>
+                <AnimatePresence>
+                  {materialOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50 shadow-xl custom-scroll"
+                      style={{
+                        background: "var(--bg-elevated)",
+                        border: "1px solid var(--border-subtle)",
+                        maxHeight: "260px",
+                        overflowY: "auto",
+                      }}>
+                      {materials.map((m) => (
+                        <button key={m.value} type="button"
+                          onClick={() => { setMaterial(m.value); setMaterialOpen(false); setError(null); }}
+                          className="w-full px-5 py-3 text-left text-sm transition-all duration-150 cursor-pointer"
+                          style={{
+                            color: material === m.value ? "var(--accent-green)" : "var(--text-secondary)",
+                            background: material === m.value ? "var(--accent-green-subtle)" : "transparent",
+                            fontFamily: "var(--font-body)",
+                          }}>
+                          {m.label}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* Production region — 2-col grid to fit "Local (Sweden)" */}
+            <div>
+              <p className="text-xs tracking-widest uppercase mb-3"
+                style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+                Made in
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {regions.map((r) => (
+                  <button key={r.value} type="button"
+                    onClick={() => { setRegion(r.value); setError(null); }}
+                    className="py-3 rounded-xl text-xs font-medium transition-all duration-200"
                     style={{
-                      color: material === m.value ? "var(--accent-green)" : "var(--text-secondary)",
-                      background: material === m.value ? "var(--accent-green-subtle)" : "transparent",
+                      background: region === r.value ? "var(--accent-green-dim)" : "var(--bg-card)",
+                      border: region === r.value ? "1px solid var(--accent-green-border)" : "1px solid var(--border-subtle)",
+                      color: region === r.value ? "var(--accent-green)" : "var(--text-secondary)",
                       fontFamily: "var(--font-body)",
                     }}>
-                    {m.label}
+                    {r.label}
                   </button>
                 ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* Production region — 2-col grid to fit "Local (Sweden)" */}
-      <div>
-        <p className="text-xs tracking-widest uppercase mb-3"
-          style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
-          Made in
-        </p>
-        <div className="grid grid-cols-2 gap-2">
-          {regions.map((r) => (
-            <button key={r.value} type="button"
-              onClick={() => { setRegion(r.value); setError(null); }}
-              className="py-3 rounded-xl text-xs font-medium transition-all duration-200"
-              style={{
-                background: region === r.value ? "var(--accent-green-dim)" : "var(--bg-card)",
-                border: region === r.value ? "1px solid var(--accent-green-border)" : "1px solid var(--border-subtle)",
-                color: region === r.value ? "var(--accent-green)" : "var(--text-secondary)",
-                fontFamily: "var(--font-body)",
-              }}>
-              {r.label}
-            </button>
-          ))}
-        </div>
-      </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {error && (
@@ -553,7 +603,7 @@ function ClothingForm({ dayOffset, onSuccess }: { dayOffset: DateOffset; onSucce
         )}
       </AnimatePresence>
 
-      <SubmitBtn disabled={!clothingType || !material || !region} loading={submitting} />
+      <SubmitBtn disabled={!clothingType || (secondHand === false && (!material || !region))} loading={submitting} />
     </form>
   );
 }

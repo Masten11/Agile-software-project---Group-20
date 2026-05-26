@@ -3,7 +3,9 @@ import { createClient } from '../../../lib/supabaseServer';
 import { parseUnlogHabitRequest } from '../../../utils/payload_parsing';
 import { unlogHabit } from '../../../utils/unlog-habit';
 import { EmissionNotFoundError, InvalidPayloadError } from '../../../utils/custom-errors';
-import { calculateAndLogUserEcoScore} from '../../../lib/eco-score';
+
+// 1. Make sure to import logDailyScores!
+import { calculateUserEcoScore, logDailyScores, updateUserProfile } from '../../../lib/eco-score';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,12 +23,19 @@ export async function POST(request: NextRequest) {
     // May throw EmissionNotFoundError
     await unlogHabit(payload.id, user.id, supabase);
 
-    const newScore = await calculateAndLogUserEcoScore(user.id, supabase);
+    // 2. Unpack the object into two separate variables using { }
+    const { currentScore, dailyScores } = await calculateUserEcoScore(user.id, supabase);
+
+    // 3. Log the updated daily history (important when removing a habit!)
+    await logDailyScores(user.id, dailyScores, supabase);
+
+    // 4. Update the profile with the integer
+    await updateUserProfile(user.id, currentScore, supabase);
    
     return NextResponse.json({
       success: true,
       message: 'Emission entry removed.',
-      eco_score: newScore,
+      eco_score: currentScore, // <-- Make sure to use currentScore here
     }, { status: 200 });
 
   } 
